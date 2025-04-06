@@ -9,6 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         .sidebar {
             transition: all 0.3s;
@@ -58,6 +59,15 @@
             50% {
                 opacity: 0.5;
             }
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .select2 {
+            width: 100% !important;
         }
     </style>
 </head>
@@ -118,6 +128,10 @@
                         <i class="fas fa-users mr-3"></i>
                         <span class="sidebar-text">Membres</span>
                     </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-file-invoice-dollar mr-3"></i>
+                        <span class="sidebar-text">Facturation</span>
+                    </a>
                 </div>
                 
                 <div class="p-2 mt-auto border-t border-indigo-700">
@@ -141,10 +155,54 @@
                     
                     <div class="flex items-center space-x-4">
                         <div class="relative">
-                            <button class="p-2 rounded-full hover:bg-gray-100">
+                            <button id="notificationButton" class="p-2 rounded-full hover:bg-gray-100">
                                 <i class="fas fa-bell text-gray-600"></i>
                                 <span class="notification-badge bg-red-500 text-white">3</span>
                             </button>
+                            <!-- Notification dropdown -->
+                            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                                <div class="px-4 py-2 border-b border-gray-200">
+                                    <h3 class="text-sm font-medium text-gray-900">Notifications</h3>
+                                </div>
+                                <div class="max-h-60 overflow-y-auto">
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 pt-1">
+                                                <i class="fas fa-exclamation-circle text-red-500"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm font-medium">Dépassement budget événements</p>
+                                                <p class="text-xs text-gray-500">Il y a 2 heures</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100">
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 pt-1">
+                                                <i class="fas fa-hand-holding-usd text-green-500"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm font-medium">Nouveau don reçu</p>
+                                                <p class="text-xs text-gray-500">Aujourd'hui, 09:30</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 pt-1">
+                                                <i class="fas fa-user-plus text-blue-500"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm font-medium">Nouveau membre en attente</p>
+                                                <p class="text-xs text-gray-500">Hier, 18:45</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="px-4 py-2 border-t border-gray-200">
+                                    <a href="#" class="text-xs text-indigo-600 hover:underline">Voir toutes les notifications</a>
+                                </div>
+                            </div>
                         </div>
                         <div class="dropdown relative">
                             <button class="flex items-center space-x-2 focus:outline-none">
@@ -168,7 +226,7 @@
             <main class="p-6">
                 <!-- Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white rounded-lg shadow p-6">
+                    <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500">Solde actuel</p>
@@ -179,9 +237,12 @@
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">+12.5% depuis le mois dernier</p>
+                        <div class="mt-3 h-2 w-full bg-gray-200 rounded-full">
+                            <div class="h-2 bg-green-500 rounded-full" style="width: 65%"></div>
+                        </div>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow p-6">
+                    <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500">Dons ce mois</p>
@@ -192,9 +253,12 @@
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">+8.2% depuis le mois dernier</p>
+                        <div class="mt-3 h-2 w-full bg-gray-200 rounded-full">
+                            <div class="h-2 bg-blue-500 rounded-full" style="width: 45%"></div>
+                        </div>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow p-6">
+                    <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500">Dépenses ce mois</p>
@@ -205,9 +269,12 @@
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">-5.3% depuis le mois dernier</p>
+                        <div class="mt-3 h-2 w-full bg-gray-200 rounded-full">
+                            <div class="h-2 bg-red-500 rounded-full" style="width: 35%"></div>
+                        </div>
                     </div>
                     
-                    <div class="bg-white rounded-lg shadow p-6">
+                    <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500">Budget restant</p>
@@ -218,18 +285,27 @@
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">75% du budget annuel</p>
+                        <div class="mt-3 h-2 w-full bg-gray-200 rounded-full">
+                            <div class="h-2 bg-yellow-500 rounded-full" style="width: 75%"></div>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Charts and Recent Transactions -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                     <!-- Income vs Expenses Chart -->
-                    <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+                    <div class="bg-white rounded-lg shadow p-6 lg:col-span-2 hover:shadow-md transition">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-semibold text-gray-800">Revenus vs Dépenses</h2>
                             <div class="flex space-x-2">
-                                <button class="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full">Mensuel</button>
-                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Annuel</button>
+                                <select id="chartPeriod" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="month">Mensuel</option>
+                                    <option value="quarter">Trimestriel</option>
+                                    <option value="year">Annuel</option>
+                                </select>
+                                <button id="exportChart" class="p-1 text-gray-500 hover:text-indigo-600">
+                                    <i class="fas fa-download"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="chart-container">
@@ -237,30 +313,71 @@
                         </div>
                     </div>
                     
-                    <!-- Quick Actions -->
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Actions rapides</h2>
-                        <div class="space-y-3">
-                            <button class="w-full flex items-center justify-between p-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition">
-                                <span>Ajouter une dépense</span>
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button class="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition">
-                                <span>Enregistrer un don</span>
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button id="generatePdf" class="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
-                                <span>Générer PDF</span>
-                                <i class="fas fa-file-pdf"></i>
-                            </button>
-                            <button id="generateExcel" class="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition">
-                                <span>Exporter Excel</span>
-                                <i class="fas fa-file-excel"></i>
-                            </button>
-                            <button class="w-full flex items-center justify-between p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition">
-                                <span>Créer une alerte</span>
-                                <i class="fas fa-bell"></i>
-                            </button>
+                    <!-- Quick Actions and Budget Overview -->
+                    <div class="space-y-6">
+                        <!-- Quick Actions -->
+                        <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Actions rapides</h2>
+                            <div class="space-y-3">
+                                <button id="addExpenseBtn" class="w-full flex items-center justify-between p-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition">
+                                    <span>Ajouter une dépense</span>
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button id="addDonationBtn" class="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition">
+                                    <span>Enregistrer un don</span>
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button id="generatePdf" class="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
+                                    <span>Générer PDF</span>
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                                <button id="generateExcel" class="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition">
+                                    <span>Exporter Excel</span>
+                                    <i class="fas fa-file-excel"></i>
+                                </button>
+                                <button id="addAlertBtn" class="w-full flex items-center justify-between p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition">
+                                    <span>Créer une alerte</span>
+                                    <i class="fas fa-bell"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Budget Overview -->
+                        <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Répartition du budget</h2>
+                            <div class="chart-container">
+                                <div id="budgetPieChart"></div>
+                            </div>
+                            <div class="mt-4 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></div>
+                                        <span class="text-sm">Événements</span>
+                                    </div>
+                                    <span class="text-sm font-medium">1,200 €</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                        <span class="text-sm">Fournitures</span>
+                                    </div>
+                                    <span class="text-sm font-medium">850 €</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                        <span class="text-sm">Communication</span>
+                                    </div>
+                                    <span class="text-sm font-medium">600 €</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                                        <span class="text-sm">Divers</span>
+                                    </div>
+                                    <span class="text-sm font-medium">350 €</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -268,157 +385,230 @@
                 <!-- Recent Transactions and Budget Alerts -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Recent Transactions -->
-                    <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+                    <div class="bg-white rounded-lg shadow p-6 lg:col-span-2 hover:shadow-md transition">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-semibold text-gray-800">Dernières transactions</h2>
-                            <a href="#" class="text-sm text-indigo-600 hover:underline">Voir tout</a>
+                            <div class="flex space-x-2">
+                                <button id="filterTransactions" class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">
+                                    <i class="fas fa-filter mr-1"></i> Filtrer
+                                </button>
+                                <a href="#" class="text-sm text-indigo-600 hover:underline">Voir tout</a>
+                            </div>
                         </div>
                         
-                        <div class="space-y-3">
-                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex items-center">
-                                        <div class="p-2 rounded-full bg-red-100 text-red-600 mr-3">
-                                            <i class="fas fa-utensils"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">Repas annuel</p>
-                                            <p class="text-sm text-gray-500">Catégorie: Événements</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium text-red-600">-120.50 €</p>
-                                        <p class="text-sm text-gray-500">15/06/2023</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex items-center">
-                                        <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
-                                            <i class="fas fa-hand-holding-usd"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">Don anonyme</p>
-                                            <p class="text-sm text-gray-500">Catégorie: Dons</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium text-green-600">+500.00 €</p>
-                                        <p class="text-sm text-gray-500">12/06/2023</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex items-center">
-                                        <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
-                                            <i class="fas fa-tools"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">Matériel bureau</p>
-                                            <p class="text-sm text-gray-500">Catégorie: Fournitures</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium text-red-600">-45.30 €</p>
-                                        <p class="text-sm text-gray-500">10/06/2023</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex items-center">
-                                        <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
-                                            <i class="fas fa-ticket-alt"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">Cotisation M. Dupont</p>
-                                            <p class="text-sm text-gray-500">Catégorie: Adhésions</p>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium text-green-600">+25.00 €</p>
-                                        <p class="text-sm text-gray-500">08/06/2023</p>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-red-100 text-red-600 mr-3">
+                                                    <i class="fas fa-utensils"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Repas annuel</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Événements</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-red-600 font-medium">-120.50 €</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">15/06/2023</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-indigo-600 hover:text-indigo-900 mr-3"><i class="fas fa-eye"></i></a>
+                                            <a href="#" class="text-yellow-600 hover:text-yellow-900 mr-3"><i class="fas fa-edit"></i></a>
+                                            <a href="#" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                                    <i class="fas fa-hand-holding-usd"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Don anonyme</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Dons</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-green-600 font-medium">+500.00 €</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">12/06/2023</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-indigo-600 hover:text-indigo-900 mr-3"><i class="fas fa-eye"></i></a>
+                                            <a href="#" class="text-yellow-600 hover:text-yellow-900 mr-3"><i class="fas fa-edit"></i></a>
+                                            <a href="#" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
+                                                    <i class="fas fa-tools"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Matériel bureau</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Fournitures</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-red-600 font-medium">-45.30 €</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/06/2023</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-indigo-600 hover:text-indigo-900 mr-3"><i class="fas fa-eye"></i></a>
+                                            <a href="#" class="text-yellow-600 hover:text-yellow-900 mr-3"><i class="fas fa-edit"></i></a>
+                                            <a href="#" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
+                                                    <i class="fas fa-ticket-alt"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Cotisation M. Dupont</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Adhésions</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-green-600 font-medium">+25.00 €</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">08/06/2023</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-indigo-600 hover:text-indigo-900 mr-3"><i class="fas fa-eye"></i></a>
+                                            <a href="#" class="text-yellow-600 hover:text-yellow-900 mr-3"><i class="fas fa-edit"></i></a>
+                                            <a href="#" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                     
-                    <!-- Budget Alerts -->
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-semibold text-gray-800">Alertes budgétaires</h2>
-                            <a href="#" class="text-sm text-indigo-600 hover:underline">Tout voir</a>
+                    <!-- Budget Alerts and Upcoming Events -->
+                    <div class="space-y-6">
+                        <!-- Budget Alerts -->
+                        <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-semibold text-gray-800">Alertes budgétaires</h2>
+                                <a href="#" class="text-sm text-indigo-600 hover:underline">Tout voir</a>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="p-3 bg-red-50 border-l-4 border-red-500 rounded-r hover:bg-red-100 cursor-pointer transition">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 pt-1">
+                                            <i class="fas fa-exclamation-circle text-red-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-red-800">Dépassement budget événements</p>
+                                            <p class="text-sm text-red-600">120% du budget utilisé</p>
+                                            <p class="text-xs text-gray-500 mt-1">Dernière dépense: 120.50€ (Repas annuel)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r hover:bg-yellow-100 cursor-pointer transition">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 pt-1">
+                                            <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-yellow-800">Seuil approchant fournitures</p>
+                                            <p class="text-sm text-yellow-600">85% du budget utilisé</p>
+                                            <p class="text-xs text-gray-500 mt-1">Dernière dépense: 45.30€ (Matériel bureau)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r hover:bg-blue-100 cursor-pointer transition">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 pt-1">
+                                            <i class="fas fa-info-circle text-blue-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-blue-800">Nouveau don important</p>
+                                            <p class="text-sm text-blue-600">500€ reçu hier</p>
+                                            <p class="text-xs text-gray-500 mt-1">Donateur: Anonyme</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <h3 class="text-md font-medium text-gray-700 mb-2">Créer une nouvelle alerte</h3>
+                                <div class="flex space-x-2">
+                                    <select class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <option>Sélectionner une catégorie</option>
+                                        <option>Événements</option>
+                                        <option>Fournitures</option>
+                                        <option>Communication</option>
+                                        <option>Dons</option>
+                                    </select>
+                                    <input type="number" placeholder="Seuil %" class="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <button class="bg-indigo-600 text-white px-3 py-2 rounded-md text-sm hover:bg-indigo-700">Ajouter</button>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div class="space-y-4">
-                            <div class="p-3 bg-red-50 border-l-4 border-red-500 rounded-r">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0 pt-1">
-                                        <i class="fas fa-exclamation-circle text-red-500"></i>
+                        <!-- Upcoming Events -->
+                        <div class="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-semibold text-gray-800">Événements à venir</h2>
+                                <a href="#" class="text-sm text-indigo-600 hover:underline">Tout voir</a>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="p-3 bg-purple-50 rounded-lg hover:bg-purple-100 cursor-pointer transition">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="font-medium">Assemblée Générale</p>
+                                            <p class="text-sm text-gray-600">25/06/2023 - 18:30</p>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-purple-200 text-purple-800">Important</span>
                                     </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-red-800">Dépassement budget événements</p>
-                                        <p class="text-sm text-red-600">120% du budget utilisé</p>
+                                </div>
+                                
+                                <div class="p-3 bg-green-50 rounded-lg hover:bg-green-100 cursor-pointer transition">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="font-medium">Collecte de fonds</p>
+                                            <p class="text-sm text-gray-600">15/07/2023 - 10:00</p>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800">Collecte</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer transition">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="font-medium">Réunion bureau</p>
+                                            <p class="text-sm text-gray-600">05/07/2023 - 19:00</p>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-200 text-blue-800">Réunion</span>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0 pt-1">
-                                        <i class="fas fa-exclamation-triangle text-yellow-500"></i>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-yellow-800">Seuil approchant fournitures</p>
-                                        <p class="text-sm text-yellow-600">85% du budget utilisé</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0 pt-1">
-                                        <i class="fas fa-info-circle text-blue-500"></i>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-blue-800">Nouveau don important</p>
-                                        <p class="text-sm text-blue-600">500€ reçu hier</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="p-3 bg-green-50 border-l-4 border-green-500 rounded-r">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0 pt-1">
-                                        <i class="fas fa-check-circle text-green-500"></i>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-green-800">Budget communication OK</p>
-                                        <p class="text-sm text-green-600">45% du budget utilisé</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <h3 class="text-md font-medium text-gray-700 mb-2">Créer une nouvelle alerte</h3>
-                            <div class="flex space-x-2">
-                                <select class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <option>Sélectionner une catégorie</option>
-                                    <option>Événements</option>
-                                    <option>Fournitures</option>
-                                    <option>Communication</option>
-                                    <option>Dons</option>
-                                </select>
-                                <input type="number" placeholder="Seuil %" class="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <button class="bg-indigo-600 text-white px-3 py-2 rounded-md text-sm hover:bg-indigo-700">Ajouter</button>
-                            </div>
+                            <button class="w-full mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition">
+                                <i class="fas fa-plus mr-2"></i> Ajouter un événement
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -426,10 +616,263 @@
         </div>
     </div>
 
+    <!-- Add Expense Modal -->
+    <div id="expenseModal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-2xl font-bold">Ajouter une dépense</p>
+                    <button id="closeExpenseModal" class="modal-close cursor-pointer z-50">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="expenseDescription">
+                            Description
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="expenseDescription" type="text" placeholder="Ex: Achat matériel">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="expenseAmount">
+                            Montant (€)
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="expenseAmount" type="number" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="expenseCategory">
+                            Catégorie
+                        </label>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="expenseCategory">
+                            <option value="">Sélectionner une catégorie</option>
+                            <option value="events">Événements</option>
+                            <option value="supplies">Fournitures</option>
+                            <option value="communication">Communication</option>
+                            <option value="membership">Adhésions</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="expenseDate">
+                            Date
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="expenseDate" type="date">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="expenseReceipt">
+                            Justificatif (facultatif)
+                        </label>
+                        <div class="flex items-center">
+                            <input type="file" id="expenseReceipt" class="hidden">
+                            <label for="expenseReceipt" class="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded inline-flex items-center">
+                                <i class="fas fa-paperclip mr-2"></i>
+                                <span>Choisir un fichier</span>
+                            </label>
+                            <span id="fileName" class="ml-2 text-sm text-gray-500">Aucun fichier sélectionné</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end pt-2">
+                        <button type="button" class="px-4 py-2 text-gray-500 rounded-lg hover:bg-gray-100 mr-2">
+                            Annuler
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <i class="fas fa-save mr-2"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Donation Modal -->
+    <div id="donationModal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-2xl font-bold">Enregistrer un don</p>
+                    <button id="closeDonationModal" class="modal-close cursor-pointer z-50">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="donationAmount">
+                            Montant (€)
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="donationAmount" type="number" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="donationType">
+                            Type de don
+                        </label>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="donationType">
+                            <option value="cash">Espèces</option>
+                            <option value="check">Chèque</option>
+                            <option value="transfer">Virement</option>
+                            <option value="online">En ligne</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="donationDonor">
+                            Donateur
+                        </label>
+                        <div class="flex">
+                            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-2" id="donationDonor">
+                                <option value="">Sélectionner un donateur</option>
+                                <option value="anonymous">Anonyme</option>
+                                <option value="dupont">M. Dupont</option>
+                                <option value="martin">Mme Martin</option>
+                                <option value="other">Autre</option>
+                            </select>
+                            <button type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-3 rounded">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="donationDate">
+                            Date
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="donationDate" type="date">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="donationNotes">
+                            Notes (facultatif)
+                        </label>
+                        <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="donationNotes" rows="3" placeholder="Informations supplémentaires"></textarea>
+                    </div>
+                    
+                    <div class="flex items-center mb-4">
+                        <input id="sendReceipt" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="sendReceipt" class="ml-2 block text-sm text-gray-700">
+                            Envoyer un reçu fiscal
+                        </label>
+                    </div>
+                    
+                    <div class="flex justify-end pt-2">
+                        <button type="button" class="px-4 py-2 text-gray-500 rounded-lg hover:bg-gray-100 mr-2">
+                            Annuler
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            <i class="fas fa-save mr-2"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Filter Modal -->
+    <div id="filterModal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-2xl font-bold">Filtrer les transactions</p>
+                    <button id="closeFilterModal" class="modal-close cursor-pointer z-50">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="filterType">
+                            Type
+                        </label>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="filterType">
+                            <option value="all">Toutes</option>
+                            <option value="income">Revenus</option>
+                            <option value="expense">Dépenses</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="filterCategory">
+                            Catégorie
+                        </label>
+                        <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="filterCategory">
+                            <option value="all">Toutes catégories</option>
+                            <option value="events">Événements</option>
+                            <option value="supplies">Fournitures</option>
+                            <option value="communication">Communication</option>
+                            <option value="donations">Dons</option>
+                            <option value="membership">Adhésions</option>
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="filterDateFrom">
+                                Du
+                            </label>
+                            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="filterDateFrom" type="date">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="filterDateTo">
+                                Au
+                            </label>
+                            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="filterDateTo" type="date">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="filterAmountMin">
+                            Montant minimum (€)
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="filterAmountMin" type="number" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="filterAmountMax">
+                            Montant maximum (€)
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="filterAmountMax" type="number" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="flex justify-end pt-2">
+                        <button type="button" id="resetFilters" class="px-4 py-2 text-gray-500 rounded-lg hover:bg-gray-100 mr-2">
+                            Réinitialiser
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <i class="fas fa-filter mr-2"></i> Appliquer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Toggle sidebar
         document.getElementById('toggleSidebar').addEventListener('click', function() {
             document.querySelector('.sidebar').classList.toggle('collapsed');
+        });
+
+        // Toggle notification dropdown
+        document.getElementById('notificationButton').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('notificationDropdown').classList.toggle('hidden');
+        });
+
+        // Close notification dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#notificationDropdown') && !e.target.closest('#notificationButton')) {
+                document.getElementById('notificationDropdown').classList.add('hidden');
+            }
         });
 
         // Initialize charts
@@ -481,6 +924,77 @@
                         }
                     }
                 }
+            });
+
+            // Budget Pie Chart
+            const budgetPieChart = new ApexCharts(document.querySelector("#budgetPieChart"), {
+                series: [1200, 850, 600, 350],
+                labels: ['Événements', 'Fournitures', 'Communication', 'Divers'],
+                chart: {
+                    type: 'donut',
+                    height: 300
+                },
+                colors: ['#6366F1', '#10B981', '#F59E0B', '#EF4444'],
+                legend: {
+                    show: false
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '65%'
+                        }
+                    }
+                },
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            width: 200
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }]
+            });
+            budgetPieChart.render();
+
+            // Modal handling
+            const expenseModal = document.getElementById('expenseModal');
+            const donationModal = document.getElementById('donationModal');
+            const filterModal = document.getElementById('filterModal');
+
+            // Expense modal
+            document.getElementById('addExpenseBtn').addEventListener('click', function() {
+                expenseModal.classList.remove('hidden');
+            });
+
+            document.getElementById('closeExpenseModal').addEventListener('click', function() {
+                expenseModal.classList.add('hidden');
+            });
+
+            // Donation modal
+            document.getElementById('addDonationBtn').addEventListener('click', function() {
+                donationModal.classList.remove('hidden');
+            });
+
+            document.getElementById('closeDonationModal').addEventListener('click', function() {
+                donationModal.classList.add('hidden');
+            });
+
+            // Filter modal
+            document.getElementById('filterTransactions').addEventListener('click', function() {
+                filterModal.classList.remove('hidden');
+            });
+
+            document.getElementById('closeFilterModal').addEventListener('click', function() {
+                filterModal.classList.add('hidden');
+            });
+
+            // File input handling for expense modal
+            document.getElementById('expenseReceipt').addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'Aucun fichier sélectionné';
+                document.getElementById('fileName').textContent = fileName;
             });
 
             // Generate PDF
@@ -550,6 +1064,50 @@
                 
                 // Show success notification
                 alert('Fichier Excel généré avec succès!');
+            });
+
+            // Chart period selector
+            document.getElementById('chartPeriod').addEventListener('change', function() {
+                const period = this.value;
+                let labels, incomeData, expenseData;
+                
+                if (period === 'month') {
+                    labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'];
+                    incomeData = [1200, 1500, 1800, 1100, 2000, 1250];
+                    expenseData = [800, 950, 1200, 750, 1100, 850];
+                } else if (period === 'quarter') {
+                    labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+                    incomeData = [4500, 4350, 0, 0];
+                    expenseData = [2950, 2850, 0, 0];
+                } else {
+                    labels = ['2020', '2021', '2022', '2023'];
+                    incomeData = [9800, 12500, 15400, 8750];
+                    expenseData = [7200, 9800, 12300, 6950];
+                }
+                
+                incomeExpenseChart.data.labels = labels;
+                incomeExpenseChart.data.datasets[0].data = incomeData;
+                incomeExpenseChart.data.datasets[1].data = expenseData;
+                incomeExpenseChart.update();
+            });
+
+            // Export chart as image
+            document.getElementById('exportChart').addEventListener('click', function() {
+                const chartCanvas = document.getElementById('incomeExpenseChart');
+                const link = document.createElement('a');
+                link.download = 'graphique-financier.png';
+                link.href = chartCanvas.toDataURL('image/png');
+                link.click();
+            });
+
+            // Reset filters
+            document.getElementById('resetFilters').addEventListener('click', function() {
+                document.getElementById('filterType').value = 'all';
+                document.getElementById('filterCategory').value = 'all';
+                document.getElementById('filterDateFrom').value = '';
+                document.getElementById('filterDateTo').value = '';
+                document.getElementById('filterAmountMin').value = '';
+                document.getElementById('filterAmountMax').value = '';
             });
         });
     </script>
