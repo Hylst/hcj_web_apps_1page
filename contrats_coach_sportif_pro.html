@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
@@ -36,6 +37,7 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
         
         body {
             font-family: 'Inter', sans-serif;
@@ -54,14 +56,20 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         
-        .signature-pad {
+        .signature-pad-container {
             border: 1px dashed #cbd5e1;
             background-color: #f8fafc;
             transition: all 0.2s ease;
+            position: relative;
         }
         
-        .signature-pad:hover {
+        .signature-pad-container:hover {
             border-color: #0ea5e9;
+        }
+        
+        .signature-pad {
+            width: 100%;
+            height: 100%;
         }
         
         .editor-label {
@@ -97,6 +105,7 @@
         
         /* Style pour le contrat */
         .contract-title {
+            font-family: 'Playfair Display', serif;
             background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -106,6 +115,78 @@
             border-top: 1px solid #e5e7eb;
             width: 200px;
             margin-top: 60px;
+        }
+        
+        .signature-timestamp {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        
+        /* Animation pour les signatures */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .signature-animate {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Style pour les onglets */
+        .tab-button {
+            @apply px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-200;
+        }
+        
+        .tab-button.active {
+            @apply bg-white text-primary-600 border-b-2 border-primary-500;
+        }
+        
+        .tab-button.inactive {
+            @apply text-gray-500 hover:text-gray-700 hover:bg-gray-100;
+        }
+        
+        /* Style pour le sélecteur de type de signature */
+        .signature-type-selector {
+            @apply flex items-center justify-center p-2 border rounded-lg cursor-pointer transition-colors duration-200;
+        }
+        
+        .signature-type-selector.selected {
+            @apply border-primary-500 bg-primary-50 text-primary-600;
+        }
+        
+        .signature-type-selector:not(.selected) {
+            @apply border-gray-300 hover:border-gray-400;
+        }
+        
+        /* Style pour le logo upload */
+        .logo-upload-container {
+            @apply border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-primary-500 transition duration-150;
+        }
+        
+        .logo-preview {
+            @apply max-h-20 mx-auto;
+        }
+        
+        /* Style amélioré pour le PDF */
+        .pdf-header {
+            @apply flex justify-between items-start mb-8;
+        }
+        
+        .pdf-logo {
+            @apply max-h-16;
+        }
+        
+        .pdf-title {
+            @apply text-2xl font-bold text-primary-700 mb-2;
+        }
+        
+        .pdf-section-title {
+            @apply text-lg font-semibold text-primary-700 mb-3 border-b border-primary-100 pb-2;
+        }
+        
+        .pdf-clause-title {
+            @apply font-semibold text-primary-700 mb-1;
         }
     </style>
 </head>
@@ -149,6 +230,19 @@
                         <div>
                             <label class="editor-label">Référence du contrat</label>
                             <input type="text" id="contractReference" placeholder="Ex: CONTRACT-2023-001" class="editor-input">
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Logo du coach (optionnel)</label>
+                            <div id="logoUpload" class="logo-upload-container" onclick="document.getElementById('logoFile').click()">
+                                <input type="file" id="logoFile" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                                <div id="logoUploadContent">
+                                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                                    <p class="text-sm text-gray-600">Cliquez pour télécharger votre logo</p>
+                                    <p class="text-xs text-gray-500 mt-1">Format recommandé : PNG ou JPG (max 500KB)</p>
+                                </div>
+                                <img id="logoPreview" class="logo-preview hidden">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -368,30 +462,72 @@
                     
                     <div class="space-y-6">
                         <div>
-                            <label class="editor-label">Signature du coach</label>
-                            <div class="signature-pad mt-2 rounded-lg p-4">
-                                <canvas id="coachSignature" width="300" height="150" class="w-full h-full border border-gray-300 bg-white"></canvas>
-                                <div class="flex justify-between mt-2">
-                                    <button onclick="clearSignature('coachSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
-                                        <i class="fas fa-eraser mr-1"></i> Effacer
-                                    </button>
-                                    <button onclick="saveSignature('coachSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
-                                        <i class="fas fa-save mr-1"></i> Enregistrer
-                                    </button>
+                            <label class="editor-label mb-3">Type de signature</label>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="signature-type-selector selected" onclick="selectSignatureType('handwritten', this)">
+                                    <div class="flex flex-col items-center">
+                                        <i class="fas fa-signature text-xl mb-1"></i>
+                                        <span>Manuscrite</span>
+                                    </div>
+                                </div>
+                                <div class="signature-type-selector" onclick="selectSignatureType('digital', this)">
+                                    <div class="flex flex-col items-center">
+                                        <i class="fas fa-font text-xl mb-1"></i>
+                                        <span>Typographique</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div>
-                            <label class="editor-label">Signature du client</label>
-                            <div class="signature-pad mt-2 rounded-lg p-4">
-                                <canvas id="clientSignature" width="300" height="150" class="w-full h-full border border-gray-300 bg-white"></canvas>
-                                <div class="flex justify-between mt-2">
-                                    <button onclick="clearSignature('clientSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
-                                        <i class="fas fa-eraser mr-1"></i> Effacer
+                        <div id="handwrittenSignatureSection">
+                            <div class="mb-6">
+                                <label class="editor-label">Signature du coach</label>
+                                <div class="signature-pad-container mt-2 rounded-lg p-4">
+                                    <canvas id="coachSignature" class="signature-pad" width="300" height="150"></canvas>
+                                    <div class="flex justify-between mt-2">
+                                        <button onclick="clearSignature('coachSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                            <i class="fas fa-eraser mr-1"></i> Effacer
+                                        </button>
+                                        <button onclick="saveSignature('coachSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                            <i class="fas fa-save mr-1"></i> Enregistrer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="editor-label">Signature du client</label>
+                                <div class="signature-pad-container mt-2 rounded-lg p-4">
+                                    <canvas id="clientSignature" class="signature-pad" width="300" height="150"></canvas>
+                                    <div class="flex justify-between mt-2">
+                                        <button onclick="clearSignature('clientSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                            <i class="fas fa-eraser mr-1"></i> Effacer
+                                        </button>
+                                        <button onclick="saveSignature('clientSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                            <i class="fas fa-save mr-1"></i> Enregistrer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="digitalSignatureSection" class="hidden">
+                            <div class="mb-6">
+                                <label class="editor-label">Signature numérique du coach</label>
+                                <div class="flex items-center space-x-4 mt-2">
+                                    <input type="text" id="digitalCoachSignature" class="editor-input flex-1" placeholder="Saisir le nom du coach">
+                                    <button onclick="generateDigitalSignature('coach')" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-2 rounded-lg">
+                                        <i class="fas fa-font"></i>
                                     </button>
-                                    <button onclick="saveSignature('clientSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
-                                        <i class="fas fa-save mr-1"></i> Enregistrer
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="editor-label">Signature numérique du client</label>
+                                <div class="flex items-center space-x-4 mt-2">
+                                    <input type="text" id="digitalClientSignature" class="editor-input flex-1" placeholder="Saisir le nom du client">
+                                    <button onclick="generateDigitalSignature('client')" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-2 rounded-lg">
+                                        <i class="fas fa-font"></i>
                                     </button>
                                 </div>
                             </div>
@@ -400,6 +536,11 @@
                         <div>
                             <label class="editor-label">Date de signature</label>
                             <input type="date" id="signatureDate" class="editor-input">
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" id="includeTimestamp" class="rounded text-primary-600 focus:ring-primary-500">
+                            <label for="includeTimestamp" class="ml-2 text-sm text-gray-700">Inclure un horodatage des signatures</label>
                         </div>
                     </div>
                 </div>
@@ -436,6 +577,9 @@
                             <button onclick="copyContractText()" class="text-gray-600 hover:text-primary-600 flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-sm transition duration-150 ease-in-out">
                                 <i class="fas fa-copy mr-1"></i> Copier
                             </button>
+                            <button onclick="downloadContract()" class="text-gray-600 hover:text-primary-600 flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-sm transition duration-150 ease-in-out">
+                                <i class="fas fa-download mr-1"></i> Télécharger
+                            </button>
                         </div>
                     </div>
                     
@@ -471,7 +615,14 @@
     </footer>
 
     <script>
-        // Initialiser la date du contrat à aujourd'hui
+        // Variables globales
+        let signatureType = 'handwritten';
+        let coachSignaturePad, clientSignaturePad;
+        let digitalCoachSignature = null;
+        let digitalClientSignature = null;
+        let coachLogo = null;
+        
+        // Initialisation du document
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('contractDate').value = today;
@@ -482,8 +633,7 @@
             document.getElementById('contractReference').value = randomRef;
             
             // Initialiser les pads de signature
-            initSignaturePad('coachSignature');
-            initSignaturePad('clientSignature');
+            initSignaturePads();
             
             // Calculer la date de fin (3 mois après aujourd'hui)
             const endDate = new Date();
@@ -496,84 +646,111 @@
             document.getElementById('startDate').addEventListener('change', updateEndDate);
             document.getElementById('endDate').addEventListener('change', updateDuration);
             
+            // Charger les signatures sauvegardées
+            loadSavedSignatures();
+            
             // Générer le contrat initial
             setTimeout(updateContract, 500);
         });
-
-        // Initialiser un pad de signature
-        function initSignaturePad(canvasId) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
+        
+        // Gérer l'upload du logo
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
             
-            // Style de la signature
-            ctx.strokeStyle = '#1e40af';
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+            // Vérifier la taille du fichier (max 500KB)
+            if (file.size > 500 * 1024) {
+                showToast('Le fichier est trop volumineux (max 500KB)', 'error');
+                return;
+            }
             
-            canvas.addEventListener('mousedown', (e) => {
-                isDrawing = true;
-                [lastX, lastY] = [e.offsetX, e.offsetY];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const logoPreview = document.getElementById('logoPreview');
+                const logoUploadContent = document.getElementById('logoUploadContent');
+                
+                logoPreview.src = e.target.result;
+                logoPreview.classList.remove('hidden');
+                logoUploadContent.classList.add('hidden');
+                
+                // Stocker le logo pour le PDF
+                coachLogo = e.target.result;
+                
+                showToast('Logo téléchargé avec succès', 'success');
+                updateContract();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Initialiser les pads de signature
+        function initSignaturePads() {
+            const coachCanvas = document.getElementById('coachSignature');
+            const clientCanvas = document.getElementById('clientSignature');
+            
+            // Configurer les pads de signature
+            coachSignaturePad = new SignaturePad(coachCanvas, {
+                backgroundColor: 'rgb(255, 255, 255)',
+                penColor: 'rgb(30, 64, 175)',
+                minWidth: 1,
+                maxWidth: 2,
+                throttle: 16
             });
             
-            canvas.addEventListener('mousemove', (e) => {
-                if (!isDrawing) return;
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(e.offsetX, e.offsetY);
-                ctx.stroke();
-                [lastX, lastY] = [e.offsetX, e.offsetY];
+            clientSignaturePad = new SignaturePad(clientCanvas, {
+                backgroundColor: 'rgb(255, 255, 255)',
+                penColor: 'rgb(30, 64, 175)',
+                minWidth: 1,
+                maxWidth: 2,
+                throttle: 16
             });
             
-            canvas.addEventListener('mouseup', () => isDrawing = false);
-            canvas.addEventListener('mouseout', () => isDrawing = false);
+            // Redimensionner les canvas pour éviter le flou
+            function resizeCanvas(canvas) {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                canvas.getContext('2d').scale(ratio, ratio);
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+            }
             
-            // Support pour les appareils tactiles
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
-            });
+            resizeCanvas(coachCanvas);
+            resizeCanvas(clientCanvas);
             
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const mouseEvent = new MouseEvent('mousemove', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
-            });
-            
-            canvas.addEventListener('touchend', () => {
-                const mouseEvent = new MouseEvent('mouseup');
-                canvas.dispatchEvent(mouseEvent);
-            });
+            // Re-draw les signatures si elles existent
+            loadSignature('coachSignature');
+            loadSignature('clientSignature');
         }
         
         // Effacer une signature
         function clearSignature(canvasId) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (canvasId === 'coachSignature') {
+                coachSignaturePad.clear();
+            } else {
+                clientSignaturePad.clear();
+            }
+            localStorage.removeItem(canvasId);
         }
         
         // Enregistrer une signature
         function saveSignature(canvasId) {
-            const canvas = document.getElementById(canvasId);
-            const dataURL = canvas.toDataURL();
-            localStorage.setItem(canvasId, dataURL);
+            let signatureData;
             
-            // Afficher une notification
+            if (canvasId === 'coachSignature') {
+                if (coachSignaturePad.isEmpty()) {
+                    showToast('Veuillez signer avant d\'enregistrer', 'error');
+                    return;
+                }
+                signatureData = coachSignaturePad.toDataURL();
+            } else {
+                if (clientSignaturePad.isEmpty()) {
+                    showToast('Veuillez signer avant d\'enregistrer', 'error');
+                    return;
+                }
+                signatureData = clientSignaturePad.toDataURL();
+            }
+            
+            localStorage.setItem(canvasId, signatureData);
             showToast('Signature enregistrée avec succès', 'success');
         }
         
@@ -581,13 +758,31 @@
         function loadSignature(canvasId) {
             const savedSignature = localStorage.getItem(canvasId);
             if (savedSignature) {
-                const canvas = document.getElementById(canvasId);
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                img.onload = function() {
-                    ctx.drawImage(img, 0, 0);
-                };
-                img.src = savedSignature;
+                if (canvasId === 'coachSignature') {
+                    coachSignaturePad.fromDataURL(savedSignature);
+                } else {
+                    clientSignaturePad.fromDataURL(savedSignature);
+                }
+            }
+        }
+        
+        // Charger toutes les signatures sauvegardées
+        function loadSavedSignatures() {
+            loadSignature('coachSignature');
+            loadSignature('clientSignature');
+            
+            // Charger les signatures numériques si elles existent
+            const savedDigitalCoach = localStorage.getItem('digitalCoachSignature');
+            const savedDigitalClient = localStorage.getItem('digitalClientSignature');
+            
+            if (savedDigitalCoach) {
+                digitalCoachSignature = savedDigitalCoach;
+                document.getElementById('digitalCoachSignature').value = savedDigitalCoach;
+            }
+            
+            if (savedDigitalClient) {
+                digitalClientSignature = savedDigitalClient;
+                document.getElementById('digitalClientSignature').value = savedDigitalClient;
             }
         }
         
@@ -668,6 +863,71 @@
             }
         }
         
+        // Sélectionner le type de signature
+        function selectSignatureType(type, element) {
+            signatureType = type;
+            
+            // Mettre à jour l'interface
+            document.querySelectorAll('.signature-type-selector').forEach(el => {
+                el.classList.remove('selected');
+                el.classList.add('border-gray-300', 'hover:border-gray-400');
+            });
+            
+            element.classList.add('selected');
+            element.classList.remove('border-gray-300', 'hover:border-gray-400');
+            
+            // Afficher/masquer les sections appropriées
+            if (type === 'handwritten') {
+                document.getElementById('handwrittenSignatureSection').classList.remove('hidden');
+                document.getElementById('digitalSignatureSection').classList.add('hidden');
+            } else {
+                document.getElementById('handwrittenSignatureSection').classList.add('hidden');
+                document.getElementById('digitalSignatureSection').classList.remove('hidden');
+            }
+            
+            updateContract();
+        }
+        
+        // Générer une signature numérique
+        function generateDigitalSignature(role) {
+            const inputField = role === 'coach' ? 'digitalCoachSignature' : 'digitalClientSignature';
+            const name = document.getElementById(inputField).value.trim();
+            
+            if (!name) {
+                showToast('Veuillez entrer un nom', 'error');
+                return;
+            }
+            
+            // Créer un canvas pour la signature numérique
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            // Style de la signature
+            ctx.font = 'italic 24px "Brush Script MT", cursive';
+            ctx.fillStyle = '#1e40af';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            
+            // Dessiner le nom
+            ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+            
+            // Enregistrer la signature
+            const signatureData = canvas.toDataURL();
+            
+            if (role === 'coach') {
+                digitalCoachSignature = signatureData;
+                localStorage.setItem('digitalCoachSignature', name);
+            } else {
+                digitalClientSignature = signatureData;
+                localStorage.setItem('digitalClientSignature', name);
+            }
+            
+            showToast('Signature numérique enregistrée', 'success');
+            updateContract();
+        }
+        
         // Réinitialiser le formulaire
         function resetForm() {
             if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les champs ?')) {
@@ -675,10 +935,21 @@
                     input.value = '';
                 });
                 
-                document.querySelectorAll('canvas').forEach(canvas => {
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                });
+                // Effacer les signatures
+                clearSignature('coachSignature');
+                clearSignature('clientSignature');
+                digitalCoachSignature = null;
+                digitalClientSignature = null;
+                document.getElementById('digitalCoachSignature').value = '';
+                document.getElementById('digitalClientSignature').value = '';
+                localStorage.removeItem('digitalCoachSignature');
+                localStorage.removeItem('digitalClientSignature');
+                
+                // Réinitialiser le logo
+                coachLogo = null;
+                document.getElementById('logoPreview').src = '';
+                document.getElementById('logoPreview').classList.add('hidden');
+                document.getElementById('logoUploadContent').classList.remove('hidden');
                 
                 // Réinitialiser les valeurs par défaut
                 const today = new Date().toISOString().split('T')[0];
@@ -687,6 +958,21 @@
                 document.getElementById('contractTitle').value = 'CONTRAT DE COACHING SPORTIF';
                 document.getElementById('coachingType').value = 'Individuel';
                 document.getElementById('paymentMethod').value = 'Virement bancaire';
+                document.getElementById('includeTimestamp').checked = false;
+                
+                // Sélectionner la signature manuscrite par défaut
+                signatureType = 'handwritten';
+                document.querySelectorAll('.signature-type-selector').forEach((el, index) => {
+                    if (index === 0) {
+                        el.classList.add('selected');
+                        el.classList.remove('border-gray-300', 'hover:border-gray-400');
+                    } else {
+                        el.classList.remove('selected');
+                        el.classList.add('border-gray-300', 'hover:border-gray-400');
+                    }
+                });
+                document.getElementById('handwrittenSignatureSection').classList.remove('hidden');
+                document.getElementById('digitalSignatureSection').classList.add('hidden');
                 
                 // Générer une nouvelle référence
                 const randomRef = 'CONT-' + today.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
@@ -716,6 +1002,7 @@
                 const formattedDate = contractDate ? new Date(contractDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
                 const signatureDate = document.getElementById('signatureDate').value;
                 const formattedSignatureDate = signatureDate ? new Date(signatureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+                const includeTimestamp = document.getElementById('includeTimestamp').checked;
                 
                 const coachName = document.getElementById('coachName').value || '[Nom du coach]';
                 const coachAddress = document.getElementById('coachAddress').value || '[Adresse du coach]';
@@ -753,15 +1040,20 @@
                 // Générer le HTML du contrat
                 contractPreview.innerHTML = `
                     <div class="max-w-4xl mx-auto font-serif text-gray-800">
-                        <div class="text-center mb-8">
-                            <h1 class="text-3xl font-bold contract-title mb-2">${contractTitle}</h1>
-                            <p class="text-gray-600">Référence: ${contractReference}</p>
+                        <div class="pdf-header">
+                            ${coachLogo ? `<img src="${coachLogo}" class="pdf-logo" alt="Logo du coach">` : '<div></div>'}
+                            <div class="text-right">
+                                <p class="text-gray-600">Référence: ${contractReference}</p>
+                                <p class="text-sm text-gray-500">${formattedDate}</p>
+                            </div>
                         </div>
                         
-                        <p class="text-right mb-8">Fait à ${coachAddress.split(',')[0] || '[Ville]'}, le ${formattedDate}</p>
+                        <div class="text-center mb-8">
+                            <h1 class="pdf-title">${contractTitle}</h1>
+                        </div>
                         
                         <div class="mb-8">
-                            <h2 class="text-lg font-semibold mb-4">ENTRE LES SOUSSIGNÉS :</h2>
+                            <h2 class="pdf-section-title">ENTRE LES SOUSSIGNÉS :</h2>
                             
                             <p class="mb-4"><strong>${coachName}</strong>, coach sportif, domicilié ${coachAddress},</p>
                             <p class="mb-4">immatriculé au registre du commerce et des sociétés sous le numéro ${coachSiret},</p>
@@ -777,27 +1069,27 @@
                         </div>
                         
                         <div class="mb-8">
-                            <h2 class="text-lg font-semibold mb-4">IL A ÉTÉ CONVENU CE QUI SUIT :</h2>
+                            <h2 class="pdf-section-title">IL A ÉTÉ CONVENU CE QUI SUIT :</h2>
                             
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article 1 - Objet</h3>
+                                <h3 class="pdf-clause-title">Article 1 - Objet</h3>
                                 <p>Le présent contrat a pour objet de définir les conditions dans lesquelles le Coach s'engage à dispenser des séances de coaching sportif de type ${coachingType} au Client.</p>
                             </div>
                             
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article 2 - Durée</h3>
+                                <h3 class="pdf-clause-title">Article 2 - Durée</h3>
                                 <p>Le présent contrat prend effet à compter du ${formattedStartDate} et se termine le ${formattedEndDate}, pour une durée totale de ${contractDuration}.</p>
                             </div>
                             
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article 3 - Modalités des séances</h3>
+                                <h3 class="pdf-clause-title">Article 3 - Modalités des séances</h3>
                                 <p>Les séances auront lieu avec une fréquence de ${sessionFrequency}, d'une durée de ${sessionDuration} chacune.</p>
                                 <p class="mt-2">Le lieu des séances est fixé à : ${sessionLocation}.</p>
                             </div>
                             
                             ${includePaymentTerms ? `
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${includeCancellation ? '5' : '4'} - Tarifs et paiement</h3>
+                                <h3 class="pdf-clause-title">Article ${includeCancellation ? '5' : '4'} - Tarifs et paiement</h3>
                                 <p>Le prix des séances est fixé à ${coachingPrice}, pour un total estimé de ${totalPrice}.</p>
                                 <p class="mt-2">Le paiement s'effectue par ${paymentMethod}.</p>
                                 <p class="mt-2">Tout retard de paiement pourra donner lieu à l'application d'intérêts de retard au taux légal.</p>
@@ -806,42 +1098,47 @@
                             
                             ${includeCancellation ? `
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${includePaymentTerms ? '5' : '4'} - Annulation</h3>
+                                <h3 class="pdf-clause-title">Article ${includePaymentTerms ? '5' : '4'} - Annulation</h3>
                                 <p>Toute séance annulée moins de 24 heures à l'avance sera due. Le Coach se réserve le droit d'annuler ou de reporter une séance en cas de force majeure, avec un préavis de 24 heures dans la mesure du possible.</p>
                             </div>
                             ` : ''}
                             
                             ${includeLiability ? `
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + 4} - Responsabilité</h3>
+                                <h3 class="pdf-clause-title">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + 4} - Responsabilité</h3>
                                 <p>Le Client déclare être en bonne santé et apte à pratiquer une activité physique. Le Coach déclare être qualifié pour dispenser des séances de coaching sportif. Le Client reste seul responsable de son état de santé et s'engage à informer le Coach de toute contre-indication médicale.</p>
                             </div>
                             ` : ''}
                             
                             ${includeHealthDeclaration ? `
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + 4} - Déclaration médicale</h3>
+                                <h3 class="pdf-clause-title">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + 4} - Déclaration médicale</h3>
                                 <p>Le Client certifie avoir fourni un certificat médical de non contre-indication à la pratique du sport datant de moins d'un an. En cas de modification de son état de santé, le Client s'engage à fournir un nouveau certificat médical.</p>
                             </div>
                             ` : ''}
                             
                             ${includeConfidentiality ? `
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + 4} - Confidentialité</h3>
-                                <p>Les parties s'engagent à garder confidentielles toutes les informations échangées dans le cadre de ce contrat, à l'exception des informations nécessaires à la bonne exécution des séances de coaching.</p>
+                                <h3 class="pdf-clause-title">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + 4} - Confidentialité</h3>
+                                <p>Les parties s'engage à garder confidentielles toutes les informations échangées dans le cadre de ce contrat, à l'exception des informations nécessaires à la bonne exécution des séances de coaching.</p>
                             </div>
                             ` : ''}
                             
                             ${customClause ? `
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + 4} - Clause personnalisée</h3>
+                                <h3 class="pdf-clause-title">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + 4} - Clause personnalisée</h3>
                                 <p>${customClause.replace(/\n/g, '<br>')}</p>
                             </div>
                             ` : ''}
                             
                             <div class="contract-section p-4 mb-4">
-                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + (customClause ? 1 : 0) + 4} - Résiliation</h3>
+                                <h3 class="pdf-clause-title">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + (customClause ? 1 : 0) + 4} - Résiliation</h3>
                                 <p>Le présent contrat peut être résilié par l'une ou l'autre des parties moyennant un préavis de 15 jours. En cas de résiliation par le Client, les séances déjà payées et non effectuées seront remboursées au prorata temporis.</p>
+                            </div>
+                            
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="pdf-clause-title">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + (customClause ? 1 : 0) + 5} - Loi applicable et juridiction compétente</h3>
+                                <p>Le présent contrat est soumis à la loi française. En cas de litige, les parties s'efforceront de trouver une solution amiable. À défaut, les tribunaux compétents seront ceux du lieu du siège social du Coach.</p>
                             </div>
                         </div>
                         
@@ -852,17 +1149,25 @@
                                 <div>
                                     <p class="font-semibold mb-2">Pour le Client :</p>
                                     <div class="signature-placeholder mb-2" style="height: 80px;">
-                                        <img id="clientSignatureImg" class="h-full" src="">
+                                        ${signatureType === 'handwritten' ? 
+                                            `<img id="clientSignatureImg" class="h-full signature-animate" src="">` : 
+                                            `<div id="digitalClientSignaturePreview" class="flex items-center justify-center h-full signature-animate" style="font-family: 'Brush Script MT', cursive; font-size: 24px; font-style: italic; color: #1e40af;">${clientName}</div>`
+                                        }
                                     </div>
                                     <p>${clientName}</p>
+                                    ${includeTimestamp ? `<p class="signature-timestamp">Signé électroniquement le ${new Date().toLocaleString('fr-FR')}</p>` : ''}
                                 </div>
                                 
                                 <div>
                                     <p class="font-semibold mb-2">Pour le Coach :</p>
                                     <div class="signature-placeholder mb-2" style="height: 80px;">
-                                        <img id="coachSignatureImg" class="h-full" src="">
+                                        ${signatureType === 'handwritten' ? 
+                                            `<img id="coachSignatureImg" class="h-full signature-animate" src="">` : 
+                                            `<div id="digitalCoachSignaturePreview" class="flex items-center justify-center h-full signature-animate" style="font-family: 'Brush Script MT', cursive; font-size: 24px; font-style: italic; color: #1e40af;">${coachName}</div>`
+                                        }
                                     </div>
                                     <p>${coachName}</p>
+                                    ${includeTimestamp ? `<p class="signature-timestamp">Signé électroniquement le ${new Date().toLocaleString('fr-FR')}</p>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -870,12 +1175,10 @@
                 `;
                 
                 // Mettre à jour les signatures dans l'aperçu
-                updateSignaturePreview('coachSignature', 'coachSignatureImg');
-                updateSignaturePreview('clientSignature', 'clientSignatureImg');
-                
-                // Charger les signatures sauvegardées
-                loadSignature('coachSignature');
-                loadSignature('clientSignature');
+                if (signatureType === 'handwritten') {
+                    updateSignaturePreview('coachSignature', 'coachSignatureImg');
+                    updateSignaturePreview('clientSignature', 'clientSignatureImg');
+                }
                 
                 // Masquer l'indicateur de chargement
                 updateSpinner.classList.add('hidden');
@@ -883,16 +1186,19 @@
             }, 500);
         }
         
-        // Mettre à jour l'aperçu des signatures
+        // Mettre à jour l'aperçu des signatures manuscrites
         function updateSignaturePreview(canvasId, imgId) {
-            const canvas = document.getElementById(canvasId);
-            const imgElement = document.getElementById(imgId);
+            let signatureData;
             
-            if (canvas && imgElement) {
-                const dataURL = canvas.toDataURL();
-                if (dataURL !== 'data:,') {
-                    imgElement.src = dataURL;
-                }
+            if (canvasId === 'coachSignature') {
+                signatureData = coachSignaturePad.toDataURL();
+            } else {
+                signatureData = clientSignaturePad.toDataURL();
+            }
+            
+            const imgElement = document.getElementById(imgId);
+            if (imgElement && signatureData !== 'data:,') {
+                imgElement.src = signatureData;
             }
         }
         
@@ -969,6 +1275,27 @@
                 }).catch(err => {
                     showToast('Erreur lors de la copie du texte', 'error');
                 });
+            }, 500);
+        }
+        
+        // Télécharger le contrat au format HTML
+        function downloadContract() {
+            updateContract(); // Mettre à jour l'aperçu avant le téléchargement
+            
+            setTimeout(() => {
+                const contractContent = document.getElementById('contractPreview').outerHTML;
+                const blob = new Blob([contractContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Contrat_Coaching_${document.getElementById('clientName').value || 'Client'}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast('Contrat téléchargé au format HTML', 'success');
             }, 500);
         }
     </script>
