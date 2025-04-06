@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComptaAsso | Gestion comptable pour associations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        .chart-container {
+            height: 300px;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans" x-data="app()" x-cloak>
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="sidebar bg-indigo-700 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out" :class="{ 'translate-x-0': menuOpen }">
+            <div class="flex items-center space-x-2 px-4">
+                <i class="fas fa-hand-holding-heart text-2xl"></i>
+                <span class="text-2xl font-extrabold">ComptaAsso</span>
+            </div>
+            <nav>
+                <button @click="currentView = 'dashboard'" class="w-full flex items-center space-x-2 py-2 px-4 rounded transition duration-200 hover:bg-indigo-600" :class="{ 'bg-indigo-800': currentView === 'dashboard' }">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Tableau de bord</span>
+                </button>
+                <button @click="currentView = 'donations'" class="w-full flex items-center space-x-2 py-2 px-4 rounded transition duration-200 hover:bg-indigo-600" :class="{ 'bg-indigo-800': currentView === 'donations' }">
+                    <i class="fas fa-donate"></i>
+                    <span>Dons & Recettes</span>
+                </button>
+                <button @click="currentView = 'expenses'" class="w-full flex items-center space-x-2 py-2 px-4 rounded transition duration-200 hover:bg-indigo-600" :class="{ 'bg-indigo-800': currentView === 'expenses' }">
+                    <i class="fas fa-receipt"></i>
+                    <span>Dépenses</span>
+                </button>
+                <button @click="currentView = 'reports'" class="w-full flex items-center space-x-2 py-2 px-4 rounded transition duration-200 hover:bg-indigo-600" :class="{ 'bg-indigo-800': currentView === 'reports' }">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Rapports</span>
+                </button>
+                <button @click="currentView = 'settings'" class="w-full flex items-center space-x-2 py-2 px-4 rounded transition duration-200 hover:bg-indigo-600" :class="{ 'bg-indigo-800': currentView === 'settings' }">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </button>
+            </nav>
+            <div class="absolute bottom-0 left-0 right-0 p-4 bg-indigo-800">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                        <i class="fas fa-user text-sm"></i>
+                    </div>
+                    <span>Geoffroy Streit</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Header -->
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between px-4 py-3">
+                    <button @click="menuOpen = !menuOpen" class="md:hidden text-gray-500 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-800" x-text="getViewTitle()"></h1>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-bell text-gray-500"></i>
+                        </button>
+                        <div class="relative">
+                            <button @click="dropdownOpen = !dropdownOpen" class="flex items-center space-x-2 focus:outline-none">
+                                <span class="text-gray-700">Mon compte</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div x-show="dropdownOpen" @click.away="dropdownOpen = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profil</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Déconnexion</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="p-4">
+                <!-- Dashboard View -->
+                <div x-show="currentView === 'dashboard'" class="fade-in space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-500 font-medium">Solde actuel</h3>
+                            <p class="text-2xl font-bold" x-text="formatCurrency(getBalance())"></p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-500 font-medium">Dons ce mois</h3>
+                            <p class="text-2xl font-bold text-green-500" x-text="formatCurrency(getMonthlyTotal('donations'))"></p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-500 font-medium">Dépenses ce mois</h3>
+                            <p class="text-2xl font-bold text-red-500" x-text="formatCurrency(getMonthlyTotal('expenses'))"></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-700 font-medium mb-4">Évolution des finances</h3>
+                            <div class="chart-container">
+                                <canvas id="balanceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-700 font-medium mb-4">Répartition des dépenses</h3>
+                            <div class="chart-container">
+                                <canvas id="expensesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <h3 class="text-gray-700 font-medium mb-4">Dernières transactions</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <template x-for="(transaction, index) in recentTransactions" :key="index">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(transaction.date)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="transaction.description"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm" :class="transaction.type === 'donation' ? 'text-green-500' : 'text-red-500'" x-text="formatCurrency(transaction.amount)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <span x-text="transaction.type === 'donation' ? 'Don' : 'Dépense'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="transaction.type === 'donation' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Donations View -->
+                <div x-show="currentView === 'donations'" class="fade-in space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">Gestion des dons</h2>
+                        <button @click="showDonationModal = true" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2">
+                            <i class="fas fa-plus"></i>
+                            <span>Nouveau don</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b flex justify-between items-center">
+                            <div class="relative w-64">
+                                <input type="text" x-model="donationSearch" placeholder="Rechercher un don..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button @click="exportToCSV('donations')" class="px-3 py-2 border rounded-lg hover:bg-gray-50 flex items-center space-x-2">
+                                    <i class="fas fa-file-export"></i>
+                                    <span>Exporter CSV</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Donateur</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Méthode</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <template x-for="(donation, index) in filteredDonations" :key="index">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(donation.date)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="donation.donor"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-500" x-text="formatCurrency(donation.amount)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <span x-text="donation.method" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"></span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <button @click="editDonation(index)" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button @click="deleteTransaction('donations', index)" class="text-red-600 hover:text-red-900">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses View -->
+                <div x-show="currentView === 'expenses'" class="fade-in space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">Gestion des dépenses</h2>
+                        <button @click="showExpenseModal = true" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center space-x-2">
+                            <i class="fas fa-plus"></i>
+                            <span>Nouvelle dépense</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b flex justify-between items-center">
+                            <div class="relative w-64">
+                                <input type="text" x-model="expenseSearch" placeholder="Rechercher une dépense..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button @click="exportToCSV('expenses')" class="px-3 py-2 border rounded-lg hover:bg-gray-50 flex items-center space-x-2">
+                                    <i class="fas fa-file-export"></i>
+                                    <span>Exporter CSV</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bénéficiaire</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <template x-for="(expense, index) in filteredExpenses" :key="index">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(expense.date)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="expense.beneficiary"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-red-500" x-text="formatCurrency(expense.amount)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <span x-text="expense.category" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800"></span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <button @click="editExpense(index)" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button @click="deleteTransaction('expenses', index)" class="text-red-600 hover:text-red-900">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports View -->
+                <div x-show="currentView === 'reports'" class="fade-in space-y-6">
+                    <h2 class="text-xl font-bold text-gray-800">Rapports financiers</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-700 font-medium mb-4">Rapport mensuel</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-sm font-medium text-gray-700">Mois</label>
+                                    <select x-model="reportMonth" class="mt-1 block w-32 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                        <option value="01">Janvier</option>
+                                        <option value="02">Février</option>
+                                        <option value="03">Mars</option>
+                                        <option value="04">Avril</option>
+                                        <option value="05">Mai</option>
+                                        <option value="06">Juin</option>
+                                        <option value="07">Juillet</option>
+                                        <option value="08">Août</option>
+                                        <option value="09">Septembre</option>
+                                        <option value="10">Octobre</option>
+                                        <option value="11">Novembre</option>
+                                        <option value="12">Décembre</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-sm font-medium text-gray-700">Année</label>
+                                    <select x-model="reportYear" class="mt-1 block w-32 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                    </select>
+                                </div>
+                                <button @click="generateMonthlyReport" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                                    Générer le rapport
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-4 rounded-lg shadow">
+                            <h3 class="text-gray-700 font-medium mb-4">Rapport annuel</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-sm font-medium text-gray-700">Année</label>
+                                    <select x-model="annualReportYear" class="mt-1 block w-32 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                    </select>
+                                </div>
+                                <button @click="generateAnnualReport" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                                    Générer le rapport
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div x-show="monthlyReport" class="bg-white p-4 rounded-lg shadow fade-in">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Rapport mensuel - <span x-text="getMonthName(reportMonth)"></span> <span x-text="reportYear"></span></h3>
+                            <button @click="exportReportToPDF('monthly')" class="flex items-center space-x-2 text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>Exporter PDF</span>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-500">Total des dons</h4>
+                                <p class="text-2xl font-bold text-green-500" x-text="formatCurrency(monthlyReport.totalDonations)"></p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-500">Total des dépenses</h4>
+                                <p class="text-2xl font-bold text-red-500" x-text="formatCurrency(monthlyReport.totalExpenses)"></p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-500">Solde du mois</h4>
+                                <p class="text-2xl font-bold" :class="monthlyReport.balance >= 0 ? 'text-green-500' : 'text-red-500'" x-text="formatCurrency(monthlyReport.balance)"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-md font-medium text-gray-700 mb-2">Détail des dons</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Donateur</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Méthode</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <template x-for="donation in monthlyReport.donations" :key="donation.id">
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(donation.date)"></td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="donation.donor"></td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-500" x-text="formatCurrency(donation.amount)"></td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="donation.method"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-md font-medium text-gray-700 mb-2">Détail des dépenses</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bénéficiaire</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <template x-for="expense in monthlyReport.expenses" :key="expense.id">
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(expense.date)"></td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="expense.beneficiary"></td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-500" x-text="formatCurrency(expense.amount)"></td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="expense.category"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div x-show="annualReport" class="bg-white p-4 rounded-lg shadow fade-in">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Rapport annuel - <span x-text="annualReportYear"></span></h3>
+                            <button @click="exportReportToPDF('annual')" class="flex items-center space-x-2 text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>Exporter PDF</span>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-500">Total des dons</h4>
+                                <p class="text-2xl font-bold text-green-500" x-text="formatCurrency(annualReport.totalDonations)"></p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-500">Total des dépenses</h4>
+                                <p class="text-2xl font-bold text-red-500" x-text="formatCurrency(annualReport.totalExpenses)"></p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-500">Solde annuel</h4>
+                                <p class="text-2xl font-bold" :class="annualReport.balance >= 0 ? 'text-green-500' : 'text-red-500'" x-text="formatCurrency(annualReport.balance)"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="text-md font-medium text-gray-700 mb-4">Évolution mensuelle</h4>
+                            <div class="chart-container">
+                                <canvas id="annualReportChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700 mb-2">Dons par méthode</h4>
+                                <div class="chart-container">
+                                    <canvas id="donationMethodsChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700 mb-2">Dépenses par catégorie</h4>
+                                <div class="chart-container">
+                                    <canvas id="expenseCategoriesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div x-show="currentView === 'settings'" class="fade-in space-y-6">
+                    <h2 class="text-xl font-bold text-gray-800">Paramètres</h2>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-6">Informations de l'association</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Nom de l'association</label>
+                                <input type="text" x-model="associationSettings.name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Numéro RNA</label>
+                                <input type="text" x-model="associationSettings.rna" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Adresse</label>
+                                <input type="text" x-model="associationSettings.address" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Code postal</label>
+                                <input type="text" x-model="associationSettings.postalCode" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Ville</label>
+                                <input type="text" x-model="associationSettings.city" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Pays</label>
+                                <input type="text" x-model="associationSettings.country" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button @click="saveAssociationSettings" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                                Enregistrer les modifications
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-6">Catégories de dépenses</h3>
+                        
+                        <div class="mb-6">
+                            <div class="flex items-center space-x-4">
+                                <input type="text" x-model="newExpenseCategory" placeholder="Nouvelle catégorie" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <button @click="addExpenseCategory" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                                    Ajouter
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <template x-for="(category, index) in expenseCategories" :key="index">
+                                <div class="flex items-center justify-between p-2 border rounded">
+                                    <span x-text="category" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800"></span>
+                                    <button @click="removeExpenseCategory(index)" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-6">Méthodes de paiement</h3>
+                        
+                        <div class="mb-6">
+                            <div class="flex items-center space-x-4">
+                                <input type="text" x-model="newPaymentMethod" placeholder="Nouvelle méthode" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <button @click="addPaymentMethod" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                                    Ajouter
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <template x-for="(method, index) in paymentMethods" :key="index">
+                                <div class="flex items-center justify-between p-2 border rounded">
+                                    <span x-text="method" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"></span>
+                                    <button @click="removePaymentMethod(index)" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-6">Sauvegarde des données</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700 mb-2">Exporter les données</h4>
+                                <p class="text-sm text-gray-500 mb-4">Exportez toutes vos données au format JSON pour sauvegarde.</p>
+                                <button @click="exportAllData" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">
+                                    <i class="fas fa-file-export mr-2"></i>Exporter toutes les données
+                                </button>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-medium text-gray-700 mb-2">Importer des données</h4>
+                                <p class="text-sm text-gray-500 mb-4">Importez des données précédemment exportées.</p>
+                                <div class="flex items-center space-x-2">
+                                    <input type="file" id="importFile" class="hidden" @change="importData">
+                                    <label for="importFile" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 cursor-pointer">
+                                        <i class="fas fa-file-import mr-2"></i>Choisir un fichier
+                                    </label>
+                                    <span x-text="importFileName" class="text-sm text-gray-500"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Donation Modal -->
+    <div x-show="showDonationModal" class="fixed inset-0 overflow-y-auto z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showDonationModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div x-show="showDonationModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
+                        <span x-text="editingDonationIndex === null ? 'Nouveau don' : 'Modifier un don'"></span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="donation-date" class="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="date" id="donation-date" x-model="currentDonation.date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="donation-donor" class="block text-sm font-medium text-gray-700">Donateur</label>
+                            <input type="text" id="donation-donor" x-model="currentDonation.donor" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="donation-amount" class="block text-sm font-medium text-gray-700">Montant (€)</label>
+                            <input type="number" step="0.01" id="donation-amount" x-model="currentDonation.amount" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="donation-method" class="block text-sm font-medium text-gray-700">Méthode de paiement</label>
+                            <select id="donation-method" x-model="currentDonation.method" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="">Sélectionner une méthode</option>
+                                <template x-for="method in paymentMethods" :key="method">
+                                    <option x-text="method" :value="method"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="donation-notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                            <textarea id="donation-notes" x-model="currentDonation.notes" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="saveDonation" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Enregistrer
+                    </button>
+                    <button type="button" @click="showDonationModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div x-show="showExpenseModal" class="fixed inset-0 overflow-y-auto z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showExpenseModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div x-show="showExpenseModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
+                        <span x-text="editingExpenseIndex === null ? 'Nouvelle dépense' : 'Modifier une dépense'"></span>
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="expense-date" class="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="date" id="expense-date" x-model="currentExpense.date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="expense-beneficiary" class="block text-sm font-medium text-gray-700">Bénéficiaire</label>
+                            <input type="text" id="expense-beneficiary" x-model="currentExpense.beneficiary" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="expense-amount" class="block text-sm font-medium text-gray-700">Montant (€)</label>
+                            <input type="number" step="0.01" id="expense-amount" x-model="currentExpense.amount" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="expense-category" class="block text-sm font-medium text-gray-700">Catégorie</label>
+                            <select id="expense-category" x-model="currentExpense.category" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="">Sélectionner une catégorie</option>
+                                <template x-for="category in expenseCategories" :key="category">
+                                    <option x-text="category" :value="category"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="expense-notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                            <textarea id="expense-notes" x-model="currentExpense.notes" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="saveExpense" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Enregistrer
+                    </button>
+                    <button type="button" @click="showExpenseModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div x-show="showSuccessNotification" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2" class="fixed bottom-4 right-4 z-50">
+        <div class="bg-green-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center space-x-2">
+            <i class="fas fa-check-circle"></i>
+            <span x-text="successMessage"></span>
+        </div>
+    </div>
+
+    <!-- Error Notification -->
+    <div x-show="showErrorNotification" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2" class="fixed bottom-4 right-4 z-50">
+        <div class="bg-red-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center space-x-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <span x-text="errorMessage"></span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        function app() {
+            return {
+                // State
+                menuOpen: false,
+                dropdownOpen: false,
+                currentView: 'dashboard',
+                showDonationModal: false,
+                showExpenseModal: false,
+                editingDonationIndex: null,
+                editingExpenseIndex: null,
+                donationSearch: '',
+                expenseSearch: '',
+                reportMonth: new Date().getMonth() + 1 < 10 ? '0' + (new Date().getMonth() + 1) : new Date().getMonth() + 1,
+                reportYear: new Date().getFullYear().toString(),
+                annualReportYear: new Date().getFullYear().toString(),
+                monthlyReport: null,
+                annualReport: null,
+                showSuccessNotification: false,
+                successMessage: '',
+                showErrorNotification: false,
+                errorMessage: '',
+                importFileName: '',
+                
+                // Data
+                donations: [
+                    { id: 1, date: '2023-05-15', donor: 'Jean Dupont', amount: 150.00, method: 'Chèque', notes: 'Don pour la campagne printemps' },
+                    { id: 2, date: '2023-05-20', donor: 'Marie Martin', amount: 75.50, method: 'Virement', notes: '' },
+                    { id: 3, date: '2023-06-02', donor: 'Entreprise ABC', amount: 500.00, method: 'Virement', notes: 'Sponsoring événement' },
+                    { id: 4, date: '2023-06-10', donor: 'Paul Durand', amount: 30.00, method: 'Espèces', notes: '' }
+                ],
+                expenses: [
+                    { id: 1, date: '2023-05-18', beneficiary: 'Fournitures de bureau', amount: 45.90, category: 'Matériel', notes: 'Achat de stylos et cahiers' },
+                    { id: 2, date: '2023-05-22', beneficiary: 'EDF', amount: 120.00, category: 'Loyer & Charges', notes: 'Facture électricité' },
+                    { id: 3, date: '2023-06-05', beneficiary: 'Imprimerie Lambert', amount: 250.00, category: 'Communication', notes: 'Flyers pour événement' },
+                    { id: 4, date: '2023-06-12', beneficiary: 'Restaurant Le Petit Bistro', amount: 85.30, category: 'Repas', notes: 'Réunion avec partenaires' }
+                ],
+                currentDonation: {
+                    date: new Date().toISOString().split('T')[0],
+                    donor: '',
+                    amount: 0,
+                    method: '',
+                    notes: ''
+                },
+                currentExpense: {
+                    date: new Date().toISOString().split('T')[0],
+                    beneficiary: '',
+                    amount: 0,
+                    category: '',
+                    notes: ''
+                },
+                associationSettings: {
+                    name: 'Mon Association',
+                    rna: 'W123456789',
+                    address: '12 Rue des Fleurs',
+                    postalCode: '75000',
+                    city: 'Paris',
+                    country: 'France'
+                },
+                expenseCategories: ['Matériel', 'Loyer & Charges', 'Communication', 'Repas', 'Transport', 'Événement'],
+                paymentMethods: ['Chèque', 'Virement', 'Espèces', 'Carte bancaire', 'PayPal'],
+                charts: {},
+
+                // Computed
+                get filteredDonations() {
+                    return this.donations.filter(donation => 
+                        donation.donor.toLowerCase().includes(this.donationSearch.toLowerCase()) || 
+                        donation.method.toLowerCase().includes(this.donationSearch.toLowerCase())
+                    );
+                },
+                get filteredExpenses() {
+                    return this.expenses.filter(expense => 
+                        expense.beneficiary.toLowerCase().includes(this.expenseSearch.toLowerCase()) || 
+                        expense.category.toLowerCase().includes(this.expenseSearch.toLowerCase())
+                    );
+                },
+                get recentTransactions() {
+                    const allTransactions = [
+                        ...this.donations.map(d => ({ ...d, type: 'donation' })),
+                        ...this.expenses.map(e => ({ ...e, type: 'expense' }))
+                    ];
+                    return allTransactions
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .slice(0, 5);
+                },
+
+                // Methods
+                getViewTitle() {
+                    const titles = {
+                        'dashboard': 'Tableau de bord',
+                        'donations': 'Dons & Recettes',
+                        'expenses': 'Dépenses',
+                        'reports': 'Rapports',
+                        'settings': 'Paramètres'
+                    };
+                    return titles[this.currentView];
+                },
+                formatCurrency(amount) {
+                    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+                },
+                formatDate(dateString) {
+                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    return new Date(dateString).toLocaleDateString('fr-FR', options);
+                },
+                getMonthName(monthNumber) {
+                    const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                    return months[parseInt(monthNumber) - 1];
+                },
+                getBalance() {
+                    const totalDonations = this.donations.reduce((sum, donation) => sum + donation.amount, 0);
+                    const totalExpenses = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                    return totalDonations - totalExpenses;
+                },
+                getMonthlyTotal(type) {
+                    const currentMonth = new Date().getMonth() + 1;
+                    const currentYear = new Date().getFullYear();
+                    
+                    const items = type === 'donations' ? this.donations : this.expenses;
+                    
+                    return items.reduce((total, item) => {
+                        const itemDate = new Date(item.date);
+                        if (itemDate.getMonth() + 1 === currentMonth && itemDate.getFullYear() === currentYear) {
+                            return total + item.amount;
+                        }
+                        return total;
+                    }, 0);
+                },
+                saveDonation() {
+                    if (!this.currentDonation.date || !this.currentDonation.donor || !this.currentDonation.amount || !this.currentDonation.method) {
+                        this.showError('Veuillez remplir tous les champs obligatoires');
+                        return;
+                    }
+                    
+                    if (this.editingDonationIndex !== null) {
+                        // Update existing donation
+                        this.donations[this.editingDonationIndex] = { ...this.currentDonation };
+                        this.showSuccess('Don mis à jour avec succès');
+                    } else {
+                        // Add new donation
+                        const newId = this.donations.length > 0 ? Math.max(...this.donations.map(d => d.id)) + 1 : 1;
+                        this.donations.push({ id: newId, ...this.currentDonation });
+                        this.showSuccess('Don ajouté avec succès');
+                    }
+                    
+                    this.resetDonationForm();
+                    this.showDonationModal = false;
+                    this.updateCharts();
+                },
+                saveExpense() {
+                    if (!this.currentExpense.date || !this.currentExpense.beneficiary || !this.currentExpense.amount || !this.currentExpense.category) {
+                        this.showError('Veuillez remplir tous les champs obligatoires');
+                        return;
+                    }
+                    
+                    if (this.editingExpenseIndex !== null) {
+                        // Update existing expense
+                        this.expenses[this.editingExpenseIndex] = { ...this.currentExpense };
+                        this.showSuccess('Dépense mise à jour avec succès');
+                    } else {
+                        // Add new expense
+                        const newId = this.expenses.length > 0 ? Math.max(...this.expenses.map(e => e.id)) + 1 : 1;
+                        this.expenses.push({ id: newId, ...this.currentExpense });
+                        this.showSuccess('Dépense ajoutée avec succès');
+                    }
+                    
+                    this.resetExpenseForm();
+                    this.showExpenseModal = false;
+                    this.updateCharts();
+                },
+                editDonation(index) {
+                    this.editingDonationIndex = index;
+                    this.currentDonation = { ...this.donations[index] };
+                    this.showDonationModal = true;
+                },
+                editExpense(index) {
+                    this.editingExpenseIndex = index;
+                    this.currentExpense = { ...this.expenses[index] };
+                    this.showExpenseModal = true;
+                },
+                deleteTransaction(type, index) {
+                    if (confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
+                        if (type === 'donations') {
+                            this.donations.splice(index, 1);
+                            this.showSuccess('Don supprimé avec succès');
+                        } else {
+                            this.expenses.splice(index, 1);
+                            this.showSuccess('Dépense supprimée avec succès');
+                        }
+                        this.updateCharts();
+                    }
+                },
+                resetDonationForm() {
+                    this.currentDonation = {
+                        date: new Date().toISOString().split('T')[0],
+                        donor: '',
+                        amount: 0,
+                        method: '',
+                        notes: ''
+                    };
+                    this.editingDonationIndex = null;
+                },
+                resetExpenseForm() {
+                    this.currentExpense = {
+                        date: new Date().toISOString().split('T')[0],
+                        beneficiary: '',
+                        amount: 0,
+                        category: '',
+                        notes: ''
+                    };
+                    this.editingExpenseIndex = null;
+                },
+                generateMonthlyReport() {
+                    const monthDonations = this.donations.filter(d => {
+                        const date = new Date(d.date);
+                        return date.getMonth() + 1 === parseInt(this.reportMonth) && date.getFullYear() === parseInt(this.reportYear);
+                    });
+                    
+                    const monthExpenses = this.expenses.filter(e => {
+                        const date = new Date(e.date);
+                        return date.getMonth() + 1 === parseInt(this.reportMonth) && date.getFullYear() === parseInt(this.reportYear);
+                    });
+                    
+                    const totalDonations = monthDonations.reduce((sum, d) => sum + d.amount, 0);
+                    const totalExpenses = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+                    
+                    this.monthlyReport = {
+                        month: this.reportMonth,
+                        year: this.reportYear,
+                        totalDonations,
+                        totalExpenses,
+                        balance: totalDonations - totalExpenses,
+                        donations: monthDonations,
+                        expenses: monthExpenses
+                    };
+                    
+                    this.showSuccess('Rapport mensuel généré');
+                },
+                generateAnnualReport() {
+                    const yearDonations = this.donations.filter(d => {
+                        const date = new Date(d.date);
+                        return date.getFullYear() === parseInt(this.annualReportYear);
+                    });
+                    
+                    const yearExpenses = this.expenses.filter(e => {
+                        const date = new Date(e.date);
+                        return date.getFullYear() === parseInt(this.annualReportYear);
+                    });
+                    
+                    // Group by month
+                    const monthlyData = Array(12).fill().map((_, i) => {
+                        const month = i + 1;
+                        const monthDonations = yearDonations.filter(d => new Date(d.date).getMonth() + 1 === month);
+                        const monthExpenses = yearExpenses.filter(e => new Date(e.date).getMonth() + 1 === month);
+                        
+                        return {
+                            month,
+                            donations: monthDonations.reduce((sum, d) => sum + d.amount, 0),
+                            expenses: monthExpenses.reduce((sum, e) => sum + e.amount, 0)
+                        };
+                    });
+                    
+                    // Group donations by method
+                    const donationsByMethod = {};
+                    yearDonations.forEach(d => {
+                        if (!donationsByMethod[d.method]) {
+                            donationsByMethod[d.method] = 0;
+                        }
+                        donationsByMethod[d.method] += d.amount;
+                    });
+                    
+                    // Group expenses by category
+                    const expensesByCategory = {};
+                    yearExpenses.forEach(e => {
+                        if (!expensesByCategory[e.category]) {
+                            expensesByCategory[e.category] = 0;
+                        }
+                        expensesByCategory[e.category] += e.amount;
+                    });
+                    
+                    this.annualReport = {
+                        year: this.annualReportYear,
+                        totalDonations: yearDonations.reduce((sum, d) => sum + d.amount, 0),
+                        totalExpenses: yearExpenses.reduce((sum, e) => sum + e.amount, 0),
+                        balance: yearDonations.reduce((sum, d) => sum + d.amount, 0) - yearExpenses.reduce((sum, e) => sum + e.amount, 0),
+                        monthlyData,
+                        donationsByMethod,
+                        expensesByCategory
+                    };
+                    
+                    this.showSuccess('Rapport annuel généré');
+                    this.$nextTick(() => {
+                        this.renderAnnualReportCharts();
+                    });
+                },
+                exportToCSV(type) {
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    let data = [];
+                    let headers = [];
+                    
+                    if (type === 'donations') {
+                        headers = ['Date', 'Donateur', 'Montant', 'Méthode', 'Notes'];
+                        data = this.donations.map(d => [
+                            this.formatDate(d.date),
+                            d.donor,
+                            d.amount,
+                            d.method,
+                            d.notes
+                        ]);
+                    } else {
+                        headers = ['Date', 'Bénéficiaire', 'Montant', 'Catégorie', 'Notes'];
+                        data = this.expenses.map(e => [
+                            this.formatDate(e.date),
+                            e.beneficiary,
+                            e.amount,
+                            e.category,
+                            e.notes
+                        ]);
+                    }
+                    
+                    csvContent += headers.join(",") + "\n";
+                    data.forEach(row => {
+                        csvContent += row.join(",") + "\n";
+                    });
+                    
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `${type}_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    this.showSuccess(`Export ${type === 'donations' ? 'des dons' : 'des dépenses'} en CSV réussi`);
+                },
+                exportReportToPDF(type) {
+                    // In a real app, this would use a PDF generation library
+                    this.showSuccess(`Export du rapport ${type === 'monthly' ? 'mensuel' : 'annuel'} en PDF (simulation)`);
+                },
+                addExpenseCategory() {
+                    if (this.newExpenseCategory && !this.expenseCategories.includes(this.newExpenseCategory)) {
+                        this.expenseCategories.push(this.newExpenseCategory);
+                        this.newExpenseCategory = '';
+                        this.showSuccess('Catégorie ajoutée');
+                    }
+                },
+                removeExpenseCategory(index) {
+                    this.expenseCategories.splice(index, 1);
+                    this.showSuccess('Catégorie supprimée');
+                },
+                addPaymentMethod() {
+                    if (this.newPaymentMethod && !this.paymentMethods.includes(this.newPaymentMethod)) {
+                        this.paymentMethods.push(this.newPaymentMethod);
+                        this.newPaymentMethod = '';
+                        this.showSuccess('Méthode de paiement ajoutée');
+                    }
+                },
+                removePaymentMethod(index) {
+                    this.paymentMethods.splice(index, 1);
+                    this.showSuccess('Méthode de paiement supprimée');
+                },
+                saveAssociationSettings() {
+                    this.showSuccess('Paramètres enregistrés');
+                },
+                exportAllData() {
+                    const data = {
+                        donations: this.donations,
+                        expenses: this.expenses,
+                        settings: this.associationSettings,
+                        categories: this.expenseCategories,
+                        methods: this.paymentMethods
+                    };
+                    
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+                    const link = document.createElement("a");
+                    link.setAttribute("href", dataStr);
+                    link.setAttribute("download", `comptaasso_backup_${new Date().toISOString().slice(0,10)}.json`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    this.showSuccess('Export des données réussi');
+                },
+                importData(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    this.importFileName = file.name;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            
+                            if (data.donations) this.donations = data.donations;
+                            if (data.expenses) this.expenses = data.expenses;
+                            if (data.settings) this.associationSettings = data.settings;
+                            if (data.categories) this.expenseCategories = data.categories;
+                            if (data.methods) this.paymentMethods = data.methods;
+                            
+                            this.showSuccess('Import des données réussi');
+                            this.updateCharts();
+                        } catch (error) {
+                            this.showError('Erreur lors de la lecture du fichier');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+                showSuccess(message) {
+                    this.successMessage = message;
+                    this.showSuccessNotification = true;
+                    setTimeout(() => {
+                        this.showSuccessNotification = false;
+                    }, 3000);
+                },
+                showError(message) {
+                    this.errorMessage = message;
+                    this.showErrorNotification = true;
+                    setTimeout(() => {
+                        this.showErrorNotification = false;
+                    }, 3000);
+                },
+                initCharts() {
+                    // Balance over time chart
+                    const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+                    this.charts.balanceChart = new Chart(balanceCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                            datasets: [{
+                                label: 'Solde (€)',
+                                data: [1200, 1900, 1700, 2100, 2300, 2500],
+                                borderColor: 'rgb(99, 102, 241)',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                tension: 0.1,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: false
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Expenses by category chart
+                    const expensesCtx = document.getElementById('expensesChart').getContext('2d');
+                    this.charts.expensesChart = new Chart(expensesCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Matériel', 'Loyer & Charges', 'Communication', 'Repas'],
+                            datasets: [{
+                                data: [45.90, 120.00, 250.00, 85.30],
+                                backgroundColor: [
+                                    'rgba(168, 85, 247, 0.7)',
+                                    'rgba(79, 70, 229, 0.7)',
+                                    'rgba(236, 72, 153, 0.7)',
+                                    'rgba(16, 185, 129, 0.7)'
+                                ],
+                                borderColor: [
+                                    'rgba(168, 85, 247, 
+</html>

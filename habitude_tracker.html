@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitudeTracker - Suivi de vos routines quotidiennes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .habit-card {
+            transition: all 0.3s ease;
+        }
+        .habit-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .streak-fire {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Canvas pour les confettis -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- En-tête -->
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold text-indigo-700 mb-2">HabitudeTracker</h1>
+            <p class="text-gray-600">Créez des routines solides, un jour à la fois</p>
+            <div class="mt-4 flex justify-center space-x-4">
+                <div class="bg-white p-3 rounded-lg shadow-md flex items-center">
+                    <span class="text-green-500 mr-2"><i class="fas fa-fire"></i></span>
+                    <span class="font-semibold" id="current-streak">0</span>
+                    <span class="text-gray-500 ml-1">jours</span>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-md flex items-center">
+                    <span class="text-blue-500 mr-2"><i class="fas fa-check-circle"></i></span>
+                    <span class="font-semibold" id="completion-rate">0%</span>
+                    <span class="text-gray-500 ml-1">réussite</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Section principale -->
+        <main>
+            <!-- Formulaire d'ajout d'habitude -->
+            <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Ajouter une nouvelle habitude</h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="text" id="habit-name" placeholder="Ex: Méditation, Sport..." 
+                           class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="habit-frequency" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="daily">Quotidienne</option>
+                        <option value="weekly">Hebdomadaire</option>
+                    </select>
+                    <button id="add-habit-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Ajouter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Liste des habitudes -->
+            <div id="habits-container" class="space-y-4">
+                <!-- Les habitudes seront ajoutées ici dynamiquement -->
+                <div class="text-center py-10 text-gray-500" id="no-habits-message">
+                    <i class="fas fa-clipboard-list text-4xl mb-3"></i>
+                    <p>Commencez par ajouter votre première habitude</p>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="bg-white p-6 rounded-xl shadow-md mt-10">
+                <h2 class="text-xl font-semibold mb-6 text-gray-800">Vos statistiques</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-indigo-50 p-4 rounded-lg">
+                        <div class="text-indigo-600 mb-2"><i class="fas fa-calendar-alt text-2xl"></i></div>
+                        <h3 class="font-medium text-gray-700 mb-1">Suivi depuis</h3>
+                        <p class="text-2xl font-bold" id="tracking-days">0 jours</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <div class="text-green-600 mb-2"><i class="fas fa-trophy text-2xl"></i></div>
+                        <h3 class="font-medium text-gray-700 mb-1">Meilleure série</h3>
+                        <p class="text-2xl font-bold" id="best-streak">0 jours</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <div class="text-blue-600 mb-2"><i class="fas fa-check-double text-2xl"></i></div>
+                        <h3 class="font-medium text-gray-700 mb-1">Habitudes totales</h3>
+                        <p class="text-2xl font-bold" id="total-habits">0</p>
+                    </div>
+                </div>
+
+                <h3 class="font-medium text-gray-700 mb-3">Progression mensuelle</h3>
+                <div class="bg-gray-100 rounded-full h-4 mb-6">
+                    <div id="monthly-progress" class="progress-bar bg-indigo-600 h-4 rounded-full" style="width: 0%"></div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="py-3 px-4 text-left">Habitude</th>
+                                <th class="py-3 px-4 text-center">Série actuelle</th>
+                                <th class="py-3 px-4 text-center">Taux de réussite</th>
+                                <th class="py-3 px-4 text-center">Dernière activité</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-table-body" class="divide-y divide-gray-200">
+                            <!-- Les données statistiques seront ajoutées ici -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Pied de page -->
+        <footer class="mt-16 text-center text-gray-500 text-sm">
+            <p>HabitudeTracker - Développé par Geoffroy Streit</p>
+            <p class="mt-2">Suivez vos progrès et construisez des habitudes durables</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialisation des données
+        let habits = JSON.parse(localStorage.getItem('habits')) || [];
+        let trackingStartDate = localStorage.getItem('trackingStartDate') || new Date().toISOString();
+        let lastNotificationDate = localStorage.getItem('lastNotificationDate') || null;
+
+        // Éléments du DOM
+        const habitsContainer = document.getElementById('habits-container');
+        const noHabitsMessage = document.getElementById('no-habits-message');
+        const addHabitBtn = document.getElementById('add-habit-btn');
+        const habitNameInput = document.getElementById('habit-name');
+        const habitFrequencySelect = document.getElementById('habit-frequency');
+        const currentStreakElement = document.getElementById('current-streak');
+        const completionRateElement = document.getElementById('completion-rate');
+        const trackingDaysElement = document.getElementById('tracking-days');
+        const bestStreakElement = document.getElementById('best-streak');
+        const totalHabitsElement = document.getElementById('total-habits');
+        const monthlyProgressElement = document.getElementById('monthly-progress');
+        const statsTableBody = document.getElementById('stats-table-body');
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHabits();
+            updateStats();
+            checkForNotifications();
+            setupReminderNotification();
+        });
+
+        // Ajout d'une nouvelle habitude
+        addHabitBtn.addEventListener('click', () => {
+            const name = habitNameInput.value.trim();
+            const frequency = habitFrequencySelect.value;
+            
+            if (name) {
+                const newHabit = {
+                    id: Date.now(),
+                    name,
+                    frequency,
+                    streak: 0,
+                    bestStreak: 0,
+                    history: [],
+                    createdAt: new Date().toISOString()
+                };
+                
+                habits.push(newHabit);
+                saveHabits();
+                renderHabits();
+                updateStats();
+                
+                habitNameInput.value = '';
+                habitNameInput.focus();
+                
+                // Afficher un message de succès
+                showToast('Habitude ajoutée avec succès!', 'success');
+            } else {
+                showToast('Veuillez entrer un nom pour votre habitude', 'error');
+            }
+        });
+
+        // Rendu des habitudes
+        function renderHabits() {
+            if (habits.length === 0) {
+                noHabitsMessage.style.display = 'block';
+                habitsContainer.innerHTML = '';
+                return;
+            }
+            
+            noHabitsMessage.style.display = 'none';
+            
+            habitsContainer.innerHTML = habits.map(habit => `
+                <div class="habit-card bg-white p-5 rounded-xl shadow-md" data-id="${habit.id}">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">${habit.name}</h3>
+                        <div class="flex items-center">
+                            <span class="text-sm px-3 py-1 rounded-full ${habit.frequency === 'daily' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">
+                                ${habit.frequency === 'daily' ? 'Quotidien' : 'Hebdomadaire'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <span class="text-xs text-gray-500">Série actuelle</span>
+                            <div class="flex items-center">
+                                <span class="text-2xl font-bold mr-2 ${habit.streak >= 7 ? 'streak-fire text-orange-500' : 'text-gray-700'}">${habit.streak}</span>
+                                <span class="text-gray-500">jours</span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <span class="text-xs text-gray-500">Meilleure série</span>
+                            <div class="text-2xl font-bold text-gray-700">${habit.bestStreak}</div>
+                        </div>
+                        
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500">Réussite</span>
+                            <div class="text-2xl font-bold text-gray-700">${calculateSuccessRate(habit)}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between space-x-2">
+                        <button class="habit-action-btn bg-red-100 text-red-600 px-4 py-2 rounded-lg flex-1 hover:bg-red-200 transition-colors" data-action="delete">
+                            <i class="fas fa-trash mr-2"></i>Supprimer
+                        </button>
+                        <button class="habit-action-btn bg-gray-100 text-gray-600 px-4 py-2 rounded-lg flex-1 hover:bg-gray-200 transition-colors" data-action="history">
+                            <i class="fas fa-history mr-2"></i>Historique
+                        </button>
+                        <button class="habit-action-btn bg-green-100 text-green-600 px-4 py-2 rounded-lg flex-1 hover:bg-green-200 transition-colors" data-action="complete">
+                            <i class="fas fa-check-circle mr-2"></i>Valider
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Ajout des écouteurs d'événements pour les boutons
+            document.querySelectorAll('.habit-action-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const habitId = parseInt(this.closest('.habit-card').dataset.id);
+                    const action = this.dataset.action;
+                    
+                    const habit = habits.find(h => h.id === habitId);
+                    
+                    switch(action) {
+                        case 'delete':
+                            deleteHabit(habitId);
+                            break;
+                        case 'history':
+                            showHistoryModal(habit);
+                            break;
+                        case 'complete':
+                            markHabitComplete(habit);
+                            break;
+                    }
+                });
+            });
+        }
+
+        // Marquer une habitude comme complétée
+        function markHabitComplete(habit) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Vérifier si l'habitude a déjà été complétée aujourd'hui
+            if (habit.history.includes(today)) {
+                showToast('Cette habitude a déjà été validée aujourd\'hui', 'info');
+                return;
+            }
+            
+            // Ajouter à l'historique
+            habit.history.push(today);
+            
+            // Mettre à jour la série
+            habit.streak += 1;
+            if (habit.streak > habit.bestStreak) {
+                habit.bestStreak = habit.streak;
+            }
+            
+            saveHabits();
+            renderHabits();
+            updateStats();
+            
+            // Afficher un message de succès
+            showToast(`Bravo! Vous avez validé "${habit.name}"`, 'success');
+            
+            // Animation de confettis pour les séries de 7 jours ou plus
+            if (habit.streak % 7 === 0) {
+                triggerConfetti();
+                showToast(`Incroyable! ${habit.streak} jours d'affilée pour "${habit.name}"`, 'success');
+            }
+        }
+
+        // Supprimer une habitude
+        function deleteHabit(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette habitude ? Toutes ses données seront perdues.')) {
+                habits = habits.filter(habit => habit.id !== id);
+                saveHabits();
+                renderHabits();
+                updateStats();
+                showToast('Habitude supprimée', 'info');
+            }
+        }
+
+        // Afficher l'historique d'une habitude
+        function showHistoryModal(habit) {
+            // Créer le modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold">Historique de "${habit.name}"</h3>
+                        <button class="text-gray-500 hover:text-gray-700" id="close-history-modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="p-5 overflow-y-auto" style="max-height: 60vh;">
+                        ${habit.history.length === 0 
+                            ? '<p class="text-gray-500 text-center py-10">Aucun historique pour le moment</p>' 
+                            : `<ul class="divide-y divide-gray-200">
+                                ${habit.history.sort().reverse().map(date => `
+                                    <li class="py-3 flex justify-between items-center">
+                                        <span>${formatDate(date)}</span>
+                                        <span class="text-green-500"><i class="fas fa-check-circle"></i></span>
+                                    </li>
+                                `).join('')}
+                               </ul>`
+                        }
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-200 text-right">
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors" id="close-history-modal-btn">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Ajouter les écouteurs d'événements pour fermer le modal
+            const closeButtons = modal.querySelectorAll('#close-history-modal, #close-history-modal-btn');
+            closeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+            });
+        }
+
+        // Mettre à jour les statistiques globales
+        function updateStats() {
+            // Calculer le nombre de jours de suivi
+            const startDate = new Date(trackingStartDate);
+            const today = new Date();
+            const diffTime = Math.abs(today - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            trackingDaysElement.textContent = `${diffDays} jours`;
+            
+            // Calculer la meilleure série parmi toutes les habitudes
+            const bestStreak = habits.reduce((max, habit) => Math.max(max, habit.bestStreak), 0);
+            bestStreakElement.textContent = `${bestStreak} jours`;
+            
+            // Nombre total d'habitudes
+            totalHabitsElement.textContent = habits.length;
+            
+            // Calculer la série actuelle (nombre de jours consécutifs avec au moins une habitude complétée)
+            let currentStreak = 0;
+            if (habits.length > 0) {
+                const allDates = new Set();
+                habits.forEach(habit => {
+                    habit.history.forEach(date => allDates.add(date));
+                });
+                
+                const sortedDates = Array.from(allDates).sort().reverse();
+                let yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                let consecutive = true;
+                let day = new Date();
+                day.setHours(0, 0, 0, 0);
+                
+                while (consecutive) {
+                    const dayStr = day.toISOString().split('T')[0];
+                    if (sortedDates.includes(dayStr)) {
+                        currentStreak++;
+                        day.setDate(day.getDate() - 1);
+                    } else {
+                        // Vérifier si c'est aujourd'hui (on peut encore compléter des habitudes)
+                        if (dayStr === new Date().toISOString().split('T')[0]) {
+                            day.setDate(day.getDate() - 1);
+                        } else {
+                            consecutive = false;
+                        }
+                    }
+                }
+            }
+            
+            currentStreakElement.textContent = `${currentStreak} jours`;
+            
+            // Taux de réussite global
+            let completionRate = 0;
+            if (habits.length > 0) {
+                const totalPossible = habits.length * diffDays;
+                const totalCompleted = habits.reduce((sum, habit) => sum + habit.history.length, 0);
+                completionRate = Math.round((totalCompleted / totalPossible) * 100);
+            }
+            completionRateElement.textContent = `${completionRate}%`;
+            
+            // Progression mensuelle
+            const currentDate = new Date();
+            const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            const daysCompletedThisMonth = habits.reduce((sum, habit) => {
+                return sum + habit.history.filter(date => {
+                    const d = new Date(date);
+                    return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
+                }).length;
+            }, 0);
+            
+            const monthlyProgress = (daysCompletedThisMonth / (habits.length * daysInMonth)) * 100;
+            monthlyProgressElement.style.width = `${Math.min(100, monthlyProgress)}%`;
+            
+            // Mettre à jour le tableau des statistiques
+            updateStatsTable();
+        }
+
+        // Mettre à jour le tableau des statistiques
+        function updateStatsTable() {
+            statsTableBody.innerHTML = habits.map(habit => `
+                <tr>
+                    <td class="py-3 px-4">${habit.name}</td>
+                    <td class="py-3 px-4 text-center font-semibold ${habit.streak >= 7 ? 'text-orange-500' : ''}">
+                        ${habit.streak} jours
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center">
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 max-w-[100px] mr-2">
+                                <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${calculateSuccessRate(habit)}%"></div>
+                            </div>
+                            <span>${calculateSuccessRate(habit)}%</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        ${habit.history.length > 0 
+                            ? formatDate(habit.history[habit.history.length - 1]) 
+                            : 'Jamais'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Calculer le taux de réussite d'une habitude
+        function calculateSuccessRate(habit) {
+            if (!habit.history.length) return 0;
+            
+            const createdDate = new Date(habit.createdAt);
+            const today = new Date();
+            const diffTime = Math.abs(today - createdDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            return Math.round((habit.history.length / diffDays) * 100);
+        }
+
+        // Sauvegarder les habitudes dans le localStorage
+        function saveHabits() {
+            localStorage.setItem('habits', JSON.stringify(habits));
+            if (!localStorage.getItem('trackingStartDate')) {
+                localStorage.setItem('trackingStartDate', trackingStartDate);
+            }
+        }
+
+        // Formater une date pour l'affichage
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+
+        // Afficher un toast (notification)
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white font-medium flex items-center ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                'bg-blue-500'
+            }`;
+            toast.innerHTML = `
+                <i class="fas ${
+                    type === 'success' ? 'fa-check-circle' : 
+                    type === 'error' ? 'fa-exclamation-circle' : 
+                    'fa-info-circle'
+                } mr-2"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // Vérifier les notifications (habitudes non complétées aujourd'hui)
+        function checkForNotifications() {
+            if (habits.length === 0) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const hours = now.getHours();
+            
+            // Ne pas notifier la nuit
+            if (hours < 8 || hours > 22) return;
+            
+            // Vérifier si nous avons déjà notifié aujourd'hui
+            if (lastNotificationDate === today) return;
+            
+            // Vérifier les habitudes non complétées aujourd'hui
+            const incompleteHabits = habits.filter(habit => {
+                return habit.frequency === 'daily' && !habit.history.includes(today);
+            });
+            
+            if (incompleteHabits.length > 0) {
+                // Demander la permission si ce n'est pas déjà fait
+                if (Notification.permission !== 'granted') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            showBrowserNotification(incompleteHabits);
+                        }
+                    });
+                } else {
+                    showBrowserNotification(incompleteHabits);
+                }
+                
+                lastNotificationDate = today;
+                localStorage.setItem('lastNotificationDate', today);
+            }
+        }
+
+        // Afficher une notification du navigateur
+        function showBrowserNotification(incompleteHabits) {
+            if (!('Notification' in window)) return;
+            
+            const habitNames = incompleteHabits.map(h => h.name).join(', ');
+            const notification = new Notification('HabitudeTracker - Rappel', {
+                body: `Vous avez ${incompleteHabits.length} habitude(s) à compléter aujourd'hui: ${habitNames}`,
+                icon: 'https://cdn-icons-png.flaticon.com/512/3132/3132736.png'
+            });
+            
+            notification.onclick = () => {
+                window.focus();
+            };
+        }
+
+        // Configurer une notification de rappel quotidienne
+        function setupReminderNotification() {
+            // Vérifier si l'utilisateur a déjà configuré un rappel
+            const reminderTime = localStorage.getItem('dailyReminderTime');
+            
+            if (reminderTime) {
+                scheduleDailyReminder(reminderTime);
+            }
+            
+            // Ajouter un bouton pour configurer le rappel
+            const reminderBtn = document.createElement('button');
+            reminderBtn.className = 'fixed bottom-5 right-5 bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors';
+            reminderBtn.innerHTML = '<i class="fas fa-bell"></i>';
+            reminderBtn.title = 'Configurer un rappel quotidien';
+            reminderBtn.addEventListener('click', showReminderSetupModal);
+            
+            document.body.appendChild(reminderBtn);
+        }
+
+        // Afficher le modal de configuration du rappel
+        function showReminderSetupModal() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+                    <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold">Rappel quotidien</h3>
+                        <button class="text-gray-500 hover:text-gray-700" id="close-reminder-modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="p-5">
+                        <p class="mb-4">Choisissez l'heure à laquelle vous souhaitez recevoir un rappel pour compléter vos habitudes:</p>
+                        
+                        <div class="flex items-center mb-6">
+                            <input type="time" id="reminder-time" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="18:00">
+                            <button id="test-reminder-btn" class="ml-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                Tester
+                            </button>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <button id="cancel-reminder-btn" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+                                Désactiver
+                            </button>
+                            <button id="save-reminder-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                                Enregistrer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Récupérer l'heure actuelle du rappel si elle existe
+            const currentReminderTime = localStorage.getItem('dailyReminderTime');
+            if (currentReminderTime) {
+                modal.querySelector('#reminder-time').value = currentReminderTime;
+            }
+            
+            // Ajouter les écouteurs d'événements
+            modal.querySelector('#close-reminder-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+            
+            modal.querySelector('#test-reminder-btn').addEventListener('click', () => {
+                const timeInput = modal.querySelector('#reminder-time').value;
+                if (timeInput) {
+                    showBrowserNotification(habits.filter(h => h.frequency === 'daily'));
+                }
+            });
+            
+            modal.querySelector('#cancel-reminder-btn').addEventListener('click', () => {
+                localStorage.removeItem('dailyReminderTime');
+                showToast('Rappel désactivé', 'info');
+                document.body.removeChild(modal);
+            });
+            
+            modal.querySelector('#save-reminder-btn').addEventListener('click', () => {
+                const timeInput = modal.querySelector('#reminder-time').value;
+                if (timeInput) {
+                    localStorage.setItem('dailyReminderTime', timeInput);
+                    scheduleDailyReminder(timeInput);
+                    showToast('Rappel programmé avec succès', 'success');
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+
+        // Programmer un rappel quotidien
+        function scheduleDailyReminder(timeStr) {
+            // Cette fonction est conceptuelle - dans la réalité, vous utiliseriez
+            // l'API Notification et des rappels côté client, ou un service worker
+            console.log(`Rappel quotidien programmé à ${timeStr}`);
+        }
+
+        // Animation de confettis
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const particles = [];
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'];
+            
+            // Créer des particules
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 3,
+                    speed: Math.random() * 3 + 2,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rotationSpeed: Math.random() * 10 - 5
+                });
+            }
+            
+            let animationId;
+            const animate = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                particles.forEach((p, i) => {
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    
+                    ctx.restore();
+                    
+                    p.y += p.speed;
+                    p.rotation += p.rotationSpeed;
+                    
+                    // Réinitialiser les particules qui sortent de l'écran
+                    if (p.y > canvas.height) {
+                        particles[i] = {
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * -20,
+                            size: Math.random() * 8 + 3,
+                            speed: Math.random() * 3 + 2,
+                            color: colors[Math.floor(Math.random() * colors.length)],
+                            rotation: Math.random() * 360,
+                            rotationSpeed: Math.random() * 10 - 5
+                        };
+                    }
+                });
+                
+                animationId = requestAnimationFrame(animate);
+            };
+            
+            animate();
+            
+            // Arrêter l'animation après 3 secondes
+            setTimeout(() => {
+                cancelAnimationFrame(animationId);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
