@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Contrats pour Coachs Sportifs | Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .contract-section {
+            background-color: white;
+            border-left: 4px solid #0ea5e9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        #contractPreview {
+            min-height: 100vh;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .signature-pad {
+            border: 1px dashed #cbd5e1;
+            background-color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        
+        .signature-pad:hover {
+            border-color: #0ea5e9;
+        }
+        
+        .editor-label {
+            @apply block text-sm font-medium text-gray-700 mb-1;
+        }
+        
+        .editor-input {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border bg-white transition duration-150 ease-in-out;
+        }
+        
+        .toggle-checkbox:checked {
+            @apply right-0 border-primary-500;
+            right: 0;
+            border-color: #0ea5e9;
+        }
+        
+        .toggle-checkbox:checked + .toggle-label {
+            @apply bg-primary-500;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        /* Style pour le contrat */
+        .contract-title {
+            background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #e5e7eb;
+            width: 200px;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8 text-center">
+            <div class="inline-flex items-center bg-primary-100 text-primary-800 text-sm font-semibold px-4 py-2 rounded-full mb-4">
+                <i class="fas fa-bolt mr-2"></i> VERSION PRO
+            </div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-3">Générateur de Contrats Professionnels</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">Créez, personnalisez et exportez vos contrats de coaching en quelques minutes</p>
+            <p class="text-sm text-gray-500 mt-4 flex items-center justify-center">
+                <i class="fas fa-user-tie mr-2"></i> Créé par Geoffroy Streit
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Éditeur de contrat -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-cog mr-2 text-primary-500"></i> Paramètres
+                        </h2>
+                        <button onclick="resetForm()" class="text-sm text-gray-500 hover:text-primary-600 flex items-center">
+                            <i class="fas fa-redo mr-1"></i> Réinitialiser
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="editor-label">Titre du contrat</label>
+                            <input type="text" id="contractTitle" value="CONTRAT DE COACHING SPORTIF" class="editor-input">
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Date du contrat</label>
+                            <input type="date" id="contractDate" class="editor-input">
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Référence du contrat</label>
+                            <input type="text" id="contractReference" placeholder="Ex: CONTRACT-2023-001" class="editor-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-users mr-2 text-primary-500"></i> Parties contractantes
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-primary-50 p-3 rounded-lg">
+                            <h3 class="text-sm font-medium text-primary-800 mb-2 flex items-center">
+                                <i class="fas fa-dumbbell mr-1"></i> Coach Sportif
+                            </h3>
+                            <div>
+                                <label class="editor-label">Nom complet</label>
+                                <input type="text" id="coachName" class="editor-input" placeholder="Prénom et Nom">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Adresse</label>
+                                <textarea id="coachAddress" rows="2" class="editor-input" placeholder="Adresse complète"></textarea>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Numéro SIRET</label>
+                                <input type="text" id="coachSiret" class="editor-input" placeholder="Numéro SIRET">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Email</label>
+                                <input type="email" id="coachEmail" class="editor-input" placeholder="contact@coach.com">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Téléphone</label>
+                                <input type="tel" id="coachPhone" class="editor-input" placeholder="06 12 34 56 78">
+                            </div>
+                        </div>
+                        
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <h3 class="text-sm font-medium text-blue-800 mb-2 flex items-center">
+                                <i class="fas fa-user mr-1"></i> Client
+                            </h3>
+                            <div>
+                                <label class="editor-label">Nom complet</label>
+                                <input type="text" id="clientName" class="editor-input" placeholder="Prénom et Nom">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Adresse</label>
+                                <textarea id="clientAddress" rows="2" class="editor-input" placeholder="Adresse complète"></textarea>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Email</label>
+                                <input type="email" id="clientEmail" class="editor-input" placeholder="client@email.com">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Téléphone</label>
+                                <input type="tel" id="clientPhone" class="editor-input" placeholder="06 12 34 56 78">
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="editor-label">Date de naissance</label>
+                                <input type="date" id="clientBirthdate" class="editor-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-running mr-2 text-primary-500"></i> Détails du coaching
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="editor-label">Type de coaching</label>
+                            <select id="coachingType" class="editor-input">
+                                <option value="Individuel">Individuel</option>
+                                <option value="Collectif">Collectif</option>
+                                <option value="En ligne">En ligne</option>
+                                <option value="Personnalisé">Personnalisé</option>
+                                <option value="Nutritionnel">Nutritionnel</option>
+                                <option value="Préparation physique">Préparation physique</option>
+                            </select>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="editor-label">Date de début</label>
+                                <input type="date" id="startDate" class="editor-input">
+                            </div>
+                            <div>
+                                <label class="editor-label">Date de fin</label>
+                                <input type="date" id="endDate" class="editor-input">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Fréquence des séances</label>
+                            <input type="text" id="sessionFrequency" class="editor-input" placeholder="Ex: 2 séances/semaine">
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Durée des séances</label>
+                            <input type="text" id="sessionDuration" class="editor-input" placeholder="Ex: 1 heure">
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Lieu des séances</label>
+                            <textarea id="sessionLocation" rows="2" class="editor-input" placeholder="Adresse ou lieu de rendez-vous"></textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="editor-label">Tarif</label>
+                                <input type="text" id="coachingPrice" class="editor-input" placeholder="Ex: 50€/séance">
+                            </div>
+                            <div>
+                                <label class="editor-label">Total estimé</label>
+                                <input type="text" id="totalPrice" class="editor-input bg-gray-50" placeholder="Calcul automatique" readonly>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Mode de paiement</label>
+                            <select id="paymentMethod" class="editor-input">
+                                <option value="Virement bancaire">Virement bancaire</option>
+                                <option value="Chèque">Chèque</option>
+                                <option value="Espèces">Espèces</option>
+                                <option value="Carte bancaire">Carte bancaire</option>
+                                <option value="Prélèvement automatique">Prélèvement automatique</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-file-contract mr-2 text-primary-500"></i> Clauses contractuelles
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <label for="includeCancellation" class="font-medium text-gray-700">Clause d'annulation</label>
+                                <p class="text-xs text-gray-500">Délai d'annulation et conditions</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" id="includeCancellation" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="includeCancellation" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <label for="includeLiability" class="font-medium text-gray-700">Clause de responsabilité</label>
+                                <p class="text-xs text-gray-500">Engagement sur l'état de santé</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" id="includeLiability" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="includeLiability" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <label for="includeConfidentiality" class="font-medium text-gray-700">Clause de confidentialité</label>
+                                <p class="text-xs text-gray-500">Protection des données personnelles</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" id="includeConfidentiality" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="includeConfidentiality" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <label for="includePaymentTerms" class="font-medium text-gray-700">Conditions de paiement</label>
+                                <p class="text-xs text-gray-500">Délais et modalités</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" id="includePaymentTerms" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="includePaymentTerms" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <label for="includeHealthDeclaration" class="font-medium text-gray-700">Déclaration médicale</label>
+                                <p class="text-xs text-gray-500">Certificat médical</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" id="includeHealthDeclaration" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="includeHealthDeclaration" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </div>
+                        
+                        <div id="customClauseSection" class="hidden">
+                            <label class="editor-label">Clause personnalisée</label>
+                            <textarea id="customClause" rows="3" class="editor-input" placeholder="Rédigez votre clause spécifique..."></textarea>
+                        </div>
+                        
+                        <button onclick="toggleCustomClause()" class="w-full text-sm text-primary-600 hover:text-primary-800 flex items-center justify-center mt-2">
+                            <i class="fas fa-plus-circle mr-2"></i> Ajouter une clause personnalisée
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-signature mr-2 text-primary-500"></i> Signatures
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="editor-label">Signature du coach</label>
+                            <div class="signature-pad mt-2 rounded-lg p-4">
+                                <canvas id="coachSignature" width="300" height="150" class="w-full h-full border border-gray-300 bg-white"></canvas>
+                                <div class="flex justify-between mt-2">
+                                    <button onclick="clearSignature('coachSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                        <i class="fas fa-eraser mr-1"></i> Effacer
+                                    </button>
+                                    <button onclick="saveSignature('coachSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                        <i class="fas fa-save mr-1"></i> Enregistrer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Signature du client</label>
+                            <div class="signature-pad mt-2 rounded-lg p-4">
+                                <canvas id="clientSignature" width="300" height="150" class="w-full h-full border border-gray-300 bg-white"></canvas>
+                                <div class="flex justify-between mt-2">
+                                    <button onclick="clearSignature('clientSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                        <i class="fas fa-eraser mr-1"></i> Effacer
+                                    </button>
+                                    <button onclick="saveSignature('clientSignature')" class="text-sm text-gray-600 hover:text-primary-600 flex items-center">
+                                        <i class="fas fa-save mr-1"></i> Enregistrer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="editor-label">Date de signature</label>
+                            <input type="date" id="signatureDate" class="editor-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button onclick="updateContract()" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition duration-150 ease-in-out">
+                        <i class="fas fa-sync-alt mr-2 animate-spin hidden" id="updateSpinner"></i>
+                        <i class="fas fa-eye mr-2" id="updateIcon"></i> Prévisualiser
+                    </button>
+                    <button onclick="generatePDF()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition duration-150 ease-in-out">
+                        <i class="fas fa-file-pdf mr-2"></i> Exporter PDF
+                    </button>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                    <p class="text-sm text-gray-600">Besoin d'un modèle spécifique ?</p>
+                    <button class="text-primary-600 hover:text-primary-800 text-sm font-medium mt-1">
+                        Contactez-nous <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Aperçu du contrat -->
+            <div class="lg:col-span-2">
+                <div class="sticky top-4">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-4 flex justify-between items-center">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-file-alt mr-2 text-primary-500"></i> Aperçu du contrat
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button onclick="printContract()" class="text-gray-600 hover:text-primary-600 flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-sm transition duration-150 ease-in-out">
+                                <i class="fas fa-print mr-1"></i> Imprimer
+                            </button>
+                            <button onclick="copyContractText()" class="text-gray-600 hover:text-primary-600 flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg text-sm transition duration-150 ease-in-out">
+                                <i class="fas fa-copy mr-1"></i> Copier
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="contractPreview" class="p-8">
+                        <div class="max-w-4xl mx-auto">
+                            <div class="text-center mb-8">
+                                <h1 class="text-3xl font-bold contract-title mb-2">CONTRAT DE COACHING SPORTIF</h1>
+                                <p class="text-gray-600">Référence: <span id="previewReference">[N°REF]</span></p>
+                            </div>
+                            
+                            <div class="text-center animate-pulse text-gray-500">
+                                <i class="fas fa-file-contract text-4xl mb-2"></i>
+                                <p>Prévisualisation du contrat</p>
+                                <p class="text-sm mt-2">Remplissez le formulaire pour générer votre contrat</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-50 border-t border-gray-200 py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-gray-600 mb-2">Générateur de Contrats Professionnels pour Coachs Sportifs</p>
+            <p class="text-sm text-gray-500">© 2023 Créé par Geoffroy Streit. Tous droits réservés.</p>
+            <div class="flex justify-center space-x-4 mt-4">
+                <a href="#" class="text-gray-500 hover:text-primary-600"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-gray-500 hover:text-primary-600"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="text-gray-500 hover:text-primary-600"><i class="fas fa-envelope"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialiser la date du contrat à aujourd'hui
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('contractDate').value = today;
+            document.getElementById('signatureDate').value = today;
+            
+            // Générer une référence aléatoire
+            const randomRef = 'CONT-' + today.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('contractReference').value = randomRef;
+            
+            // Initialiser les pads de signature
+            initSignaturePad('coachSignature');
+            initSignaturePad('clientSignature');
+            
+            // Calculer la date de fin (3 mois après aujourd'hui)
+            const endDate = new Date();
+            endDate.setMonth(endDate.getMonth() + 3);
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            
+            // Écouteurs pour calcul automatique
+            document.getElementById('sessionFrequency').addEventListener('input', calculateTotalPrice);
+            document.getElementById('coachingPrice').addEventListener('input', calculateTotalPrice);
+            document.getElementById('startDate').addEventListener('change', updateEndDate);
+            document.getElementById('endDate').addEventListener('change', updateDuration);
+            
+            // Générer le contrat initial
+            setTimeout(updateContract, 500);
+        });
+
+        // Initialiser un pad de signature
+        function initSignaturePad(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // Style de la signature
+            ctx.strokeStyle = '#1e40af';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+                [lastX, lastY] = [e.offsetX, e.offsetY];
+            });
+            
+            canvas.addEventListener('mouseup', () => isDrawing = false);
+            canvas.addEventListener('mouseout', () => isDrawing = false);
+            
+            // Support pour les appareils tactiles
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            });
+            
+            canvas.addEventListener('touchend', () => {
+                const mouseEvent = new MouseEvent('mouseup');
+                canvas.dispatchEvent(mouseEvent);
+            });
+        }
+        
+        // Effacer une signature
+        function clearSignature(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Enregistrer une signature
+        function saveSignature(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const dataURL = canvas.toDataURL();
+            localStorage.setItem(canvasId, dataURL);
+            
+            // Afficher une notification
+            showToast('Signature enregistrée avec succès', 'success');
+        }
+        
+        // Charger une signature sauvegardée
+        function loadSignature(canvasId) {
+            const savedSignature = localStorage.getItem(canvasId);
+            if (savedSignature) {
+                const canvas = document.getElementById(canvasId);
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = savedSignature;
+            }
+        }
+        
+        // Afficher une notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            }`;
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'
+                    } mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Calculer le prix total estimé
+        function calculateTotalPrice() {
+            const frequency = document.getElementById('sessionFrequency').value;
+            const price = document.getElementById('coachingPrice').value;
+            
+            // Extraction simple des nombres (pour démo)
+            const freqNumber = frequency ? parseInt(frequency.match(/\d+/)?.[0] || '1') : 1;
+            const priceNumber = price ? parseInt(price.match(/\d+/)?.[0] || '0') : 0;
+            
+            if (freqNumber && priceNumber) {
+                // Estimation sur 3 mois (12 semaines)
+                const total = freqNumber * 12 * priceNumber;
+                document.getElementById('totalPrice').value = `${total}€ (estimation)`;
+            }
+        }
+        
+        // Mettre à jour la date de fin en fonction de la durée
+        function updateEndDate() {
+            const startDate = new Date(document.getElementById('startDate').value);
+            if (!isNaN(startDate.getTime())) {
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + 3);
+                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            }
+        }
+        
+        // Mettre à jour la durée en fonction des dates
+        function updateDuration() {
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                const diffTime = Math.abs(endDate - startDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const months = Math.floor(diffDays / 30);
+                
+                document.getElementById('contractDuration').value = `${months} mois (${diffDays} jours)`;
+            }
+        }
+        
+        // Basculer l'affichage de la clause personnalisée
+        function toggleCustomClause() {
+            const section = document.getElementById('customClauseSection');
+            section.classList.toggle('hidden');
+            
+            const button = event.currentTarget;
+            if (section.classList.contains('hidden')) {
+                button.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Ajouter une clause personnalisée';
+            } else {
+                button.innerHTML = '<i class="fas fa-minus-circle mr-2"></i> Masquer la clause';
+            }
+        }
+        
+        // Réinitialiser le formulaire
+        function resetForm() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les champs ?')) {
+                document.querySelectorAll('input[type="text"], input[type="date"], input[type="email"], input[type="tel"], textarea').forEach(input => {
+                    input.value = '';
+                });
+                
+                document.querySelectorAll('canvas').forEach(canvas => {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                });
+                
+                // Réinitialiser les valeurs par défaut
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('contractDate').value = today;
+                document.getElementById('signatureDate').value = today;
+                document.getElementById('contractTitle').value = 'CONTRAT DE COACHING SPORTIF';
+                document.getElementById('coachingType').value = 'Individuel';
+                document.getElementById('paymentMethod').value = 'Virement bancaire';
+                
+                // Générer une nouvelle référence
+                const randomRef = 'CONT-' + today.replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+                document.getElementById('contractReference').value = randomRef;
+                
+                showToast('Formulaire réinitialisé avec succès', 'success');
+                updateContract();
+            }
+        }
+        
+        // Mettre à jour l'aperçu du contrat
+        function updateContract() {
+            const contractPreview = document.getElementById('contractPreview');
+            const updateSpinner = document.getElementById('updateSpinner');
+            const updateIcon = document.getElementById('updateIcon');
+            
+            // Afficher l'indicateur de chargement
+            updateSpinner.classList.remove('hidden');
+            updateIcon.classList.add('hidden');
+            
+            // Simuler un délai pour l'animation
+            setTimeout(() => {
+                // Récupérer les valeurs des champs
+                const contractTitle = document.getElementById('contractTitle').value || 'CONTRAT DE COACHING SPORTIF';
+                const contractReference = document.getElementById('contractReference').value || '[N°REF]';
+                const contractDate = document.getElementById('contractDate').value;
+                const formattedDate = contractDate ? new Date(contractDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+                const signatureDate = document.getElementById('signatureDate').value;
+                const formattedSignatureDate = signatureDate ? new Date(signatureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+                
+                const coachName = document.getElementById('coachName').value || '[Nom du coach]';
+                const coachAddress = document.getElementById('coachAddress').value || '[Adresse du coach]';
+                const coachSiret = document.getElementById('coachSiret').value || '[SIRET]';
+                const coachEmail = document.getElementById('coachEmail').value || '[Email]';
+                const coachPhone = document.getElementById('coachPhone').value || '[Téléphone]';
+                
+                const clientName = document.getElementById('clientName').value || '[Nom du client]';
+                const clientAddress = document.getElementById('clientAddress').value || '[Adresse du client]';
+                const clientEmail = document.getElementById('clientEmail').value || '[Email]';
+                const clientPhone = document.getElementById('clientPhone').value || '[Téléphone]';
+                const clientBirthdate = document.getElementById('clientBirthdate').value;
+                const formattedBirthdate = clientBirthdate ? new Date(clientBirthdate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '[Date de naissance]';
+                
+                const coachingType = document.getElementById('coachingType').value || '[Type de coaching]';
+                const startDate = document.getElementById('startDate').value;
+                const formattedStartDate = startDate ? new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '[Date de début]';
+                const endDate = document.getElementById('endDate').value;
+                const formattedEndDate = endDate ? new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '[Date de fin]';
+                const sessionFrequency = document.getElementById('sessionFrequency').value || '[Fréquence]';
+                const sessionDuration = document.getElementById('sessionDuration').value || '[Durée]';
+                const contractDuration = document.getElementById('contractDuration').value || '[Durée]';
+                const sessionLocation = document.getElementById('sessionLocation').value || '[Lieu]';
+                const coachingPrice = document.getElementById('coachingPrice').value || '[Tarif]';
+                const totalPrice = document.getElementById('totalPrice').value || '[Total]';
+                const paymentMethod = document.getElementById('paymentMethod').value || '[Mode de paiement]';
+                
+                const includeCancellation = document.getElementById('includeCancellation').checked;
+                const includeLiability = document.getElementById('includeLiability').checked;
+                const includeConfidentiality = document.getElementById('includeConfidentiality').checked;
+                const includePaymentTerms = document.getElementById('includePaymentTerms').checked;
+                const includeHealthDeclaration = document.getElementById('includeHealthDeclaration').checked;
+                const customClause = document.getElementById('customClause').value;
+                
+                // Générer le HTML du contrat
+                contractPreview.innerHTML = `
+                    <div class="max-w-4xl mx-auto font-serif text-gray-800">
+                        <div class="text-center mb-8">
+                            <h1 class="text-3xl font-bold contract-title mb-2">${contractTitle}</h1>
+                            <p class="text-gray-600">Référence: ${contractReference}</p>
+                        </div>
+                        
+                        <p class="text-right mb-8">Fait à ${coachAddress.split(',')[0] || '[Ville]'}, le ${formattedDate}</p>
+                        
+                        <div class="mb-8">
+                            <h2 class="text-lg font-semibold mb-4">ENTRE LES SOUSSIGNÉS :</h2>
+                            
+                            <p class="mb-4"><strong>${coachName}</strong>, coach sportif, domicilié ${coachAddress},</p>
+                            <p class="mb-4">immatriculé au registre du commerce et des sociétés sous le numéro ${coachSiret},</p>
+                            <p class="mb-4">email: ${coachEmail}, téléphone: ${coachPhone},</p>
+                            <p>ci-après dénommé "le Coach",</p>
+                            
+                            <p class="mt-8 mb-4">ET</p>
+                            
+                            <p class="mb-4"><strong>${clientName}</strong>, né(e) le ${formattedBirthdate},</p>
+                            <p class="mb-4">domicilié ${clientAddress},</p>
+                            <p class="mb-4">email: ${clientEmail}, téléphone: ${clientPhone},</p>
+                            <p>ci-après dénommé "le Client",</p>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h2 class="text-lg font-semibold mb-4">IL A ÉTÉ CONVENU CE QUI SUIT :</h2>
+                            
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article 1 - Objet</h3>
+                                <p>Le présent contrat a pour objet de définir les conditions dans lesquelles le Coach s'engage à dispenser des séances de coaching sportif de type ${coachingType} au Client.</p>
+                            </div>
+                            
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article 2 - Durée</h3>
+                                <p>Le présent contrat prend effet à compter du ${formattedStartDate} et se termine le ${formattedEndDate}, pour une durée totale de ${contractDuration}.</p>
+                            </div>
+                            
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article 3 - Modalités des séances</h3>
+                                <p>Les séances auront lieu avec une fréquence de ${sessionFrequency}, d'une durée de ${sessionDuration} chacune.</p>
+                                <p class="mt-2">Le lieu des séances est fixé à : ${sessionLocation}.</p>
+                            </div>
+                            
+                            ${includePaymentTerms ? `
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${includeCancellation ? '5' : '4'} - Tarifs et paiement</h3>
+                                <p>Le prix des séances est fixé à ${coachingPrice}, pour un total estimé de ${totalPrice}.</p>
+                                <p class="mt-2">Le paiement s'effectue par ${paymentMethod}.</p>
+                                <p class="mt-2">Tout retard de paiement pourra donner lieu à l'application d'intérêts de retard au taux légal.</p>
+                            </div>
+                            ` : ''}
+                            
+                            ${includeCancellation ? `
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${includePaymentTerms ? '5' : '4'} - Annulation</h3>
+                                <p>Toute séance annulée moins de 24 heures à l'avance sera due. Le Coach se réserve le droit d'annuler ou de reporter une séance en cas de force majeure, avec un préavis de 24 heures dans la mesure du possible.</p>
+                            </div>
+                            ` : ''}
+                            
+                            ${includeLiability ? `
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + 4} - Responsabilité</h3>
+                                <p>Le Client déclare être en bonne santé et apte à pratiquer une activité physique. Le Coach déclare être qualifié pour dispenser des séances de coaching sportif. Le Client reste seul responsable de son état de santé et s'engage à informer le Coach de toute contre-indication médicale.</p>
+                            </div>
+                            ` : ''}
+                            
+                            ${includeHealthDeclaration ? `
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + 4} - Déclaration médicale</h3>
+                                <p>Le Client certifie avoir fourni un certificat médical de non contre-indication à la pratique du sport datant de moins d'un an. En cas de modification de son état de santé, le Client s'engage à fournir un nouveau certificat médical.</p>
+                            </div>
+                            ` : ''}
+                            
+                            ${includeConfidentiality ? `
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + 4} - Confidentialité</h3>
+                                <p>Les parties s'engagent à garder confidentielles toutes les informations échangées dans le cadre de ce contrat, à l'exception des informations nécessaires à la bonne exécution des séances de coaching.</p>
+                            </div>
+                            ` : ''}
+                            
+                            ${customClause ? `
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + 4} - Clause personnalisée</h3>
+                                <p>${customClause.replace(/\n/g, '<br>')}</p>
+                            </div>
+                            ` : ''}
+                            
+                            <div class="contract-section p-4 mb-4">
+                                <h3 class="font-semibold mb-2">Article ${(includePaymentTerms ? 1 : 0) + (includeCancellation ? 1 : 0) + (includeLiability ? 1 : 0) + (includeHealthDeclaration ? 1 : 0) + (includeConfidentiality ? 1 : 0) + (customClause ? 1 : 0) + 4} - Résiliation</h3>
+                                <p>Le présent contrat peut être résilié par l'une ou l'autre des parties moyennant un préavis de 15 jours. En cas de résiliation par le Client, les séances déjà payées et non effectuées seront remboursées au prorata temporis.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-12">
+                            <p class="mb-8">Fait en deux exemplaires originaux, à ${coachAddress.split(',')[0] || '[Ville]'}, le ${formattedSignatureDate}.</p>
+                            
+                            <div class="grid grid-cols-2 gap-8">
+                                <div>
+                                    <p class="font-semibold mb-2">Pour le Client :</p>
+                                    <div class="signature-placeholder mb-2" style="height: 80px;">
+                                        <img id="clientSignatureImg" class="h-full" src="">
+                                    </div>
+                                    <p>${clientName}</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="font-semibold mb-2">Pour le Coach :</p>
+                                    <div class="signature-placeholder mb-2" style="height: 80px;">
+                                        <img id="coachSignatureImg" class="h-full" src="">
+                                    </div>
+                                    <p>${coachName}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Mettre à jour les signatures dans l'aperçu
+                updateSignaturePreview('coachSignature', 'coachSignatureImg');
+                updateSignaturePreview('clientSignature', 'clientSignatureImg');
+                
+                // Charger les signatures sauvegardées
+                loadSignature('coachSignature');
+                loadSignature('clientSignature');
+                
+                // Masquer l'indicateur de chargement
+                updateSpinner.classList.add('hidden');
+                updateIcon.classList.remove('hidden');
+            }, 500);
+        }
+        
+        // Mettre à jour l'aperçu des signatures
+        function updateSignaturePreview(canvasId, imgId) {
+            const canvas = document.getElementById(canvasId);
+            const imgElement = document.getElementById(imgId);
+            
+            if (canvas && imgElement) {
+                const dataURL = canvas.toDataURL();
+                if (dataURL !== 'data:,') {
+                    imgElement.src = dataURL;
+                }
+            }
+        }
+        
+        // Générer un PDF
+        function generatePDF() {
+            updateContract(); // Mettre à jour l'aperçu avant la génération
+            
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById('contractPreview');
+            
+            // Afficher un indicateur de génération
+            showToast('Génération du PDF en cours...', 'info');
+            
+            html2canvas(element, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                
+                // Ajouter un pied de page
+                const pageCount = pdf.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(150);
+                    pdf.text(`Page ${i} sur ${pageCount} - Contrat généré avec CoachContract Pro`, pdfWidth - 15, pdf.internal.pageSize.getHeight() - 10, {align: 'right'});
+                }
+                
+                pdf.save(`Contrat_Coaching_${document.getElementById('clientName').value || 'Client'}.pdf`);
+                showToast('PDF généré avec succès', 'success');
+            }).catch(err => {
+                console.error(err);
+                showToast('Erreur lors de la génération du PDF', 'error');
+            });
+        }
+        
+        // Imprimer le contrat
+        function printContract() {
+            updateContract(); // Mettre à jour l'aperçu avant l'impression
+            
+            setTimeout(() => {
+                const printContent = document.getElementById('contractPreview').innerHTML;
+                const originalContent = document.body.innerHTML;
+                
+                document.body.innerHTML = printContent;
+                window.print();
+                document.body.innerHTML = originalContent;
+                
+                // Recharger la page pour restaurer les fonctionnalités
+                window.location.reload();
+            }, 500);
+        }
+        
+        // Copier le texte du contrat
+        function copyContractText() {
+            updateContract(); // Mettre à jour l'aperçu avant la copie
+            
+            setTimeout(() => {
+                const contractText = document.getElementById('contractPreview').innerText;
+                navigator.clipboard.writeText(contractText).then(() => {
+                    showToast('Texte du contrat copié dans le presse-papiers', 'success');
+                }).catch(err => {
+                    showToast('Erreur lors de la copie du texte', 'error');
+                });
+            }, 500);
+        }
+    </script>
+</body>
+</html>

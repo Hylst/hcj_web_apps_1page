@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitudeTracker Pro - Suivi avancé de vos routines</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .habit-card, .habit-category { transition: all 0.3s ease; }
+        .habit-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .streak-fire { animation: pulse 1.5s infinite, glow 2s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes glow { from { text-shadow: 0 0 5px rgba(255,165,0,0.5); } to { text-shadow: 0 0 15px rgba(255,165,0,0.8); } }
+        .progress-bar { transition: width 0.6s ease; }
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; }
+        .dark-mode { background-color: #1a202c; color: #f7fafc; }
+        .dark-mode .dark-bg { background-color: #2d3748; }
+        .dark-mode .dark-border { border-color: #4a5568; }
+        .dark-mode .dark-text { color: #f7fafc; }
+        .dark-mode .dark-hover:hover { background-color: #4a5568; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans transition-colors duration-300">
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="mb-10">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-4xl font-bold text-indigo-700 mb-1 dark:text-indigo-400">HabitudeTracker<span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full ml-2 dark:bg-indigo-900 dark:text-indigo-300">PRO</span></h1>
+                    <p class="text-gray-600 dark:text-gray-400">Transformez vos habitudes en succès durables</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="dark-mode-toggle" class="p-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="reminder-btn" class="p-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300" title="Rappels">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button id="export-btn" class="p-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300" title="Exporter">
+                        <i class="fas fa-file-export"></i>
+                    </button>
+                    <button id="import-btn" class="p-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300" title="Importer">
+                        <i class="fas fa-file-import"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center dark:border-gray-700">
+                    <div class="bg-indigo-100 dark:bg-indigo-900 p-3 rounded-full mr-4">
+                        <i class="fas fa-fire text-indigo-600 dark:text-indigo-300 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Série actuelle</p>
+                        <p class="text-2xl font-bold dark:text-white" id="current-streak">0</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center dark:border-gray-700">
+                    <div class="bg-green-100 dark:bg-green-900 p-3 rounded-full mr-4">
+                        <i class="fas fa-trophy text-green-600 dark:text-green-300 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Meilleure série</p>
+                        <p class="text-2xl font-bold dark:text-white" id="best-streak">0</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center dark:border-gray-700">
+                    <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-full mr-4">
+                        <i class="fas fa-check-circle text-blue-600 dark:text-blue-300 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Réussite</p>
+                        <p class="text-2xl font-bold dark:text-white" id="completion-rate">0%</p>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md flex items-center dark:border-gray-700">
+                    <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-full mr-4">
+                        <i class="fas fa-calendar-alt text-purple-600 dark:text-purple-300 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Suivi depuis</p>
+                        <p class="text-2xl font-bold dark:text-white" id="tracking-days">0 jours</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold dark:text-white">Mes catégories</h2>
+                    <button id="add-category-btn" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Nouvelle
+                    </button>
+                </div>
+                <div id="categories-container" class="flex flex-wrap gap-3">
+                    <button class="category-btn active px-4 py-2 rounded-full bg-indigo-600 text-white" data-category="all">Toutes</button>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mb-8 dark:border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 dark:text-white">Ajouter une nouvelle habitude</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom de l'habitude</label>
+                        <input type="text" id="habit-name" placeholder="Ex: Méditation, Sport..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catégorie</label>
+                        <div class="flex">
+                            <select id="habit-category" class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="general">Général</option>
+                            </select>
+                            <button id="new-category-btn" class="px-3 bg-gray-200 text-gray-700 rounded-r-lg hover:bg-gray-300 transition-colors dark:bg-gray-600 dark:text-white">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fréquence</label>
+                        <select id="habit-frequency" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="daily">Quotidienne</option>
+                            <option value="weekly">Hebdomadaire</option>
+                            <option value="monthly">Mensuelle</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Difficulté</label>
+                        <select id="habit-difficulty" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="easy">Facile</option>
+                            <option value="medium">Moyenne</option>
+                            <option value="hard">Difficile</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Objectif (jours)</label>
+                        <input type="number" id="habit-goal" min="1" value="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button id="add-habit-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center">
+                        <i class="fas fa-plus mr-2"></i>Ajouter l'habitude
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+                <ul class="flex flex-wrap -mb-px" id="view-tabs">
+                    <li class="mr-2">
+                        <button class="view-tab active inline-block p-4 text-indigo-600 border-b-2 border-indigo-600 rounded-t-lg dark:text-indigo-500 dark:border-indigo-500" data-view="list">
+                            <i class="fas fa-list-ul mr-2"></i>Liste
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button class="view-tab inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-view="calendar">
+                            <i class="fas fa-calendar mr-2"></i>Calendrier
+                        </button>
+                    </li>
+                    <li class="mr-2">
+                        <button class="view-tab inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-view="streaks">
+                            <i class="fas fa-fire mr-2"></i>Séries
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="views-container">
+                <div id="list-view" class="view-content">
+                    <div id="habits-container" class="space-y-4">
+                        <div class="text-center py-10 text-gray-500 dark:text-gray-400" id="no-habits-message">
+                            <i class="fas fa-clipboard-list text-4xl mb-3"></i>
+                            <p>Commencez par ajouter votre première habitude</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="calendar-view" class="view-content hidden">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md dark:border-gray-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold dark:text-white">Calendrier des habitudes</h3>
+                            <div class="flex items-center space-x-2">
+                                <button id="prev-month" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span id="current-month" class="font-medium dark:text-white">Mois 2023</span>
+                                <button id="next-month" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="calendar-container" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+
+                <div id="streaks-view" class="view-content hidden">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md dark:border-gray-700">
+                        <h3 class="text-lg font-semibold mb-4 dark:text-white">Vos séries en cours</h3>
+                        <div id="streaks-container">
+                            <div class="text-center py-10 text-gray-500 dark:text-gray-400" id="no-streaks-message">
+                                <i class="fas fa-fire text-4xl mb-3"></i>
+                                <p>Commencez à valider des habitudes pour voir vos séries</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mt-10 dark:border-gray-700">
+                <h2 class="text-xl font-semibold mb-6 dark:text-white">Statistiques avancées</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Progression des habitudes</h3>
+                        <canvas id="habits-progress-chart" height="250"></canvas>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Répartition par catégorie</h3>
+                        <canvas id="categories-chart" height="250"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-8">
+                    <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-4">Historique des validations</h3>
+                    <canvas id="completion-history-chart" height="150"></canvas>
+                </div>
+                <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-3">Détails par habitude</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+                        <thead class="bg-gray-100 dark:bg-gray-700">
+                            <tr>
+                                <th class="py-3 px-4 text-left dark:text-white">Habitude</th>
+                                <th class="py-3 px-4 text-center dark:text-white">Catégorie</th>
+                                <th class="py-3 px-4 text-center dark:text-white">Série actuelle</th>
+                                <th class="py-3 px-4 text-center dark:text-white">Progression</th>
+                                <th class="py-3 px-4 text-center dark:text-white">Taux de réussite</th>
+                                <th class="py-3 px-4 text-center dark:text-white">Dernière activité</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-16 text-center text-gray-500 dark:text-gray-400 text-sm">
+            <p>HabitudeTracker Pro - Développé par Geoffroy Streit</p>
+            <p class="mt-2">Suivez vos progrès et construisez des habitudes durables</p>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="history-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-semibold dark:text-white" id="history-modal-title">Historique</h3>
+                <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="close-history-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto" style="max-height: 60vh;">
+                <div id="history-content"></div>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 text-right">
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors" id="close-history-modal-btn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reminder-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-semibold dark:text-white">Rappel quotidien</h3>
+                <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="close-reminder-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <p class="mb-4 dark:text-gray-300">Choisissez l'heure à laquelle vous souhaitez recevoir un rappel pour compléter vos habitudes:</p>
+                <div class="flex items-center mb-6">
+                    <input type="time" id="reminder-time" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="18:00">
+                    <button id="test-reminder-btn" class="ml-4 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">Tester</button>
+                </div>
+                <div class="flex justify-between">
+                    <button id="cancel-reminder-btn" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">Désactiver</button>
+                    <button id="save-reminder-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="category-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-semibold dark:text-white">Nouvelle catégorie</h3>
+                <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="close-category-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom de la catégorie</label>
+                    <input type="text" id="new-category-name" placeholder="Ex: Santé, Travail..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Couleur</label>
+                    <div class="flex flex-wrap gap-2" id="color-picker">
+                        <button class="color-option w-8 h-8 rounded-full bg-indigo-500 border-2 border-transparent hover:border-gray-300" data-color="indigo"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-blue-500 border-2 border-transparent hover:border-gray-300" data-color="blue"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-green-500 border-2 border-transparent hover:border-gray-300" data-color="green"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-yellow-500 border-2 border-transparent hover:border-gray-300" data-color="yellow"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-red-500 border-2 border-transparent hover:border-gray-300" data-color="red"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-purple-500 border-2 border-transparent hover:border-gray-300" data-color="purple"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-pink-500 border-2 border-transparent hover:border-gray-300" data-color="pink"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-gray-500 border-2 border-transparent hover:border-gray-300" data-color="gray"></button>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button id="save-category-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialisation des données
+        let habits = JSON.parse(localStorage.getItem('habits')) || [];
+        let categories = JSON.parse(localStorage.getItem('categories')) || [
+            { name: 'Général', color: 'indigo', id: 'general' },
+            { name: 'Santé', color: 'green', id: 'health' },
+            { name: 'Travail', color: 'blue', id: 'work' },
+            { name: 'Apprentissage', color: 'purple', id: 'learning' }
+        ];
+        let trackingStartDate = localStorage.getItem('trackingStartDate') || new Date().toISOString();
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+        let reminderTime = localStorage.getItem('reminderTime') || '18:00';
+        let reminderEnabled = localStorage.getItem('reminderEnabled') !== 'false';
+        let selectedColor = 'indigo';
+        let currentView = 'list';
+        let selectedCategory = 'all';
+
+        // Initialisation de l'application
+        document.addEventListener('DOMContentLoaded', () => {
+            initDarkMode();
+            setupEventListeners();
+            renderCategories();
+            updateCategorySelect();
+            renderHabits();
+            updateStats();
+            initCharts();
+            renderCalendar(new Date());
+            renderStreaksView();
+            checkAchievedGoals();
+            setupReminderNotification();
+        });
+
+        function initDarkMode() {
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+
+        function setupEventListeners() {
+            // Mode sombre
+            document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
+            
+            // Rappels
+            document.getElementById('reminder-btn').addEventListener('click', () => {
+                document.getElementById('reminder-time').value = reminderTime;
+                document.getElementById('reminder-modal').classList.remove('hidden');
+            });
+            
+            document.getElementById('test-reminder-btn').addEventListener('click', testReminder);
+            document.getElementById('cancel-reminder-btn').addEventListener('click', disableReminder);
+            document.getElementById('save-reminder-btn').addEventListener('click', saveReminder);
+            document.getElementById('close-reminder-modal').addEventListener('click', () => document.getElementById('reminder-modal').classList.add('hidden'));
+            
+            // Catégories
+            document.getElementById('add-category-btn').addEventListener('click', showCategoryModal);
+            document.getElementById('new-category-btn').addEventListener('click', showCategoryModal);
+            document.getElementById('save-category-btn').addEventListener('click', saveCategory);
+            document.getElementById('close-category-modal').addEventListener('click', () => document.getElementById('category-modal').classList.add('hidden'));
+            
+            // Habitudes
+            document.getElementById('add-habit-btn').addEventListener('click', addHabit);
+            
+            // Vues
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.addEventListener('click', switchView);
+            });
+            
+            // Calendrier
+            document.getElementById('prev-month').addEventListener('click', () => {
+                const currentDate = new Date(document.getElementById('current-month').textContent.split(' ')[1], 
+                    new Date(`${document.getElementById('current-month').textContent.split(' ')[0]} 1`).getMonth());
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar(currentDate);
+            });
+            
+            document.getElementById('next-month').addEventListener('click', () => {
+                const currentDate = new Date(document.getElementById('current-month').textContent.split(' ')[1], 
+                    new Date(`${document.getElementById('current-month').textContent.split(' ')[0]} 1`).getMonth());
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar(currentDate);
+            });
+            
+            // Historique
+            document.getElementById('close-history-modal').addEventListener('click', () => document.getElementById('history-modal').classList.add('hidden'));
+            document.getElementById('close-history-modal-btn').addEventListener('click', () => document.getElementById('history-modal').classList.add('hidden'));
+            
+            // Import/Export
+            document.getElementById('export-btn').addEventListener('click', exportData);
+            document.getElementById('import-btn').addEventListener('click', importData);
+            
+            // Sélection de couleur
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    selectedColor = e.target.dataset.color;
+                    document.querySelectorAll('.color-option').forEach(opt => {
+                        opt.classList.remove('border-gray-800', 'dark:border-white');
+                    });
+                    e.target.classList.add('border-gray-800', 'dark:border-white');
+                });
+            });
+        }
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            localStorage.setItem('darkMode', darkMode);
+            document.body.classList.toggle('dark-mode');
+            
+            if (darkMode) {
+                document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-moon"></i>';
+            }
+            
+            renderHabits();
+            renderCategories();
+            renderCalendar(new Date());
+            renderStreaksView();
+            updateStatsTable();
+            initCharts();
+        }
+
+        function renderHabits() {
+            const filteredHabits = selectedCategory === 'all' ? habits : habits.filter(habit => habit.category === selectedCategory);
+            const container = document.getElementById('habits-container');
+            
+            if (filteredHabits.length === 0) {
+                document.getElementById('no-habits-message').style.display = 'block';
+                container.innerHTML = '';
+                return;
+            }
+            
+            document.getElementById('no-habits-message').style.display = 'none';
+            
+            container.innerHTML = filteredHabits.map(habit => {
+                const category = categories.find(cat => cat.id === habit.category) || { name: 'Général', color: 'indigo' };
+                const progressPercentage = Math.min(100, (habit.history.length / habit.goal) * 100);
+                const daysLeft = Math.max(0, habit.goal - habit.history.length);
+                
+                return `
+                <div class="habit-card bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md dark:border-gray-700 fade-in" data-id="${habit.id}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${habit.name}</h3>
+                            <span class="text-xs px-2 py-1 rounded-full ${getColorClasses(category.color, 'bg', 'text')}">${category.name}</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-xs px-2 py-1 rounded-full ${habit.difficulty === 'easy' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : habit.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">
+                                ${habit.difficulty === 'easy' ? 'Facile' : habit.difficulty === 'medium' ? 'Moyen' : 'Difficile'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Progression: ${habit.history.length}/${habit.goal} jours</span>
+                            <span>${daysLeft} jours restants</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div class="h-2.5 rounded-full ${getColorClasses(category.color, 'bg')}" style="width: ${progressPercentage}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Série actuelle</span>
+                            <div class="flex items-center">
+                                <span class="text-2xl font-bold mr-2 ${habit.streak >= 7 ? 'streak-fire text-orange-500' : 'text-gray-700 dark:text-gray-300'}">${habit.streak}</span>
+                                <span class="text-gray-500 dark:text-gray-400">jours</span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Meilleure série</span>
+                            <div class="text-2xl font-bold text-gray-700 dark:text-gray-300">${habit.bestStreak}</div>
+                        </div>
+                        
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Réussite</span>
+                            <div class="text-2xl font-bold text-gray-700 dark:text-gray-300">${calculateSuccessRate(habit)}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between space-x-2">
+                        <button class="habit-action-btn bg-red-100 text-red-600 px-4 py-2 rounded-lg flex-1 hover:bg-red-200 transition-colors dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800" data-action="delete">
+                            <i class="fas fa-trash mr-2"></i>Supprimer
+                        </button>
+                        <button class="habit-action-btn bg-gray-100 text-gray-600 px-4 py-2 rounded-lg flex-1 hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-action="history">
+                            <i class="fas fa-history mr-2"></i>Historique
+                        </button>
+                        <button class="habit-action-btn bg-green-100 text-green-600 px-4 py-2 rounded-lg flex-1 hover:bg-green-200 transition-colors dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800" data-action="complete">
+                            <i class="fas fa-check-circle mr-2"></i>Valider
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            // Ajout des écouteurs d'événements pour les boutons
+            document.querySelectorAll('.habit-action-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const habitId = parseInt(this.closest('.habit-card').dataset.id);
+                    const action = this.dataset.action;
+                    const habit = habits.find(h => h.id === habitId);
+                    
+                    switch(action) {
+                        case 'delete': deleteHabit(habitId); break;
+                        case 'history': showHistoryModal(habit); break;
+                        case 'complete': markHabitComplete(habit); break;
+                    }
+                });
+            });
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categories-container');
+            container.innerHTML = `
+                <button class="category-btn active px-4 py-2 rounded-full bg-indigo-600 text-white" data-category="all">Toutes</button>
+                ${categories.map(category => `
+                    <button class="category-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-category="${category.id}" style="background-color: ${getComputedColor(category.color, 100, true)}; color: ${getComputedColor(category.color, 800, true)};">
+                        ${category.name}
+                    </button>
+                `).join('')}
+            `;
+            
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.category-btn').forEach(b => {
+                        b.classList.remove('active', 'bg-indigo-600', 'text-white');
+                        b.classList.add('bg-gray-200', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                    });
+                    
+                    this.classList.add('active', 'bg-indigo-600', 'text-white');
+                    this.classList.remove('bg-gray-200', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                    
+                    selectedCategory = this.dataset.category;
+                    renderHabits();
+                });
+            });
+        }
+
+        function updateCategorySelect() {
+            const select = document.getElementById('habit-category');
+            select.innerHTML = categories.map(category => `
+                <option value="${category.id}">${category.name}</option>
+            `).join('');
+        }
+
+        function addHabit() {
+            const name = document.getElementById('habit-name').value.trim();
+            const frequency = document.getElementById('habit-frequency').value;
+            const category = document.getElementById('habit-category').value;
+            const difficulty = document.getElementById('habit-difficulty').value;
+            const goal = parseInt(document.getElementById('habit-goal').value) || 30;
+            
+            if (name) {
+                const newHabit = {
+                    id: Date.now(),
+                    name,
+                    frequency,
+                    category,
+                    difficulty,
+                    goal,
+                    streak: 0,
+                    bestStreak: 0,
+                    history: [],
+                    createdAt: new Date().toISOString(),
+                    completedDates: []
+                };
+                
+                habits.push(newHabit);
+                saveHabits();
+                renderHabits();
+                updateStats();
+                document.getElementById('habit-name').value = '';
+                document.getElementById('habit-name').focus();
+                showToast('Habitude ajoutée avec succès!', 'success');
+            } else {
+                showToast('Veuillez entrer un nom pour votre habitude', 'error');
+            }
+        }
+
+        function markHabitComplete(habit) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (habit.history.includes(today)) {
+                showToast('Cette habitude a déjà été validée aujourd\'hui', 'info');
+                return;
+            }
+            
+            habit.history.push(today);
+            habit.completedDates.push(new Date().toISOString());
+            habit.streak += 1;
+            
+            if (habit.streak > habit.bestStreak) {
+                habit.bestStreak = habit.streak;
+            }
+            
+            saveHabits();
+            renderHabits();
+            updateStats();
+            showToast(`Bravo! Vous avez validé "${habit.name}"`, 'success');
+            
+            if (habit.streak % 7 === 0) {
+                triggerConfetti();
+                showToast(`Incroyable! ${habit.streak} jours d'affilée pour "${habit.name}"`, 'success');
+            }
+            
+            if (habit.history.length === habit.goal) {
+                showToast(`Félicitations! Vous avez atteint votre objectif de ${habit.goal} jours pour "${habit.name}"`, 'success');
+                triggerConfetti();
+            }
+            
+            initCharts();
+            
+            if (currentView === 'streaks') {
+                renderStreaksView();
+            }
+        }
+
+        function deleteHabit(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette habitude ? Toutes ses données seront perdues.')) {
+                habits = habits.filter(habit => habit.id !== id);
+                saveHabits();
+                renderHabits();
+                updateStats();
+                initCharts();
+                showToast('Habitude supprimée', 'info');
+            }
+        }
+
+        function showHistoryModal(habit) {
+            const category = categories.find(cat => cat.id === habit.category) || { name: 'Général', color: 'indigo' };
+            const progressPercentage = Math.min(100, (habit.history.length / habit.goal) * 100);
+            
+            document.getElementById('history-modal-title').textContent = `Historique de "${habit.name}"`;
+            document.getElementById('history-content').innerHTML = `
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Créée le: ${formatDate(habit.createdAt)}</span>
+                        <span>Objectif: ${habit.history.length}/${habit.goal} jours</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                        <div class="h-2.5 rounded-full ${getColorClasses(category.color, 'bg')}" style="width: ${progressPercentage}%"></div>
+                    </div>
+                </div>
+                
+                ${habit.history.length === 0 
+                    ? '<p class="text-gray-500 dark:text-gray-400 text-center py-10">Aucun historique pour le moment</p>' 
+                    : `<div class="mb-4">
+                        <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Dernières validations</h4>
+                        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                            ${habit.history.slice(-5).reverse().map(date => `
+                                <li class="py-2 flex justify-between items-center">
+                                    <span class="text-gray-700 dark:text-gray-300">${formatDate(date)}</span>
+                                    <span class="text-green-500"><i class="fas fa-check-circle"></i></span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                       </div>
+                       <div>
+                        <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Calendrier des validations</h4>
+                        <div class="grid grid-cols-7 gap-1 text-center">
+                            ${generateMiniCalendar(habit)}
+                        </div>
+                       </div>`
+                }
+            `;
+            
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+
+        function generateMiniCalendar(habit) {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+            
+            let calendarHTML = '';
+            const dayNames = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+            
+            calendarHTML += dayNames.map(day => `
+                <div class="text-xs font-medium text-gray-500 dark:text-gray-400">${day}</div>
+            `).join('');
+            
+            for (let i = 0; i < adjustedFirstDay; i++) {
+                calendarHTML += '<div class="h-6"></div>';
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isCompleted = habit.history.includes(dateStr);
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                
+                calendarHTML += `
+                    <div class="h-6 flex items-center justify-center text-xs ${isToday ? 'font-bold' : ''}">
+                        <span class="w-5 h-5 flex items-center justify-center rounded-full ${isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : ''}">
+                            ${day}
+                        </span>
+                    </div>
+                `;
+            }
+            
+            return calendarHTML;
+        }
+
+        function renderCalendar(date) {
+            const month = date.getMonth();
+            const year = date.getFullYear();
+            const monthName = date.toLocaleDateString('fr-FR', { month: 'long' });
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+            const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+            
+            document.getElementById('current-month').textContent = `${monthName} ${year}`;
+            
+            let calendarHTML = `
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Lundi</th>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Mardi</th>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Mercredi</th>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Jeudi</th>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Vendredi</th>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Samedi</th>
+                            <th class="py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Dimanche</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            let day = 1;
+            for (let i = 0; i < 6; i++) {
+                calendarHTML += '<tr>';
+                
+                for (let j = 0; j < 7; j++) {
+                    if ((i === 0 && j < adjustedFirstDay) || day > daysInMonth) {
+                        calendarHTML += '<td class="py-2 px-1"></td>';
+                    } else {
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const isToday = dateStr === new Date().toISOString().split('T')[0];
+                        const habitsCompleted = habits.filter(h => h.history.includes(dateStr)).length;
+                        const totalHabits = habits.filter(h => h.frequency === 'daily').length;
+                        const completionPercentage = totalHabits > 0 ? Math.round((habitsCompleted / totalHabits) * 100) : 0;
+                        
+                        calendarHTML += `
+                            <td class="py-2 px-1 border border-gray-200 dark:border-gray-700 ${isToday ? 'bg-indigo-50 dark:bg-indigo-900' : ''}">
+                                <div class="flex flex-col h-24">
+                                    <div class="text-right mb-1">
+                                        <span class="text-sm ${isToday ? 'font-bold text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300'}">${day}</span>
+                                    </div>
+                                    ${habitsCompleted > 0 ? `
+                                        <div class="flex-grow flex flex-col justify-center items-center">
+                                            <div class="w-8 h-8 rounded-full ${completionPercentage === 100 ? 'bg-green-500' : completionPercentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'} flex items-center justify-center text-white text-xs font-bold">
+                                                ${completionPercentage}%
+                                            </div>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">${habitsCompleted}/${totalHabits}</span>
+                                        </div>
+                                    ` : `
+                                        <div class="flex-grow flex items-center justify-center">
+                                            <span class="text-xs text-gray-400 dark:text-gray-500">-</span>
+                                        </div>
+                                    `}
+                                </div>
+                            </td>
+                        `;
+                        day++;
+                    }
+                }
+                
+                calendarHTML += '</tr>';
+                if (day > daysInMonth) break;
+            }
+            
+            calendarHTML += '</tbody></table>';
+            document.getElementById('calendar-container').innerHTML = calendarHTML;
+        }
+
+        function renderStreaksView() {
+            const activeStreaks = habits.filter(habit => habit.streak > 0);
+            const container = document.getElementById('streaks-container');
+            
+            if (activeStreaks.length === 0) {
+                document.getElementById('no-streaks-message').style.display = 'block';
+                container.innerHTML = '';
+                return;
+            }
+            
+            document.getElementById('no-streaks-message').style.display = 'none';
+            
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${activeStreaks.sort((a, b) => b.streak - a.streak).map(habit => {
+                        const category = categories.find(cat => cat.id === habit.category) || { name: 'Général', color: 'indigo' };
+                        const progressPercentage = Math.min(100, (habit.history.length / habit.goal) * 100);
+                        
+                        return `
+                        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow dark:border-gray-600">
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="font-medium text-gray-800 dark:text-white">${habit.name}</h4>
+                                <span class="text-xs px-2 py-1 rounded-full ${getColorClasses(category.color, 'bg', 'text')}">
+                                    ${category.name}
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <span class="text-3xl font-bold mr-2 ${habit.streak >= 7 ? 'streak-fire text-orange-500' : 'text-gray-700 dark:text-gray-300'}">${habit.streak}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">jours d'affilée</span>
+                                </div>
+                                <span class="text-sm ${habit.streak >= 7 ? 'text-orange-500' : 'text-gray-500 dark:text-gray-400'}">
+                                    <i class="fas fa-fire mr-1"></i>${habit.streak >= 7 ? 'Série chaude!' : 'Continuez!'}
+                                </span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span>Progression: ${habit.history.length}/${habit.goal} jours</span>
+                                    <span>${Math.max(0, habit.goal - habit.history.length)} jours restants</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600">
+                                    <div class="h-2 rounded-full ${getColorClasses(category.color, 'bg')}" style="width: ${progressPercentage}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                                <span>Début: ${formatDate(habit.history[habit.history.length - habit.streak])}</span>
+                                <span>Dernière: ${formatDate(habit.history[habit.history.length - 1])}</span>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <div class="mt-6 bg-white dark:bg-gray-700 p-4 rounded-lg shadow dark:border-gray-600">
+                    <h4 class="font-medium text-gray-800 dark:text-white mb-3">Votre série totale</h4>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span class="text-3xl font-bold mr-2 text-gray-700 dark:text-gray-300">${calculateCurrentStreak()}</span>
+                            <span class="text-gray-500 dark:text-gray-400">jours consécutifs avec au moins une habitude validée</span>
+                        </div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-info-circle mr-1"></i>Basé sur toutes vos habitudes
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateCurrentStreak() {
+            if (habits.length === 0) return 0;
+            
+            const allDates = new Set();
+            habits.forEach(habit => {
+                habit.history.forEach(date => allDates.add(date));
+            });
+            
+            const sortedDates = Array.from(allDates).sort().reverse();
+            let streak = 0;
+            let yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            let consecutive = true;
+            let day = new Date();
+            day.setHours(0, 0, 0, 0);
+            
+            while (consecutive) {
+                const dayStr = day.toISOString().split('T')[0];
+                if (sortedDates.includes(dayStr)) {
+                    streak++;
+                    day.setDate(day.getDate() - 1);
+                } else {
+                    if (dayStr === new Date().toISOString().split('T')[0]) {
+                        day.setDate(day.getDate() - 1);
+                    } else {
+                        consecutive = false;
+                    }
+                }
+            }
+            
+            return streak;
+        }
+
+        function initCharts() {
+            // Graphique de progression des habitudes
+            const habitsProgressCtx = document.getElementById('habits-progress-chart').getContext('2d');
+            const sortedHabits = [...habits].sort((a, b) => {
+                const aProgress = (a.history.length / a.goal) * 100;
+                const bProgress = (b.history.length / b.goal) * 100;
+                return bProgress - aProgress;
+            });
+            
+            new Chart(habitsProgressCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedHabits.map(h => h.name),
+                    datasets: [{
+                        label: 'Progression (%)',
+                        data: sortedHabits.map(h => (h.history.length / h.goal) * 100),
+                        backgroundColor: sortedHabits.map(h => {
+                            const category = categories.find(cat => cat.id === h.category) || { color: 'indigo' };
+                            return getComputedColor(category.color, 500);
+                        }),
+                        borderColor: sortedHabits.map(h => {
+                            const category = categories.find(cat => cat.id === h.category) || { color: 'indigo' };
+                            return getComputedColor(category.color, 700);
+                        }),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const habit = sortedHabits[context.dataIndex];
+                                    return `${Math.round(context.raw)}% (${habit.history.length}/${habit.goal} jours)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Graphique de répartition par catégorie
+            const categoriesCtx = document.getElementById('categories-chart').getContext('2d');
+            const categoryCounts = {};
+            
+            habits.forEach(habit => {
+                const category = categories.find(cat => cat.id === habit.category) || { id: 'general', name: 'Général', color: 'indigo' };
+                if (!categoryCounts[category.id]) {
+                    categoryCounts[category.id] = {
+                        count: 0,
+                        name: category.name,
+                        color: category.color
+                    };
+                }
+                categoryCounts[category.id].count++;
+            });
+            
+            const categoryLabels = Object.keys(categoryCounts).map(id => categoryCounts[id].name);
+            const categoryData = Object.keys(categoryCounts).map(id => categoryCounts[id].count);
+            const categoryColors = Object.keys(categoryCounts).map(id => getComputedColor(categoryCounts[id].color, 500));
+            
+            new Chart(categoriesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryData,
+                        backgroundColor: categoryColors,
+                        borderColor: darkMode ? '#4a5568' : '#fff',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: darkMode ? '#f7fafc' : '#1a202c'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Graphique d'historique des validations
+            const historyCtx = document.getElementById('completion-history-chart').getContext('2d');
+            const dailyCompletions = {};
+            const date = new Date();
+            
+            for (let i = 29; i >= 0; i--) {
+                const currentDate = new Date();
+                currentDate.setDate(date.getDate() - i);
+                const dateStr = currentDate.toISOString().split('T')[0];
+                dailyCompletions[dateStr] = {
+                    date: currentDate,
+                    count: 0,
+                    total: habits.filter(h => h.frequency === 'daily').length
+                };
+            }
+            
+            habits.forEach(habit => {
+                habit.history.forEach(dateStr => {
+                    if (dailyCompletions[dateStr]) {
+                        dailyCompletions[dateStr].count++;
+                    }
+                });
+            });
+            
+            const historyLabels = Object.keys(dailyCompletions).map(dateStr => {
+                const date = new Date(dateStr);
+                return date.getDate() + '/' + (date.getMonth() + 1);
+            });
+            
+            const historyData = Object.keys(dailyCompletions).map(dateStr => {
+                const day = dailyCompletions[dateStr];
+                return day.total > 0 ? Math.round((day.count / day.total) * 100) : 0;
+            });
+            
+            new Chart(historyCtx, {
+                type: 'line',
+                data: {
+                    labels: historyLabels,
+                    datasets: [{
+                        label: 'Taux de réussite quotidien (%)',
+                        data: historyData,
+                        fill: false,
+                        borderColor: getComputedColor('indigo', 500),
+                        backgroundColor: getComputedColor('indigo', 100),
+                        tension: 0.4,
+                        pointBackgroundColor: getComputedColor('indigo', 500),
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: getComputedColor('indigo', 500)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const dateStr = Object.keys(dailyCompletions)[context.dataIndex];
+                                    const day = dailyCompletions[dateStr];
+                                    return `${context.raw}% (${day.count}/${day.total} habitudes)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStats() {
+            const startDate = new Date(trackingStartDate);
+            const today = new Date();
+            const diffTime = Math.abs(today - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            document.getElementById('tracking-days').textContent = `${diffDays} jours`;
+            document.getElementById('best-streak').textContent = `${habits.reduce((max, habit) => Math.max(max, habit.bestStreak), 0)} jours`;
+            document.getElementById('current-streak').textContent = `${calculateCurrentStreak()} jours`;
+            
+            let completionRate = 0;
+            if (habits.length > 0) {
+                const totalPossible = habits.reduce((sum, habit) => {
+                    const createdDate = new Date(habit.createdAt);
+                    const diffTime = Math.abs(today - createdDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    return sum + diffDays;
+                }, 0);
+                
+                const totalCompleted = habits.reduce((sum, habit) => sum + habit.history.length, 0);
+                completionRate = Math.round((totalCompleted / totalPossible) * 100);
+            }
+            
+            document.getElementById('completion-rate').textContent = `${completionRate}%`;
+            updateStatsTable();
+        }
+
+        function updateStatsTable() {
+            const tableBody = document.getElementById('stats-table-body');
+            tableBody.innerHTML = habits.map(habit => {
+                const category = categories.find(cat => cat.id === habit.category) || { name: 'Général', color: 'indigo' };
+                const successRate = calculateSuccessRate(habit);
+                
+                return `
+                <tr>
+                    <td class="py-3 px-4 dark:text-white">${habit.name}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="text-xs px-2 py-1 rounded-full ${getColorClasses(category.color, 'bg', 'text')}">
+                            ${category.name}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-center font-semibold ${habit.streak >= 7 ? 'text-orange-500' : 'dark:text-gray-300'}">
+                        ${habit.streak} jours
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center">
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 max-w-[100px] mr-2 dark:bg-gray-700">
+                                <div class="h-2.5 rounded-full ${getColorClasses(category.color, 'bg')}" style="width: ${Math.min(100, (habit.history.length / habit.goal) * 100)}%"></div>
+                            </div>
+                            <span class="dark:text-gray-300">${habit.history.length}/${habit.goal}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-center dark:text-gray-300">${successRate}%</td>
+                    <td class="py-3 px-4 text-center dark:text-gray-300">${habit.history.length > 0 ? formatDate(habit.history[habit.history.length - 1]) : '-'}</td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        function calculateSuccessRate(habit) {
+            const createdDate = new Date(habit.createdAt);
+            const today = new Date();
+            const diffTime = Math.abs(today - createdDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            return Math.round((habit.history.length / diffDays) * 100);
+        }
+
+        function showCategoryModal() {
+            document.getElementById('new-category-name').value = '';
+            selectedColor = 'indigo';
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.classList.remove('border-gray-800', 'dark:border-white');
+            });
+            document.querySelector('.color-option[data-color="indigo"]').classList.add('border-gray-800', 'dark:border-white');
+            document.getElementById('category-modal').classList.remove('hidden');
+        }
+
+        function saveCategory() {
+            const name = document.getElementById('new-category-name').value.trim();
+            
+            if (name) {
+                const newCategory = {
+                    id: name.toLowerCase().replace(/\s+/g, '-'),
+                    name,
+                    color: selectedColor
+                };
+                
+                if (!categories.some(cat => cat.id === newCategory.id)) {
+                    categories.push(newCategory);
+                    saveCategories();
+                    renderCategories();
+                    updateCategorySelect();
+                    document.getElementById('category-modal').classList.add('hidden');
+                    showToast('Catégorie ajoutée avec succès!', 'success');
+                } else {
+                    showToast('Cette catégorie existe déjà', 'error');
+                }
+            } else {
+                showToast('Veuillez entrer un nom pour la catégorie', 'error');
+            }
+        }
+
+        function switchView(e) {
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.classList.remove('active', 'text-indigo-600', 'border-indigo-600', 'dark:text-indigo-500', 'dark:border-indigo-500');
+                tab.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300', 'dark:hover:text-gray-300');
+            });
+            
+            e.target.classList.add('active', 'text-indigo-600', 'border-indigo-600', 'dark:text-indigo-500', 'dark:border-indigo-500');
+            e.target.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300', 'dark:hover:text-gray-300');
+            
+            currentView = e.target.dataset.view;
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.add('hidden');
+            });
+            
+            document.getElementById(`${currentView}-view`).classList.remove('hidden');
+            
+            if (currentView === 'calendar') {
+                renderCalendar(new Date());
+            } else if (currentView === 'streaks') {
+                renderStreaksView();
+            }
+        }
+
+        function testReminder() {
+            if (Notification.permission === 'granted') {
+                showNotification('Test de rappel', 'C\'est l\'heure de valider vos habitudes quotidiennes!');
+                showToast('Notification de test envoyée', 'success');
+            } else {
+                showToast('Veuillez autoriser les notifications d\'abord', 'error');
+            }
+        }
+
+        function disableReminder() {
+            reminderEnabled = false;
+            localStorage.setItem('reminderEnabled', 'false');
+            showToast('Rappels désactivés', 'info');
+            document.getElementById('reminder-modal').classList.add('hidden');
+        }
+
+        function saveReminder() {
+            reminderTime = document.getElementById('reminder-time').value;
+            reminderEnabled = true;
+            localStorage.setItem('reminderTime', reminderTime);
+            localStorage.setItem('reminderEnabled', 'true');
+            showToast('Rappel enregistré', 'success');
+            document.getElementById('reminder-modal').classList.add('hidden');
+            setupReminderNotification();
+        }
+
+        function setupReminderNotification() {
+            if (!reminderEnabled) return;
+            
+            if (Notification.permission !== 'granted') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        scheduleReminder();
+                    }
+                });
+            } else {
+                scheduleReminder();
+            }
+        }
+
+        function scheduleReminder() {
+            const [hours, minutes] = reminderTime.split(':').map(Number);
+            const now = new Date();
+            const reminderTimeToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+            
+            if (now > reminderTimeToday) {
+                reminderTimeToday.setDate(reminderTimeToday.getDate() + 1);
+            }
+            
+            const timeUntilReminder = reminderTimeToday.getTime() - now.getTime();
+            
+            setTimeout(() => {
+                showNotification('Rappel HabitudeTracker', 'N\'oubliez pas de valider vos habitudes quotidiennes!');
+                scheduleReminder();
+            }, timeUntilReminder);
+        }
+
+        function showNotification(title, body) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/3132/3132693.png' });
+            }
+        }
+
+        function checkAchievedGoals() {
+            habits.forEach(habit => {
+                if (habit.history.length === habit.goal) {
+                    showToast(`Objectif atteint: ${habit.name} (${habit.goal} jours)`, 'success');
+                }
+            });
+        }
+
+        function exportData() {
+            const data = {
+                habits,
+                categories,
+                trackingStartDate,
+                reminderTime,
+                reminderEnabled
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `habitude-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Données exportées avec succès', 'success');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = event => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        if (confirm('Voulez-vous remplacer toutes vos données actuelles par celles importées ?')) {
+                            habits = data.habits || [];
+                            categories = data.categories || [];
+                            trackingStartDate = data.trackingStartDate || new Date().toISOString();
+                            reminderTime = data.reminderTime || '18:00';
+                            reminderEnabled = data.reminderEnabled !== false;
+                            
+                            saveHabits();
+                            saveCategories();
+                            localStorage.setItem('trackingStartDate', trackingStartDate);
+                            localStorage.setItem('reminderTime', reminderTime);
+                            localStorage.setItem('reminderEnabled', reminderEnabled);
+                            
+                            renderCategories();
+                            updateCategorySelect();
+                            renderHabits();
+                            updateStats();
+                            initCharts();
+                            renderCalendar(new Date());
+                            renderStreaksView();
+                            setupReminderNotification();
+                            
+                            showToast('Données importées avec succès', 'success');
+                        }
+                    } catch (error) {
+                        showToast('Erreur lors de l\'importation des données', 'error');
+                        console.error(error);
+                    }
+                };
+                
+                reader.readAsText(file);
+           
+</html>
