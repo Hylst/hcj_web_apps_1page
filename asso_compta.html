@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssoCompta | Gestion financière pour associations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar {
+            transition: all 0.3s;
+        }
+        .sidebar.collapsed {
+            width: 70px;
+        }
+        .sidebar.collapsed .sidebar-text {
+            display: none;
+        }
+        .sidebar.collapsed .logo-text {
+            display: none;
+        }
+        .main-content {
+            transition: all 0.3s;
+        }
+        .sidebar.collapsed + .main-content {
+            margin-left: 70px;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 10px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .transaction-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar bg-indigo-800 text-white w-64 flex flex-col">
+            <div class="p-4 flex items-center justify-between border-b border-indigo-700">
+                <div class="flex items-center">
+                    <i class="fas fa-hand-holding-usd text-2xl mr-3"></i>
+                    <span class="logo-text text-xl font-bold">AssoCompta</span>
+                </div>
+                <button id="toggleSidebar" class="text-white focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 border-b border-indigo-700">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="ml-3 sidebar-text">
+                        <div class="font-medium">Geoffroy Streit</div>
+                        <div class="text-xs text-indigo-300">Président</div>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 overflow-y-auto">
+                <div class="p-2">
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-tachometer-alt mr-3"></i>
+                        <span class="sidebar-text">Tableau de bord</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-exchange-alt mr-3"></i>
+                        <span class="sidebar-text">Transactions</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-tags mr-3"></i>
+                        <span class="sidebar-text">Catégories</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-chart-pie mr-3"></i>
+                        <span class="sidebar-text">Rapports</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-bell mr-3"></i>
+                        <span class="sidebar-text">Alertes</span>
+                        <span class="notification-badge bg-red-500 text-white flex items-center justify-center">3</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-history mr-3"></i>
+                        <span class="sidebar-text">Historique</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-users mr-3"></i>
+                        <span class="sidebar-text">Membres</span>
+                    </a>
+                </div>
+                
+                <div class="p-2 mt-auto border-t border-indigo-700">
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-cog mr-3"></i>
+                        <span class="sidebar-text">Paramètres</span>
+                    </a>
+                    <a href="#" class="flex items-center p-2 rounded hover:bg-indigo-700 text-white">
+                        <i class="fas fa-sign-out-alt mr-3"></i>
+                        <span class="sidebar-text">Déconnexion</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content flex-1 overflow-auto ml-64">
+            <header class="bg-white shadow-sm">
+                <div class="px-6 py-4 flex justify-between items-center">
+                    <h1 class="text-2xl font-semibold text-gray-800">Tableau de bord</h1>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i class="fas fa-bell text-gray-600"></i>
+                                <span class="notification-badge bg-red-500 text-white">3</span>
+                            </button>
+                        </div>
+                        <div class="dropdown relative">
+                            <button class="flex items-center space-x-2 focus:outline-none">
+                                <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                                    <i class="fas fa-user text-indigo-600"></i>
+                                </div>
+                                <span class="hidden md:inline-block">Geoffroy Streit</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="dropdown-menu absolute hidden right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profil</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Paramètres</a>
+                                <div class="border-t border-gray-200"></div>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Déconnexion</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <main class="p-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Solde actuel</p>
+                                <h3 class="text-2xl font-bold text-green-600">4,850.50 €</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-wallet text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">+12.5% depuis le mois dernier</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Dons ce mois</p>
+                                <h3 class="text-2xl font-bold text-blue-600">1,250.00 €</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                <i class="fas fa-hand-holding-heart text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">+8.2% depuis le mois dernier</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Dépenses ce mois</p>
+                                <h3 class="text-2xl font-bold text-red-600">850.75 €</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-red-100 text-red-600">
+                                <i class="fas fa-receipt text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">-5.3% depuis le mois dernier</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Budget restant</p>
+                                <h3 class="text-2xl font-bold text-yellow-600">3,250.00 €</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                                <i class="fas fa-chart-line text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">75% du budget annuel</p>
+                    </div>
+                </div>
+                
+                <!-- Charts and Recent Transactions -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <!-- Income vs Expenses Chart -->
+                    <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Revenus vs Dépenses</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full">Mensuel</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">Annuel</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="incomeExpenseChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Actions rapides</h2>
+                        <div class="space-y-3">
+                            <button class="w-full flex items-center justify-between p-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition">
+                                <span>Ajouter une dépense</span>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition">
+                                <span>Enregistrer un don</span>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button id="generatePdf" class="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
+                                <span>Générer PDF</span>
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                            <button id="generateExcel" class="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition">
+                                <span>Exporter Excel</span>
+                                <i class="fas fa-file-excel"></i>
+                            </button>
+                            <button class="w-full flex items-center justify-between p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition">
+                                <span>Créer une alerte</span>
+                                <i class="fas fa-bell"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Transactions and Budget Alerts -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Recent Transactions -->
+                    <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Dernières transactions</h2>
+                            <a href="#" class="text-sm text-indigo-600 hover:underline">Voir tout</a>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-red-100 text-red-600 mr-3">
+                                            <i class="fas fa-utensils"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Repas annuel</p>
+                                            <p class="text-sm text-gray-500">Catégorie: Événements</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium text-red-600">-120.50 €</p>
+                                        <p class="text-sm text-gray-500">15/06/2023</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                            <i class="fas fa-hand-holding-usd"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Don anonyme</p>
+                                            <p class="text-sm text-gray-500">Catégorie: Dons</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium text-green-600">+500.00 €</p>
+                                        <p class="text-sm text-gray-500">12/06/2023</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
+                                            <i class="fas fa-tools"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Matériel bureau</p>
+                                            <p class="text-sm text-gray-500">Catégorie: Fournitures</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium text-red-600">-45.30 €</p>
+                                        <p class="text-sm text-gray-500">10/06/2023</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-item bg-white border border-gray-100 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
+                                            <i class="fas fa-ticket-alt"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Cotisation M. Dupont</p>
+                                            <p class="text-sm text-gray-500">Catégorie: Adhésions</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium text-green-600">+25.00 €</p>
+                                        <p class="text-sm text-gray-500">08/06/2023</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget Alerts -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Alertes budgétaires</h2>
+                            <a href="#" class="text-sm text-indigo-600 hover:underline">Tout voir</a>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="p-3 bg-red-50 border-l-4 border-red-500 rounded-r">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <i class="fas fa-exclamation-circle text-red-500"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-red-800">Dépassement budget événements</p>
+                                        <p class="text-sm text-red-600">120% du budget utilisé</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-yellow-800">Seuil approchant fournitures</p>
+                                        <p class="text-sm text-yellow-600">85% du budget utilisé</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <i class="fas fa-info-circle text-blue-500"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-blue-800">Nouveau don important</p>
+                                        <p class="text-sm text-blue-600">500€ reçu hier</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 bg-green-50 border-l-4 border-green-500 rounded-r">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <i class="fas fa-check-circle text-green-500"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-green-800">Budget communication OK</p>
+                                        <p class="text-sm text-green-600">45% du budget utilisé</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-md font-medium text-gray-700 mb-2">Créer une nouvelle alerte</h3>
+                            <div class="flex space-x-2">
+                                <select class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option>Sélectionner une catégorie</option>
+                                    <option>Événements</option>
+                                    <option>Fournitures</option>
+                                    <option>Communication</option>
+                                    <option>Dons</option>
+                                </select>
+                                <input type="number" placeholder="Seuil %" class="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button class="bg-indigo-600 text-white px-3 py-2 rounded-md text-sm hover:bg-indigo-700">Ajouter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Toggle sidebar
+        document.getElementById('toggleSidebar').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+        });
+
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Income vs Expenses Chart
+            const incomeExpenseCtx = document.getElementById('incomeExpenseChart').getContext('2d');
+            const incomeExpenseChart = new Chart(incomeExpenseCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                    datasets: [
+                        {
+                            label: 'Revenus',
+                            data: [1200, 1500, 1800, 1100, 2000, 1250],
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Dépenses',
+                            data: [800, 950, 1200, 750, 1100, 850],
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + ' €';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' €';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Generate PDF
+            document.getElementById('generatePdf').addEventListener('click', function() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.setTextColor(40, 53, 147);
+                doc.text('Rapport financier - AssoCompta', 15, 20);
+                
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Généré le: ' + new Date().toLocaleDateString(), 15, 30);
+                
+                doc.setFontSize(14);
+                doc.text('Résumé financier', 15, 45);
+                
+                doc.setFontSize(12);
+                doc.text('Solde actuel: 4,850.50 €', 15, 55);
+                doc.text('Dons ce mois: 1,250.00 €', 15, 65);
+                doc.text('Dépenses ce mois: 850.75 €', 15, 75);
+                
+                // Add chart image (simplified for demo)
+                doc.addImage('data:image/png;base64,...', 'PNG', 15, 85, 180, 80);
+                
+                doc.setFontSize(14);
+                doc.text('Dernières transactions', 15, 180);
+                
+                let y = 190;
+                const transactions = [
+                    { description: 'Repas annuel', amount: '-120.50 €', date: '15/06/2023' },
+                    { description: 'Don anonyme', amount: '+500.00 €', date: '12/06/2023' },
+                    { description: 'Matériel bureau', amount: '-45.30 €', date: '10/06/2023' }
+                ];
+                
+                transactions.forEach(transaction => {
+                    doc.text(`${transaction.description} - ${transaction.amount} - ${transaction.date}`, 15, y);
+                    y += 10;
+                });
+                
+                doc.save('rapport-financier-' + new Date().toISOString().slice(0, 10) + '.pdf');
+                
+                // Show success notification
+                alert('PDF généré avec succès!');
+            });
+
+            // Generate Excel
+            document.getElementById('generateExcel').addEventListener('click', function() {
+                // Create a workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Add a worksheet
+                const wsData = [
+                    ['Description', 'Montant', 'Date', 'Catégorie'],
+                    ['Repas annuel', -120.50, '15/06/2023', 'Événements'],
+                    ['Don anonyme', 500.00, '12/06/2023', 'Dons'],
+                    ['Matériel bureau', -45.30, '10/06/2023', 'Fournitures'],
+                    ['Cotisation M. Dupont', 25.00, '08/06/2023', 'Adhésions']
+                ];
+                
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+                
+                // Generate and download the file
+                XLSX.writeFile(wb, 'transactions-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+                
+                // Show success notification
+                alert('Fichier Excel généré avec succès!');
+            });
+        });
+    </script>
+</body>
+</html>
