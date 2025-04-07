@@ -9,32 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                        },
-                        secondary: {
-                            500: '#f59e0b',
-                            600: '#d97706',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
@@ -187,6 +161,25 @@
         
         .pdf-clause-title {
             @apply font-semibold text-primary-700 mb-1;
+        }
+        
+        /* Style pour le contrat PDF */
+        .contract-pdf {
+            font-family: 'Inter', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        
+        .pdf-watermark {
+            position: absolute;
+            opacity: 0.05;
+            font-size: 120px;
+            transform: rotate(-30deg);
+            z-index: -1;
+            color: #0ea5e9;
         }
     </style>
 </head>
@@ -583,7 +576,7 @@
                         </div>
                     </div>
                     
-                    <div id="contractPreview" class="p-8">
+                    <div id="contractPreview" class="p-8 contract-pdf">
                         <div class="max-w-4xl mx-auto">
                             <div class="text-center mb-8">
                                 <h1 class="text-3xl font-bold contract-title mb-2">CONTRAT DE COACHING SPORTIF</h1>
@@ -1039,7 +1032,7 @@
                 
                 // Générer le HTML du contrat
                 contractPreview.innerHTML = `
-                    <div class="max-w-4xl mx-auto font-serif text-gray-800">
+                    <div class="max-w-4xl mx-auto">
                         <div class="pdf-header">
                             ${coachLogo ? `<img src="${coachLogo}" class="pdf-logo" alt="Logo du coach">` : '<div></div>'}
                             <div class="text-right">
@@ -1078,7 +1071,7 @@
                             
                             <div class="contract-section p-4 mb-4">
                                 <h3 class="pdf-clause-title">Article 2 - Durée</h3>
-                                <p>Le présent contrat prend effet à compter du ${formattedStartDate} et se termine le ${formattedEndDate}, pour une durée totale de ${contractDuration}.</p>
+                                <p>Le présent contrat prend effet à compter du ${formattedStartDate} và se termine le ${formattedEndDate}, pour une durée totale de ${contractDuration}.</p>
                             </div>
                             
                             <div class="contract-section p-4 mb-4">
@@ -1212,7 +1205,8 @@
             // Afficher un indicateur de génération
             showToast('Génération du PDF en cours...', 'info');
             
-            html2canvas(element, {
+            // Options pour html2canvas
+            const options = {
                 scale: 2,
                 logging: false,
                 useCORS: true,
@@ -1220,29 +1214,49 @@
                 scrollX: 0,
                 scrollY: 0,
                 windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight
-            }).then(canvas => {
+                windowHeight: element.scrollHeight,
+                backgroundColor: '#FFFFFF'
+            };
+            
+            html2canvas(element, options).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const imgProps = pdf.getImageProperties(imgData);
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
                 
+                // Ajouter un filigrane
+                pdf.setFontSize(60);
+                pdf.setTextColor(200, 200, 200);
+                pdf.text('CONTRAT', 105, 150, { angle: 45, align: 'center' });
+                
+                // Ajouter le contenu principal
                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                 
-                // Ajouter un pied de page
+                // Ajouter un pied de page professionnel
                 const pageCount = pdf.internal.getNumberOfPages();
                 for(let i = 1; i <= pageCount; i++) {
                     pdf.setPage(i);
                     pdf.setFontSize(10);
-                    pdf.setTextColor(150);
-                    pdf.text(`Page ${i} sur ${pageCount} - Contrat généré avec CoachContract Pro`, pdfWidth - 15, pdf.internal.pageSize.getHeight() - 10, {align: 'right'});
+                    pdf.setTextColor(100);
+                    pdf.text(`Page ${i} sur ${pageCount}`, pdfWidth - 20, pdf.internal.pageSize.getHeight() - 10);
+                    
+                    // Ajouter une ligne de séparation
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.line(20, pdf.internal.pageSize.getHeight() - 15, pdfWidth - 20, pdf.internal.pageSize.getHeight() - 15);
+                    
+                    // Ajouter le texte du pied de page
+                    pdf.setFontSize(8);
+                    pdf.text('Document généré avec CoachContract Pro - © 2023 Tous droits réservés', pdfWidth / 2, pdf.internal.pageSize.getHeight() - 5, { align: 'center' });
                 }
                 
-                pdf.save(`Contrat_Coaching_${document.getElementById('clientName').value || 'Client'}.pdf`);
+                // Sauvegarder le PDF avec un nom personnalisé
+                const clientName = document.getElementById('clientName').value || 'Client';
+                pdf.save(`Contrat_Coaching_${clientName.replace(/\s+/g, '_')}.pdf`);
+                
                 showToast('PDF généré avec succès', 'success');
             }).catch(err => {
-                console.error(err);
+                console.error('Erreur lors de la génération du PDF:', err);
                 showToast('Erreur lors de la génération du PDF', 'error');
             });
         }
