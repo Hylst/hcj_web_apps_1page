@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubTrack | Gestion des abonnements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        dark: '#1e293b',
+                        light: '#f8fafc',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444'
+                    },
+                    fontFamily: {
+                        sans: ['Inter var', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        
+        .subscription-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .service-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 24px;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-wallet text-2xl"></i>
+                    <h1 class="text-2xl font-bold">SubTrack</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="relative p-2 text-white hover:bg-white hover:bg-opacity-10 rounded-full">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="notification-badge">3</span>
+                        </button>
+                    </div>
+                    <button id="addButton" class="bg-white text-primary px-4 py-2 rounded-full font-medium hover:bg-opacity-90 transition flex items-center">
+                        <i class="fas fa-plus mr-2"></i>Ajouter
+                    </button>
+                    <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center cursor-pointer">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Overview -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Monthly Cost -->
+                <div class="bg-white rounded-xl shadow p-6 flex items-center hover:shadow-md transition">
+                    <div class="mr-4 p-3 rounded-full bg-indigo-100 text-primary">
+                        <i class="fas fa-calendar-alt text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Coût mensuel</p>
+                        <h3 class="text-2xl font-bold">€127.45</h3>
+                        <p class="text-sm text-gray-500 mt-1">+€12.50 vs dernier mois</p>
+                    </div>
+                </div>
+                
+                <!-- Annual Cost -->
+                <div class="bg-white rounded-xl shadow p-6 flex items-center hover:shadow-md transition">
+                    <div class="mr-4 p-3 rounded-full bg-purple-100 text-secondary">
+                        <i class="fas fa-calendar-day text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Coût annuel</p>
+                        <h3 class="text-2xl font-bold">€1529.40</h3>
+                        <p class="text-sm text-gray-500 mt-1">+€150.00 vs dernière année</p>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Renewals -->
+                <div class="bg-white rounded-xl shadow p-6 flex items-center hover:shadow-md transition">
+                    <div class="mr-4 p-3 rounded-full bg-red-100 text-red-500">
+                        <i class="fas fa-bell text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Renouvellements</p>
+                        <h3 class="text-2xl font-bold">5</h3>
+                        <p class="text-sm text-gray-500 mt-1">dans les 15 prochains jours</p>
+                    </div>
+                </div>
+                
+                <!-- Budget Progress -->
+                <div class="bg-white rounded-xl shadow p-6 flex items-center hover:shadow-md transition">
+                    <div class="mr-4 relative">
+                        <svg class="w-12 h-12" viewBox="0 0 36 36">
+                            <path
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none"
+                                stroke="#e6e6e6"
+                                stroke-width="3"
+                            />
+                            <path
+                                class="progress-ring__circle"
+                                d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none"
+                                stroke="#6366f1"
+                                stroke-width="3"
+                                stroke-dasharray="100, 100"
+                                stroke-dashoffset="25"
+                            />
+                        </svg>
+                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold">75%</span>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Budget mensuel</p>
+                        <h3 class="text-2xl font-bold">€170.00</h3>
+                        <p class="text-sm text-gray-500 mt-1">€42.55 restants</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Subscription List -->
+        <section class="mb-12">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold text-gray-800">Mes abonnements <span class="text-gray-500 font-normal">(12 actifs)</span></h2>
+                <div class="flex flex-wrap gap-2">
+                    <button class="px-3 py-1 bg-primary text-white rounded-md text-sm font-medium">Tous</button>
+                    <button class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">Streaming</button>
+                    <button class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">Musique</button>
+                    <button class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">Logiciels</button>
+                    <button class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">Jeux</button>
+                    <button class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium">Autres</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Subscription Card 1 -->
+                <div class="subscription-card bg-white rounded-xl shadow p-6 transition duration-300 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <div class="service-icon bg-red-500 text-white mr-4">
+                                <i class="fab fa-netflix"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Netflix</h3>
+                                <p class="text-sm text-gray-500">Premium - 4K</p>
+                            </div>
+                        </div>
+                        <span class="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium">Dans 3 jours</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Coût</p>
+                            <p class="font-medium">€15.99/mois</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Prochain paiement</p>
+                            <p class="font-medium">15 juin 2023</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="text-primary font-medium text-sm flex items-center hover:text-indigo-700">
+                            <i class="fas fa-external-link-alt mr-1"></i> Gérer
+                        </button>
+                        <button class="text-red-500 font-medium text-sm flex items-center hover:text-red-700">
+                            <i class="fas fa-times mr-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subscription Card 2 -->
+                <div class="subscription-card bg-white rounded-xl shadow p-6 transition duration-300 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <div class="service-icon bg-green-500 text-white mr-4">
+                                <i class="fab fa-spotify"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Spotify</h3>
+                                <p class="text-sm text-gray-500">Famille</p>
+                            </div>
+                        </div>
+                        <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">Dans 15 jours</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Coût</p>
+                            <p class="font-medium">€14.99/mois</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Prochain paiement</p>
+                            <p class="font-medium">25 juin 2023</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="text-primary font-medium text-sm flex items-center hover:text-indigo-700">
+                            <i class="fas fa-external-link-alt mr-1"></i> Gérer
+                        </button>
+                        <button class="text-red-500 font-medium text-sm flex items-center hover:text-red-700">
+                            <i class="fas fa-times mr-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subscription Card 3 -->
+                <div class="subscription-card bg-white rounded-xl shadow p-6 transition duration-300 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <div class="service-icon bg-blue-500 text-white mr-4">
+                                <i class="fab fa-microsoft"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Microsoft 365</h3>
+                                <p class="text-sm text-gray-500">Famille</p>
+                            </div>
+                        </div>
+                        <span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full text-xs font-medium">Dans 1 mois</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Coût</p>
+                            <p class="font-medium">€99.00/an</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Prochain paiement</p>
+                            <p class="font-medium">30 juin 2023</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="text-primary font-medium text-sm flex items-center hover:text-indigo-700">
+                            <i class="fas fa-external-link-alt mr-1"></i> Gérer
+                        </button>
+                        <button class="text-red-500 font-medium text-sm flex items-center hover:text-red-700">
+                            <i class="fas fa-times mr-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subscription Card 4 -->
+                <div class="subscription-card bg-white rounded-xl shadow p-6 transition duration-300 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <div class="service-icon bg-purple-500 text-white mr-4">
+                                <i class="fab fa-discord"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Discord Nitro</h3>
+                                <p class="text-sm text-gray-500">Annuel</p>
+                            </div>
+                        </div>
+                        <span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs font-medium">Dans 2 mois</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Coût</p>
+                            <p class="font-medium">€99.99/an</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Prochain paiement</p>
+                            <p class="font-medium">15 août 2023</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="text-primary font-medium text-sm flex items-center hover:text-indigo-700">
+                            <i class="fas fa-external-link-alt mr-1"></i> Gérer
+                        </button>
+                        <button class="text-red-500 font-medium text-sm flex items-center hover:text-red-700">
+                            <i class="fas fa-times mr-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subscription Card 5 -->
+                <div class="subscription-card bg-white rounded-xl shadow p-6 transition duration-300 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <div class="service-icon bg-orange-500 text-white mr-4">
+                                <i class="fab fa-amazon"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Amazon Prime</h3>
+                                <p class="text-sm text-gray-500">Annuel</p>
+                            </div>
+                        </div>
+                        <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-xs font-medium">Dans 10 jours</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Coût</p>
+                            <p class="font-medium">€49.00/an</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Prochain paiement</p>
+                            <p class="font-medium">20 juin 2023</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="text-primary font-medium text-sm flex items-center hover:text-indigo-700">
+                            <i class="fas fa-external-link-alt mr-1"></i> Gérer
+                        </button>
+                        <button class="text-red-500 font-medium text-sm flex items-center hover:text-red-700">
+                            <i class="fas fa-times mr-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subscription Card 6 -->
+                <div class="subscription-card bg-white rounded-xl shadow p-6 transition duration-300 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <div class="service-icon bg-pink-500 text-white mr-4">
+                                <i class="fab fa-apple"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Apple One</h3>
+                                <p class="text-sm text-gray-500">Famille</p>
+                            </div>
+                        </div>
+                        <span class="bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full text-xs font-medium">Dans 5 jours</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Coût</p>
+                            <p class="font-medium">€22.95/mois</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Prochain paiement</p>
+                            <p class="font-medium">18 juin 2023</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="text-primary font-medium text-sm flex items-center hover:text-indigo-700">
+                            <i class="fas fa-external-link-alt mr-1"></i> Gérer
+                        </button>
+                        <button class="text-red-500 font-medium text-sm flex items-center hover:text-red-700">
+                            <i class="fas fa-times mr-1"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <button class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <i class="fas fa-chevron-down mr-2"></i>Voir plus d'abonnements
+                </button>
+            </div>
+        </section>
+
+        <!-- Charts and Comparisons -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Monthly Spending Chart -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-gray-800">Dépenses mensuelles (2023)</h3>
+                        <select class="bg-gray-100 border-0 rounded-md text-sm px-3 py-1 focus:ring-primary focus:border-primary">
+                            <option>2023</option>
+                            <option>2022</option>
+                            <option>2021</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">
+                        <p><span class="inline-block w-2 h-2 bg-primary rounded-full mr-1"></span> Dépenses mensuelles moyennes: €112.45</p>
+                    </div>
+                </div>
+                
+                <!-- Category Distribution -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-gray-800">Répartition par catégorie</h3>
+                        <select class="bg-gray-100 border-0 rounded-md text-sm px-3 py-1 focus:ring-primary focus:border-primary">
+                            <option>Mensuel</option>
+                            <option>Annuel</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+                        <div><span class="inline-block w-2 h-2 bg-primary rounded-full mr-1"></span> Streaming: €45.99</div>
+                        <div><span class="inline-block w-2 h-2 bg-secondary rounded-full mr-1"></span> Musique: €24.99</div>
+                        <div><span class="inline-block w-2 h-2 bg-purple-400 rounded-full mr-1"></span> Logiciels: €32.00</div>
+                        <div><span class="inline-block w-2 h-2 bg-pink-400 rounded-full mr-1"></span> Jeux: €15.47</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Service Comparisons -->
+        <section class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Comparaison des services</h2>
+                <button class="px-3 py-1 bg-primary text-white rounded-md text-sm font-medium flex items-center">
+                    <i class="fas fa-plus mr-1"></i> Nouvelle comparaison
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qualité</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contenu</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateurs</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Streaming Row -->
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="service-icon bg-red-500 text-white mr-3">
+                                            <i class="fab fa-netflix"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Netflix</div>
+                                            <div class="text-sm text-gray-500">Streaming</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium">€15.99/mois</div>
+                                    <div class="text-sm text-gray-500">Premium 4K</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        4K HDR
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    5,000+ films, 2,000+ séries
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Jusqu'à 4 simultanés
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-primary hover:text-indigo-900 mr-3">Comparer</a>
+                                    <a href="#" class="text-red-500 hover:text-red-700">Changer</a>
+                                </td>
+                            </tr>
+                            
+                            <!-- Music Row -->
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="service-icon bg-green-500 text-white mr-3">
+                                            <i class="fab fa-spotify"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Spotify</div>
+                                            <div class="text-sm text-gray-500">Musique</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium">€14.99/mois</div>
+                                    <div class="text-sm text-gray-500">Famille</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        320 kbps
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    70+ millions de titres
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Jusqu'à 6 comptes
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-primary hover:text-indigo-900 mr-3">Comparer</a>
+                                    <a href="#" class="text-red-500 hover:text-red-700">Changer</a>
+                                </td>
+                            </tr>
+                            
+                            <!-- Cloud Storage Row -->
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="service-icon bg-blue-500 text-white mr-3">
+                                            <i class="fab fa-google-drive"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Google One</div>
+                                            <div class="text-sm text-gray-500">Stockage</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium">€19.99/an</div>
+                                    <div class="text-sm text-gray-500">100GB</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        Sécurisé
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    100GB de stockage
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Partage familial
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="#" class="text-primary hover:text-indigo-900 mr-3">Comparer</a>
+                                    <a href="#" class="text-red-500 hover:text-red-700">Changer</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Savings Opportunities -->
+        <section class="mb-12">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Opportunités d'économies</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Savings Card 1 -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <div class="flex items-start mb-4">
+                        <div class="mr-4 p-2 rounded-full bg-green-100 text-green-600">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">Passer à l'annuel</h3>
+                            <p class="text-sm text-gray-500">Économisez 15% sur Netflix en payant annuellement</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-500">Économie potentielle</p>
+                            <p class="font-medium text-green-600">€28.79/an</p>
+                        </div>
+                        <button class="px-3 py-1 bg-green-100 text-green-600 rounded-md text-sm font-medium hover:bg-green-200">
+                            Voir l'offre
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Savings Card 2 -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <div class="flex items-start mb-4">
+                        <div class="mr-4 p-2 rounded-full bg-blue-100 text-blue-600">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">Partage familial</h3>
+                            <p class="text-sm text-gray-500">Divisez le coût de Spotify avec 5 amis</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-500">Économie potentielle</p>
+                            <p class="font-medium text-blue-600">€89.94/an</p>
+                        </div>
+                        <button class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-200">
+                            Configurer
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Savings Card 3 -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <div class="flex items-start mb-4">
+                        <div class="mr-4 p-2 rounded-full bg-purple-100 text-purple-600">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">Bundle Apple One</h3>
+                            <p class="text-sm text-gray-500">Regroupez vos abonnements Apple pour économiser</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-500">Économie potentielle</p>
+                            <p class="font-medium text-purple-600">€8.00/mois</p>
+                        </div>
+                        <button class="px-3 py-1 bg-purple-100 text-purple-600 rounded-md text-sm font-medium hover:bg-purple-200">
+                            En savoir plus
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Subscription Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="addModal">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div class="flex justify-between items-center border-b px-6 py-4">
+                <h3 class="text-lg font-bold">Ajouter un abonnement</h3>
+                <button class="text-gray-500 hover:text-gray-700" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="service">Service</label>
+                        <div class="relative">
+                            <select id="service" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary appearance-none">
+                                <option value="" disabled selected>Sélectionner un service</option>
+                                <option>Netflix</option>
+                                <option>Spotify</option>
+                                <option>Disney+</option>
+                                <option>Amazon Prime</option>
+                                <option>Apple Music</option>
+                                <option>Microsoft 365</option>
+                                <option>Google One</option>
+                                <option>YouTube Premium</option>
+                                <option>Adobe Creative Cloud</option>
+                                <option>Autre</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="plan">Plan</label>
+                        <input type="text" id="plan" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" placeholder="Ex: Premium, Famille, etc.">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2" for="cost">Coût</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">€</span>
+                                </div>
+                                <input type="number" id="cost" step="0.01" class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2" for="cycle">Cycle</label>
+                            <select id="cycle" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
+                                <option>Mensuel</option>
+                                <option>Annuel</option>
+                                <option>Trimestriel</option>
+                                <option>Semestriel</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="category">Catégorie</label>
+                        <select id="category" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
+                            <option>Streaming</option>
+                            <option>Musique</option>
+                            <option>Logiciels</option>
+                            <option>Jeux</option>
+                            <option>Stockage</option>
+                            <option>Formation</option>
+                            <option>Autre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="renewal">Prochain renouvellement</label>
+                        <div class="relative">
+                            <input type="date" id="renewal" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="rounded border-gray-300 text-primary focus:ring-primary">
+                            <span class="ml-2 text-sm text-gray-600">Activer les rappels avant renouvellement</span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancelButton" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Annuler</button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-opacity-90">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fas fa-wallet text-xl"></i>
+                        <h2 class="text-xl font-bold">SubTrack</h2>
+                    </div>
+                    <p class="text-gray-400">Gestion simplifiée de vos abonnements. Suivez, analysez et optimisez vos dépenses récurrentes.</p>
+                    <div class="flex space-x-4 mt-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Fonctionnalités</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Suivi des abonnements</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Alertes de renouvellement</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Comparaison de services</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Statistiques de dépenses</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Annulation assistée</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Ressources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Guides</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">FAQ</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Support</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">API</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Newsletter</h3>
+                    <p class="text-gray-400 mb-4">Abonnez-vous pour recevoir des conseils d'optimisation.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Votre email" class="px-3 py-2 rounded-l-md text-sm text-gray-800 w-full">
+                        <button type="submit" class="bg-primary px-3 py-2 rounded-r-md text-sm font-medium">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400">© 2023 SubTrack. Créé par Geoffroy Streit. Tous droits réservés.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white text-sm">Confidentialité</a>
+                    <a href="#" class="text-gray-400 hover:text-white text-sm">Conditions</a>
+                    <a href="#" class="text-gray-400 hover:text-white text-sm">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Monthly Chart
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        const monthlyChart = new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                datasets: [{
+                    label: 'Dépenses mensuelles',
+                    data: [105, 98, 112, 107, 119, 127, 115, 124, 118, 122, 110, 125],
+                    backgroundColor: '#6366f1',
+                    borderRadius: 6,
+                    borderSkipped: false
+                }, {
+                    label: 'Budget',
+                    data: [120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120],
+                    type: 'line',
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#10b981',
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': €' + context.raw;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Category Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Streaming', 'Musique', 'Logiciels', 'Jeux', 'Autres'],
+                datasets: [{
+                    data: [45.99, 24.99, 32.00, 15.47, 9.00],
+                    backgroundColor: [
+                        '#6366f1',
+                        '#8b5cf6',
+                        '#a78bfa',
+                        '#c4b5fd',
+                        '#ddd6fe'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: €${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // Modal Handling
+        const addButton = document.getElementById('addButton');
+        const modal = document.getElementById('addModal');
+        const closeButton = document.getElementById('closeModal');
+        const cancelButton = document.getElementById('cancelButton');
+
+        addButton.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        });
+
+        cancelButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        });
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Subscription card interactions
+        document.querySelectorAll('.subscription-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Check if the click was on a button or its icon
+                if (!e.target.closest('button')) {
+                    // Navigate to subscription detail page
+                    console.log('Navigating to subscription details');
+                }
+            });
+        });
+
+        // Set today's date as default for renewal date
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            document.getElementById('renewal').value = `${yyyy}-${mm}-${dd}`;
+        });
+    </script>
+</body>
+</html>
