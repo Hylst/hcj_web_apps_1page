@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster - Gestionnaire de Tâches</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .task-item:hover .task-actions {
+            opacity: 1;
+        }
+        
+        .priority-high {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .priority-low {
+            border-left: 4px solid #10b981;
+        }
+        
+        .completed-task {
+            background-color: #f0fdf4;
+            text-decoration: line-through;
+            color: #64748b;
+        }
+        
+        /* Animation pour les nouvelles tâches */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .new-task {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Style personnalisé pour le modal */
+        .modal {
+            transition: all 0.3s ease;
+        }
+        
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .modal-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-tasks text-indigo-500 mr-3"></i>
+                    TaskMaster
+                </h1>
+                <p class="text-gray-500">Gérez vos tâches efficacement</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Rechercher..." 
+                           class="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-4 flex items-center">
+                <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-tasks text-indigo-600"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Tâches totales</p>
+                    <h3 class="text-xl font-semibold" id="total-tasks">0</h3>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 flex items-center">
+                <div class="bg-green-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-check-circle text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Terminées</p>
+                    <h3 class="text-xl font-semibold" id="completed-tasks">0</h3>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 flex items-center">
+                <div class="bg-yellow-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-exclamation-circle text-yellow-600"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">En cours</p>
+                    <h3 class="text-xl font-semibold" id="pending-tasks">0</h3>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 flex items-center">
+                <div class="bg-red-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-clock text-red-600"></i>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">En retard</p>
+                    <h3 class="text-xl font-semibold" id="overdue-tasks">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- Task Form -->
+            <div class="md:w-1/3">
+                <div class="bg-white rounded-lg shadow p-6 sticky top-4">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Ajouter une tâche</h2>
+                    <form id="task-form">
+                        <div class="mb-4">
+                            <label for="task-title" class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                            <input type="text" id="task-title" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                   placeholder="Titre de la tâche" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="task-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="task-description" rows="3" 
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                      placeholder="Description (optionnelle)"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label for="task-due-date" class="block text-sm font-medium text-gray-700 mb-1">Date d'échéance</label>
+                            <input type="date" id="task-due-date" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
+                            <div class="flex space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="priority" value="high" class="form-radio text-red-500">
+                                    <span class="ml-2">Haute</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="priority" value="medium" class="form-radio text-yellow-500" checked>
+                                    <span class="ml-2">Moyenne</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="priority" value="low" class="form-radio text-green-500">
+                                    <span class="ml-2">Basse</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="task-category" class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                            <select id="task-category" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="work">Travail</option>
+                                <option value="personal">Personnel</option>
+                                <option value="shopping">Courses</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+                        <button type="submit" 
+                                class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i> Ajouter la tâche
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Task List -->
+            <div class="md:w-2/3">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Mes Tâches</h2>
+                    <div class="flex space-x-2">
+                        <select id="filter-priority" 
+                                class="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="all">Toutes priorités</option>
+                            <option value="high">Haute</option>
+                            <option value="medium">Moyenne</option>
+                            <option value="low">Basse</option>
+                        </select>
+                        <select id="filter-category" 
+                                class="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="all">Toutes catégories</option>
+                            <option value="work">Travail</option>
+                            <option value="personal">Personnel</option>
+                            <option value="shopping">Courses</option>
+                            <option value="other">Autre</option>
+                        </select>
+                        <select id="filter-status" 
+                                class="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="all">Tous statuts</option>
+                            <option value="completed">Terminées</option>
+                            <option value="pending">En cours</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="task-list" class="space-y-3">
+                    <!-- Les tâches seront ajoutées ici dynamiquement -->
+                    <div class="text-center py-10 text-gray-500" id="empty-state">
+                        <i class="fas fa-tasks text-4xl mb-3 text-gray-300"></i>
+                        <p>Vous n'avez aucune tâche pour le moment</p>
+                        <p class="text-sm mt-1">Commencez par ajouter une nouvelle tâche</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour éditer une tâche -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Modifier la tâche</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="edit-form">
+                    <input type="hidden" id="edit-task-id">
+                    <div class="mb-4">
+                        <label for="edit-task-title" class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                        <input type="text" id="edit-task-title" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-task-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="edit-task-description" rows="3" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-task-due-date" class="block text-sm font-medium text-gray-700 mb-1">Date d'échéance</label>
+                        <input type="date" id="edit-task-due-date" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
+                        <div class="flex space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="edit-priority" value="high" class="form-radio text-red-500">
+                                <span class="ml-2">Haute</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="edit-priority" value="medium" class="form-radio text-yellow-500">
+                                <span class="ml-2">Moyenne</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="edit-priority" value="low" class="form-radio text-green-500">
+                                <span class="ml-2">Basse</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-task-category" class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                        <select id="edit-task-category" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="work">Travail</option>
+                            <option value="personal">Personnel</option>
+                            <option value="shopping">Courses</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-edit" 
+                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">
+                            Annuler
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+
+        // DOM Elements
+        const taskForm = document.getElementById('task-form');
+        const taskList = document.getElementById('task-list');
+        const emptyState = document.getElementById('empty-state');
+        const editModal = document.getElementById('edit-modal');
+        const editForm = document.getElementById('edit-form');
+        const closeModal = document.getElementById('close-modal');
+        const cancelEdit = document.getElementById('cancel-edit');
+        const themeToggle = document.getElementById('theme-toggle');
+        const searchInput = document.getElementById('search-input');
+        const filterPriority = document.getElementById('filter-priority');
+        const filterCategory = document.getElementById('filter-category');
+        const filterStatus = document.getElementById('filter-status');
+        const totalTasksElement = document.getElementById('total-tasks');
+        const completedTasksElement = document.getElementById('completed-tasks');
+        const pendingTasksElement = document.getElementById('pending-tasks');
+        const overdueTasksElement = document.getElementById('overdue-tasks');
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            // Appliquer le mode sombre si activé
+            if (darkMode) {
+                document.body.classList.add('dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                document.body.style.backgroundColor = '#1a202c';
+                document.body.style.color = '#f7fafc';
+            }
+
+            // Charger les tâches
+            renderTasks();
+            updateStats();
+
+            // Écouteurs d'événements
+            taskForm.addEventListener('submit', addTask);
+            editForm.addEventListener('submit', updateTask);
+            closeModal.addEventListener('click', () => editModal.classList.add('hidden'));
+            cancelEdit.addEventListener('click', () => editModal.classList.add('hidden'));
+            themeToggle.addEventListener('click', toggleDarkMode);
+            searchInput.addEventListener('input', filterTasks);
+            filterPriority.addEventListener('change', filterTasks);
+            filterCategory.addEventListener('change', filterTasks);
+            filterStatus.addEventListener('change', filterTasks);
+        });
+
+        // Fonctions
+
+        // Ajouter une tâche
+        function addTask(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-description').value;
+            const dueDate = document.getElementById('task-due-date').value;
+            const priority = document.querySelector('input[name="priority"]:checked').value;
+            const category = document.getElementById('task-category').value;
+            
+            const newTask = {
+                id: Date.now(),
+                title,
+                description,
+                dueDate,
+                priority,
+                category,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            tasks.push(newTask);
+            saveTasks();
+            renderTasks();
+            updateStats();
+            
+            // Réinitialiser le formulaire
+            taskForm.reset();
+            document.getElementById('task-title').focus();
+            
+            // Afficher une notification
+            showNotification('Tâche ajoutée avec succès!', 'success');
+        }
+
+        // Afficher les tâches
+        function renderTasks(filteredTasks = null) {
+            const tasksToRender = filteredTasks || tasks;
+            
+            if (tasksToRender.length === 0) {
+                emptyState.classList.remove('hidden');
+                taskList.innerHTML = '';
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            // Trier les tâches par priorité et date d'échéance
+            const sortedTasks = [...tasksToRender].sort((a, b) => {
+                // Priorité: haute > moyenne > basse
+                const priorityOrder = { high: 1, medium: 2, low: 3 };
+                if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                    return priorityOrder[a.priority] - priorityOrder[b.priority];
+                }
+                
+                // Ensuite par date d'échéance (les plus proches en premier)
+                if (a.dueDate && b.dueDate) {
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                }
+                
+                return 0;
+            });
+            
+            taskList.innerHTML = '';
+            
+            sortedTasks.forEach(task => {
+                const taskElement = createTaskElement(task);
+                taskList.appendChild(taskElement);
+            });
+        }
+
+        // Créer un élément de tâche
+        function createTaskElement(task) {
+            const taskElement = document.createElement('div');
+            taskElement.className = `bg-white rounded-lg shadow p-4 task-item ${task.completed ? 'completed-task' : ''} priority-${task.priority} new-task`;
+            taskElement.dataset.id = task.id;
+            
+            // Vérifier si la tâche est en retard
+            const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
+            
+            // Icône de catégorie
+            let categoryIcon = '';
+            let categoryColor = '';
+            switch(task.category) {
+                case 'work':
+                    categoryIcon = 'fa-briefcase';
+                    categoryColor = 'bg-blue-100 text-blue-600';
+                    break;
+                case 'personal':
+                    categoryIcon = 'fa-user';
+                    categoryColor = 'bg-purple-100 text-purple-600';
+                    break;
+                case 'shopping':
+                    categoryIcon = 'fa-shopping-cart';
+                    categoryColor = 'bg-green-100 text-green-600';
+                    break;
+                default:
+                    categoryIcon = 'fa-tag';
+                    categoryColor = 'bg-gray-100 text-gray-600';
+            }
+            
+            // Formatage de la date
+            let dueDateText = '';
+            if (task.dueDate) {
+                const dueDate = new Date(task.dueDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (dueDate.toDateString() === today.toDateString()) {
+                    dueDateText = 'Aujourd\'hui';
+                } else if (dueDate.toDateString() === new Date(today.getTime() + 86400000).toDateString()) {
+                    dueDateText = 'Demain';
+                } else {
+                    dueDateText = dueDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                }
+            }
+            
+            taskElement.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex items-start space-x-3">
+                        <button class="complete-btn mt-1 p-2 rounded-full ${task.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'} transition">
+                            <i class="fas ${task.completed ? 'fa-check-circle' : 'fa-circle'}"></i>
+                        </button>
+                        <div class="flex-1">
+                            <h3 class="font-medium ${task.completed ? 'text-gray-500' : 'text-gray-800'}">${task.title}</h3>
+                            ${task.description ? `<p class="text-sm text-gray-500 mt-1">${task.description}</p>` : ''}
+                            <div class="flex items-center mt-2 space-x-4 text-sm">
+                                ${task.dueDate ? `
+                                    <span class="flex items-center ${isOverdue ? 'text-red-500' : 'text-gray-500'}">
+                                        <i class="fas fa-calendar-day mr-1"></i>
+                                        ${dueDateText}
+                                        ${isOverdue ? '<span class="ml-1 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">En retard</span>' : ''}
+                                    </span>
+                                ` : ''}
+                                <span class="flex items-center text-gray-500">
+                                    <i class="fas ${categoryIcon} mr-1"></i>
+                                    ${getCategoryName(task.category)}
+                                </span>
+                                <span class="flex items-center text-gray-500">
+                                    <i class="fas fa-${task.priority === 'high' ? 'fire' : task.priority === 'medium' ? 'exclamation' : 'leaf'} mr-1"></i>
+                                    ${task.priority === 'high' ? 'Haute' : task.priority === 'medium' ? 'Moyenne' : 'Basse'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="task-actions opacity-0 transition-opacity flex space-x-1">
+                        <button class="edit-btn p-2 text-gray-400 hover:text-indigo-600">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-btn p-2 text-gray-400 hover:text-red-600">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Ajouter les écouteurs d'événements
+            const completeBtn = taskElement.querySelector('.complete-btn');
+            const editBtn = taskElement.querySelector('.edit-btn');
+            const deleteBtn = taskElement.querySelector('.delete-btn');
+            
+            completeBtn.addEventListener('click', () => toggleComplete(task.id));
+            editBtn.addEventListener('click', () => openEditModal(task.id));
+            deleteBtn.addEventListener('click', () => deleteTask(task.id));
+            
+            return taskElement;
+        }
+
+        // Basculer l'état de complétion d'une tâche
+        function toggleComplete(taskId) {
+            const taskIndex = tasks.findIndex(task => task.id === taskId);
+            if (taskIndex !== -1) {
+                tasks[taskIndex].completed = !tasks[taskIndex].completed;
+                saveTasks();
+                renderTasks();
+                updateStats();
+                
+                const message = tasks[taskIndex].completed 
+                    ? 'Tâche marquée comme terminée!' 
+                    : 'Tâche marquée comme non terminée';
+                showNotification(message, 'info');
+            }
+        }
+
+        // Ouvrir le modal d'édition
+        function openEditModal(taskId) {
+            const task = tasks.find(task => task.id === taskId);
+            if (task) {
+                document.getElementById('edit-task-id').value = task.id;
+                document.getElementById('edit-task-title').value = task.title;
+                document.getElementById('edit-task-description').value = task.description || '';
+                document.getElementById('edit-task-due-date').value = task.dueDate || '';
+                document.querySelector(`input[name="edit-priority"][value="${task.priority}"]`).checked = true;
+                document.getElementById('edit-task-category').value = task.category;
+                
+                editModal.classList.remove('hidden');
+            }
+        }
+
+        // Mettre à jour une tâche
+        function updateTask(e) {
+            e.preventDefault();
+            
+            const taskId = parseInt(document.getElementById('edit-task-id').value);
+            const taskIndex = tasks.findIndex(task => task.id === taskId);
+            
+            if (taskIndex !== -1) {
+                tasks[taskIndex].title = document.getElementById('edit-task-title').value;
+                tasks[taskIndex].description = document.getElementById('edit-task-description').value;
+                tasks[taskIndex].dueDate = document.getElementById('edit-task-due-date').value;
+                tasks[taskIndex].priority = document.querySelector('input[name="edit-priority"]:checked').value;
+                tasks[taskIndex].category = document.getElementById('edit-task-category').value;
+                
+                saveTasks();
+                renderTasks();
+                updateStats();
+                editModal.classList.add('hidden');
+                
+                showNotification('Tâche mise à jour avec succès!', 'success');
+            }
+        }
+
+        // Supprimer une tâche
+        function deleteTask(taskId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche?')) {
+                tasks = tasks.filter(task => task.id !== taskId);
+                saveTasks();
+                renderTasks();
+                updateStats();
+                
+                showNotification('Tâche supprimée avec succès!', 'warning');
+            }
+        }
+
+        // Filtrer les tâches
+        function filterTasks() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const priorityFilter = filterPriority.value;
+            const categoryFilter = filterCategory.value;
+            const statusFilter = filterStatus.value;
+            
+            const filteredTasks = tasks.filter(task => {
+                // Filtre de recherche
+                const matchesSearch = task.title.toLowerCase().includes(searchTerm) || 
+                                     (task.description && task.description.toLowerCase().includes(searchTerm));
+                
+                // Filtre de priorité
+                const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+                
+                // Filtre de catégorie
+                const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
+                
+                // Filtre de statut
+                let matchesStatus = true;
+                if (statusFilter === 'completed') {
+                    matchesStatus = task.completed;
+                } else if (statusFilter === 'pending') {
+                    matchesStatus = !task.completed;
+                }
+                
+                return matchesSearch && matchesPriority && matchesCategory && matchesStatus;
+            });
+            
+            renderTasks(filteredTasks);
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats() {
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(task => task.completed).length;
+            const pendingTasks = totalTasks - completedTasks;
+            const overdueTasks = tasks.filter(task => 
+                !task.completed && task.dueDate && new Date(task.dueDate) < new Date()
+            ).length;
+            
+            totalTasksElement.textContent = totalTasks;
+            completedTasksElement.textContent = completedTasks;
+            pendingTasksElement.textContent = pendingTasks;
+            overdueTasksElement.textContent = overdueTasks;
+        }
+
+        // Basculer le mode sombre
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            localStorage.setItem('darkMode', darkMode);
+            
+            if (darkMode) {
+                document.body.classList.add('dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                document.body.style.backgroundColor = '#1a202c';
+                document.body.style.color = '#f7fafc';
+            } else {
+                document.body.classList.remove('dark');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                document.body.style.backgroundColor = '#f8fafc';
+                document.body.style.color = '#1a202c';
+            }
+        }
+
+        // Afficher une notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg text-white ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                type === 'warning' ? 'bg-yellow-500' : 'bg-indigo-500'
+            } flex items-center`;
+            
+            notification.innerHTML = `
+                <i class="fas ${
+                    type === 'success' ? 'fa-check-circle' : 
+                    type === 'error' ? 'fa-exclamation-circle' : 
+                    type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'
+                } mr-2"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Obtenir le nom de la catégorie
+        function getCategoryName(category) {
+            switch(category) {
+                case 'work': return 'Travail';
+                case 'personal': return 'Personnel';
+                case 'shopping': return 'Courses';
+                default: return 'Autre';
+            }
+        }
+
+        // Sauvegarder les tâches dans le localStorage
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+    </script>
+</body>
+</html>
