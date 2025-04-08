@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedTracker | Gestion de traitement médical</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+        
+        .medication-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+        }
+        
+        .sidebar-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        /* Animation for medication reminder */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Tab system */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tab-button.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        
+        /* Modal transitions */
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .modal.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+        
+        /* Prescription scan preview */
+        .prescription-preview {
+            transition: all 0.3s ease;
+        }
+        
+        .prescription-preview:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex">
+        <!-- Sidebar -->
+        <div class="gradient-bg text-white w-64 min-h-screen hidden md:block">
+            <div class="p-6">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-pills text-2xl"></i>
+                    <h1 class="text-2xl font-bold">MedTracker</h1>
+                </div>
+                <p class="text-sm opacity-75 mt-2">Gestion de traitement médical</p>
+            </div>
+            
+            <nav class="mt-8">
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3 bg-white bg-opacity-10" onclick="showTab('dashboard')">
+                    <i class="fas fa-home"></i>
+                    <span>Tableau de bord</span>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('reminders')">
+                    <i class="fas fa-bell"></i>
+                    <span>Rappels</span>
+                    <div class="notification-badge">3</div>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('medications')">
+                    <i class="fas fa-prescription-bottle-alt"></i>
+                    <span>Médicaments</span>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('prescriptions')">
+                    <i class="fas fa-file-prescription"></i>
+                    <span>Ordonnances</span>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('history')">
+                    <i class="fas fa-history"></i>
+                    <span>Historique</span>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('interactions')">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Interactions</span>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('sharing')">
+                    <i class="fas fa-user-md"></i>
+                    <span>Partage médical</span>
+                </div>
+                <div class="px-6 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('symptoms')">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Suivi des symptômes</span>
+                </div>
+            </nav>
+            
+            <div class="absolute bottom-0 w-64 p-6">
+                <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">Geoffroy Streit</p>
+                            <p class="text-xs opacity-75">Patient</p>
+                        </div>
+                    </div>
+                    <button class="mt-3 w-full text-sm bg-white bg-opacity-20 hover:bg-opacity-30 py-1 rounded" onclick="showTab('settings')">
+                        <i class="fas fa-cog mr-1"></i> Paramètres
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Mobile Header -->
+            <div class="gradient-bg text-white p-4 flex justify-between items-center md:hidden">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-pills text-xl"></i>
+                    <h1 class="text-xl font-bold">MedTracker</h1>
+                </div>
+                <button id="mobile-menu-button" class="text-white">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Mobile Sidebar (hidden by default) -->
+            <div id="mobile-sidebar" class="gradient-bg text-white w-full hidden md:hidden">
+                <nav class="p-4">
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('dashboard')">
+                        <i class="fas fa-home"></i>
+                        <span>Tableau de bord</span>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('reminders')">
+                        <i class="fas fa-bell"></i>
+                        <span>Rappels</span>
+                        <div class="notification-badge">3</div>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('medications')">
+                        <i class="fas fa-prescription-bottle-alt"></i>
+                        <span>Médicaments</span>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('prescriptions')">
+                        <i class="fas fa-file-prescription"></i>
+                        <span>Ordonnances</span>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('history')">
+                        <i class="fas fa-history"></i>
+                        <span>Historique</span>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('interactions')">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Interactions</span>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('sharing')">
+                        <i class="fas fa-user-md"></i>
+                        <span>Partage médical</span>
+                    </div>
+                    <div class="px-4 py-3 sidebar-item flex items-center space-x-3" onclick="showTab('symptoms')">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Suivi des symptômes</span>
+                    </div>
+                </nav>
+            </div>
+            
+            <!-- Dashboard Content -->
+            <div id="dashboard" class="tab-content active p-6">
+                <h2 class="text-2xl font-bold text-gray-800">Tableau de bord</h2>
+                <p class="text-gray-600">Bienvenue dans votre espace de gestion médicale</p>
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Médicaments actifs</p>
+                                <h3 class="text-2xl font-bold mt-1">5</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                <i class="fas fa-pills text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Rappels aujourd'hui</p>
+                                <h3 class="text-2xl font-bold mt-1">3</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                                <i class="fas fa-bell text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Renouvellements</p>
+                                <h3 class="text-2xl font-bold mt-1">2</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                                <i class="fas fa-exclamation-circle text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500">Ordonnances</p>
+                                <h3 class="text-2xl font-bold mt-1">4</h3>
+                            </div>
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-file-prescription text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Medications -->
+                <div class="mt-8">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-800">Médicaments actuels</h3>
+                        <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddMedicationModal()">
+                            <i class="fas fa-plus mr-1"></i> Ajouter
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                        <!-- Medication Card 1 -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden medication-card transition duration-300">
+                            <div class="p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-bold text-lg">Paracétamol</h4>
+                                        <p class="text-gray-600 text-sm">500mg - Comprimé</p>
+                                    </div>
+                                    <div class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                        Actif
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-500">Dosage:</span>
+                                        <span>1 comprimé</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm mt-1">
+                                        <span class="text-gray-500">Fréquence:</span>
+                                        <span>Toutes les 6 heures</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm mt-1">
+                                        <span class="text-gray-500">Prochain rappel:</span>
+                                        <span class="font-medium">14:30</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showEditMedicationModal('Paracétamol')">
+                                        <i class="fas fa-edit mr-1"></i> Modifier
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="confirmDeleteMedication('Paracétamol')">
+                                        <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Medication Card 2 -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden medication-card transition duration-300">
+                            <div class="p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-bold text-lg">Ibuprofène</h4>
+                                        <p class="text-gray-600 text-sm">400mg - Comprimé</p>
+                                    </div>
+                                    <div class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                        Actif
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-500">Dosage:</span>
+                                        <span>1 comprimé</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm mt-1">
+                                        <span class="text-gray-500">Fréquence:</span>
+                                        <span>3 fois par jour</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm mt-1">
+                                        <span class="text-gray-500">Prochain rappel:</span>
+                                        <span class="font-medium">20:00</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showEditMedicationModal('Ibuprofène')">
+                                        <i class="fas fa-edit mr-1"></i> Modifier
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="confirmDeleteMedication('Ibuprofène')">
+                                        <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Medication Card 3 (with warning) -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden medication-card transition duration-300">
+                            <div class="p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-bold text-lg">Atorvastatine</h4>
+                                        <p class="text-gray-600 text-sm">20mg - Comprimé</p>
+                                    </div>
+                                    <div class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                                        Renouvellement
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-500">Dosage:</span>
+                                        <span>1 comprimé</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm mt-1">
+                                        <span class="text-gray-500">Fréquence:</span>
+                                        <span>1 fois par jour</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm mt-1">
+                                        <span class="text-gray-500">Fin du traitement:</span>
+                                        <span class="font-medium">05/07/2023</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showRenewalModal('Atorvastatine')">
+                                        <i class="fas fa-sync-alt mr-1"></i> Renouveler
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="confirmDeleteMedication('Atorvastatine')">
+                                        <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Reminders and Symptoms Tracker -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                    <!-- Upcoming Reminders -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-800">Rappels à venir</h3>
+                            <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddReminderModal()">
+                                <i class="fas fa-plus mr-1"></i> Ajouter
+                            </button>
+                        </div>
+                        
+                        <div class="mt-4 space-y-4">
+                            <!-- Reminder 1 -->
+                            <div class="flex items-start p-3 rounded-lg bg-blue-50">
+                                <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Paracétamol</h4>
+                                        <span class="text-sm text-gray-500">14:30</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">1 comprimé (500mg)</p>
+                                </div>
+                                <button class="ml-2 text-blue-600 hover:text-blue-800" onclick="markMedicationTaken('Paracétamol')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Reminder 2 -->
+                            <div class="flex items-start p-3 rounded-lg bg-purple-50">
+                                <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-3">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Ibuprofène</h4>
+                                        <span class="text-sm text-gray-500">20:00</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">1 comprimé (400mg)</p>
+                                </div>
+                                <button class="ml-2 text-purple-600 hover:text-purple-800" onclick="markMedicationTaken('Ibuprofène')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Reminder 3 -->
+                            <div class="flex items-start p-3 rounded-lg bg-yellow-50">
+                                <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Atorvastatine</h4>
+                                        <span class="text-sm text-gray-500">22:00</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">1 comprimé (20mg)</p>
+                                </div>
+                                <button class="ml-2 text-yellow-600 hover:text-yellow-800" onclick="markMedicationTaken('Atorvastatine')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Symptoms Tracker -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-800">Suivi des symptômes</h3>
+                            <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddSymptomModal()">
+                                <i class="fas fa-plus mr-1"></i> Ajouter
+                            </button>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="chart-container">
+                                <!-- This would be replaced with an actual chart in a real implementation -->
+                                <div class="flex items-end h-full space-x-2">
+                                    <div class="flex-1 bg-blue-100 rounded-t" style="height: 30%;"></div>
+                                    <div class="flex-1 bg-blue-200 rounded-t" style="height: 50%;"></div>
+                                    <div class="flex-1 bg-blue-300 rounded-t" style="height: 70%;"></div>
+                                    <div class="flex-1 bg-blue-400 rounded-t" style="height: 90%;"></div>
+                                    <div class="flex-1 bg-blue-500 rounded-t" style="height: 60%;"></div>
+                                    <div class="flex-1 bg-blue-600 rounded-t" style="height: 40%;"></div>
+                                    <div class="flex-1 bg-blue-700 rounded-t" style="height: 20%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 grid grid-cols-2 gap-4">
+                                <div class="p-3 rounded-lg bg-red-50">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-red-100 text-red-600 mr-2">
+                                            <i class="fas fa-head-side-virus"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Maux de tête</p>
+                                            <p class="text-xs text-gray-600">3 épisodes cette semaine</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 rounded-lg bg-green-50">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-green-100 text-green-600 mr-2">
+                                            <i class="fas fa-heartbeat"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Pouls</p>
+                                            <p class="text-xs text-gray-600">72 bpm en moyenne</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 rounded-lg bg-yellow-50">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-2">
+                                            <i class="fas fa-tired"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Fatigue</p>
+                                            <p class="text-xs text-gray-600">2 épisodes hier</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 rounded-lg bg-purple-50">
+                                    <div class="flex items-center">
+                                        <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-2">
+                                            <i class="fas fa-thermometer-half"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium">Température</p>
+                                            <p class="text-xs text-gray-600">36.8°C ce matin</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reminders Tab -->
+            <div id="reminders" class="tab-content p-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des rappels</h2>
+                    <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddReminderModal()">
+                        <i class="fas fa-plus mr-1"></i> Nouveau rappel
+                    </button>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="flex space-x-4 border-b">
+                        <button class="tab-button active px-4 py-2" onclick="switchReminderTab('today')">Aujourd'hui</button>
+                        <button class="tab-button px-4 py-2" onclick="switchReminderTab('upcoming')">À venir</button>
+                        <button class="tab-button px-4 py-2" onclick="switchReminderTab('past')">Passés</button>
+                    </div>
+                    
+                    <div id="today-reminders" class="reminder-tab-content active mt-4">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="divide-y divide-gray-100">
+                                <!-- Today's Reminder 1 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                                        <i class="fas fa-pills"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Paracétamol</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (500mg) - 14:30</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-green-100 text-green-600" onclick="markMedicationTaken('Paracétamol')">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showEditReminderModal('Paracétamol')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Today's Reminder 2 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                                        <i class="fas fa-pills"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Ibuprofène</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (400mg) - 20:00</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showEditReminderModal('Ibuprofène')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Today's Reminder 3 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                                        <i class="fas fa-pills"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Atorvastatine</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (20mg) - 22:00</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showEditReminderModal('Atorvastatine')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="upcoming-reminders" class="reminder-tab-content mt-4">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="divide-y divide-gray-100">
+                                <!-- Upcoming Reminder 1 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                                        <i class="fas fa-pills"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Paracétamol</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (500mg) - Demain 08:00</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showEditReminderModal('Paracétamol')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Upcoming Reminder 2 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                                        <i class="fas fa-pills"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Ibuprofène</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (400mg) - Demain 12:00</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showEditReminderModal('Ibuprofène')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="past-reminders" class="reminder-tab-content mt-4">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="divide-y divide-gray-100">
+                                <!-- Past Reminder 1 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Paracétamol</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (500mg) - Pris aujourd'hui à 08:00</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Past Reminder 2 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Ibuprofène</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (400mg) - Pris hier à 20:00</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Past Reminder 3 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Atorvastatine</h4>
+                                        <p class="text-sm text-gray-600">1 comprimé (20mg) - Pris hier à 22:00</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Medications Tab -->
+            <div id="medications" class="tab-content p-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des médicaments</h2>
+                    <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddMedicationModal()">
+                        <i class="fas fa-plus mr-1"></i> Nouveau médicament
+                    </button>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="grid grid-cols-12 bg-gray-50 p-4 font-medium text-gray-600">
+                            <div class="col-span-4">Médicament</div>
+                            <div class="col-span-2">Dosage</div>
+                            <div class="col-span-2">Fréquence</div>
+                            <div class="col-span-2">Prochain rappel</div>
+                            <div class="col-span-2">Actions</div>
+                        </div>
+                        
+                        <div class="divide-y divide-gray-100">
+                            <!-- Medication 1 -->
+                            <div class="grid grid-cols-12 p-4 items-center">
+                                <div class="col-span-4">
+                                    <h4 class="font-medium">Paracétamol</h4>
+                                    <p class="text-sm text-gray-600">500mg - Comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>Toutes les 6 heures</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="font-medium">14:30</p>
+                                </div>
+                                <div class="col-span-2 flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800" onclick="showEditMedicationModal('Paracétamol')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800" onclick="confirmDeleteMedication('Paracétamol')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Medication 2 -->
+                            <div class="grid grid-cols-12 p-4 items-center">
+                                <div class="col-span-4">
+                                    <h4 class="font-medium">Ibuprofène</h4>
+                                    <p class="text-sm text-gray-600">400mg - Comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>3 fois par jour</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="font-medium">20:00</p>
+                                </div>
+                                <div class="col-span-2 flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800" onclick="showEditMedicationModal('Ibuprofène')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800" onclick="confirmDeleteMedication('Ibuprofène')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Medication 3 -->
+                            <div class="grid grid-cols-12 p-4 items-center">
+                                <div class="col-span-4">
+                                    <h4 class="font-medium">Atorvastatine</h4>
+                                    <p class="text-sm text-gray-600">20mg - Comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 fois par jour</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="font-medium">22:00</p>
+                                </div>
+                                <div class="col-span-2 flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800" onclick="showEditMedicationModal('Atorvastatine')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800" onclick="confirmDeleteMedication('Atorvastatine')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Medication 4 -->
+                            <div class="grid grid-cols-12 p-4 items-center">
+                                <div class="col-span-4">
+                                    <h4 class="font-medium">Oméprazole</h4>
+                                    <p class="text-sm text-gray-600">20mg - Gélule</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 gélule</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 fois par jour</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="font-medium">08:00</p>
+                                </div>
+                                <div class="col-span-2 flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800" onclick="showEditMedicationModal('Oméprazole')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800" onclick="confirmDeleteMedication('Oméprazole')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Medication 5 -->
+                            <div class="grid grid-cols-12 p-4 items-center">
+                                <div class="col-span-4">
+                                    <h4 class="font-medium">Lévothyroxine</h4>
+                                    <p class="text-sm text-gray-600">50μg - Comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 comprimé</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p>1 fois par jour</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="font-medium">07:00</p>
+                                </div>
+                                <div class="col-span-2 flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800" onclick="showEditMedicationModal('Lévothyroxine')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800" onclick="confirmDeleteMedication('Lévothyroxine')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Prescriptions Tab -->
+            <div id="prescriptions" class="tab-content p-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des ordonnances</h2>
+                    <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddPrescriptionModal()">
+                        <i class="fas fa-plus mr-1"></i> Nouvelle ordonnance
+                    </button>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Prescription 1 -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-medium">Dr. Martin Dupont</h4>
+                                    <span class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Active</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">15/05/2023 - 15/11/2023</p>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                    <i class="fas fa-pills"></i>
+                                    <span>3 médicaments prescrits</span>
+                                </div>
+                                <div class="mt-3">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showPrescriptionDetails('Dr. Martin Dupont')">
+                                        <i class="fas fa-eye mr-1"></i> Voir détails
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 flex justify-between">
+                                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showScanPrescriptionModal()">
+                                    <i class="fas fa-camera mr-1"></i> Scanner
+                                </button>
+                                <button class="text-red-600 hover:text-red-800 text-sm" onclick="confirmDeletePrescription('Dr. Martin Dupont')">
+                                    <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Prescription 2 -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-medium">Dr. Sophie Leroy</h4>
+                                    <span class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">Terminée</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">10/01/2023 - 10/04/2023</p>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                    <i class="fas fa-pills"></i>
+                                    <span>2 médicaments prescrits</span>
+                                </div>
+                                <div class="mt-3">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showPrescriptionDetails('Dr. Sophie Leroy')">
+                                        <i class="fas fa-eye mr-1"></i> Voir détails
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 flex justify-between">
+                                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showScanPrescriptionModal()">
+                                    <i class="fas fa-camera mr-1"></i> Scanner
+                                </button>
+                                <button class="text-red-600 hover:text-red-800 text-sm" onclick="confirmDeletePrescription('Dr. Sophie Leroy')">
+                                    <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Prescription 3 -->
+                            <div class="bg-white rounded-lg shadow overflow-hidden">
+                                <div class="p-4 border-b">
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="font-medium">Dr. Alain Petit</h4>
+                                        <span class="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">À renouveler</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">20/03/2023 - 20/06/2023</p>
+                                </div>
+                                <div class="p-4">
+                                    <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                        <i class="fas fa-pills"></i>
+                                        <span>1 médicament prescrit</span>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showPrescriptionDetails('Dr. Alain Petit')">
+                                            <i class="fas fa-eye mr-1"></i> Voir détails
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 p-3 flex justify-between">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showRenewalRequestModal()">
+                                        <i class="fas fa-sync-alt mr-1"></i> Renouveler
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="confirmDeletePrescription('Dr. Alain Petit')">
+                                        <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Add Prescription Card -->
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center p-8 cursor-pointer hover:border-blue-500 transition" onclick="showAddPrescriptionModal()">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
+                                    <i class="fas fa-plus text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-700">Ajouter une ordonnance</h4>
+                                <p class="text-sm text-gray-500 mt-1 text-center">Scannez ou ajoutez manuellement une nouvelle ordonnance</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- History Tab -->
+                <div id="history" class="tab-content p-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Historique des traitements</h2>
+                    <p class="text-gray-600">Consultez votre historique de prise de médicaments</p>
+                    
+                    <div class="mt-6">
+                        <div class="flex space-x-4 border-b">
+                            <button class="tab-button active px-4 py-2" onclick="switchHistoryTab('week')">Cette semaine</button>
+                            <button class="tab-button px-4 py-2" onclick="switchHistoryTab('month')">Ce mois</button>
+                            <button class="tab-button px-4 py-2" onclick="switchHistoryTab('year')">Cette année</button>
+                            <button class="tab-button px-4 py-2" onclick="switchHistoryTab('all')">Tout l'historique</button>
+                        </div>
+                        
+                        <div id="week-history" class="history-tab-content active mt-4">
+                            <div class="bg-white rounded-lg shadow overflow-hidden">
+                                <div class="divide-y divide-gray-100">
+                                    <!-- History Entry 1 -->
+                                    <div class="p-4">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                                    <i class="fas fa-check"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium">Paracétamol</h4>
+                                                    <p class="text-sm text-gray-600">1 comprimé (500mg)</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-medium">Aujourd'hui 08:00</p>
+                                                <p class="text-xs text-gray-500">Pris à l'heure</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- History Entry 2 -->
+                                    <div class="p-4">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                                    <i class="fas fa-check"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium">Oméprazole</h4>
+                                                    <p class="text-sm text-gray-600">1 gélule (20mg)</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-medium">Aujourd'hui 07:30</p>
+                                                <p class="text-xs text-gray-500">Pris à l'heure</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- History Entry 3 -->
+                                    <div class="p-4">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                                    <i class="fas fa-check"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium">Lévothyroxine</h4>
+                                                    <p class="text-sm text-gray-600">1 comprimé (50μg)</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-medium">Aujourd'hui 07:00</p>
+                                                <p class="text-xs text-gray-500">Pris à l'heure</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- History Entry 4 -->
+                                    <div class="p-4">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
+                                                    <i class="fas fa-clock"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium">Ibuprofène</h4>
+                                                    <p class="text-sm text-gray-600">1 comprimé (400mg)</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-medium">Hier 20:15</p>
+                                                <p class="text-xs text-gray-500">Pris avec 15 min de retard</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- History Entry 5 -->
+                                    <div class="p-4">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                                    <i class="fas fa-check"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium">Atorvastatine</h4>
+                                                    <p class="text-sm text-gray-600">1 comprimé (20mg)</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-medium">Hier 22:00</p>
+                                                <p class="text-xs text-gray-500">Pris à l'heure</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="month-history" class="history-tab-content mt-4">
+                            <!-- Similar structure with more entries for month view -->
+                            <div class="bg-white rounded-lg shadow overflow-hidden">
+                                <div class="p-4 text-center text-gray-500">
+                                    <i class="fas fa-calendar-alt mr-2"></i> Historique du mois en cours
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="year-history" class="history-tab-content mt-4">
+                            <!-- Similar structure with more entries for year view -->
+                            <div class="bg-white rounded-lg shadow overflow-hidden">
+                                <div class="p-4 text-center text-gray-500">
+                                    <i class="fas fa-calendar-alt mr-2"></i> Historique de l'année en cours
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="all-history" class="history-tab-content mt-4">
+                            <!-- Similar structure with all entries -->
+                            <div class="bg-white rounded-lg shadow overflow-hidden">
+                                <div class="p-4 text-center text-gray-500">
+                                    <i class="fas fa-database mr-2"></i> Tout l'historique disponible
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Interactions Tab -->
+                <div id="interactions" class="tab-content p-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Interactions médicamenteuses</h2>
+                    <p class="text-gray-600">Vérifiez les interactions potentielles entre vos médicaments</p>
+                    
+                    <div class="mt-6">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b">
+                                <h3 class="font-medium">Médicaments actifs</h3>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Paracétamol</span>
+                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Ibuprofène</span>
+                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Atorvastatine</span>
+                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Oméprazole</span>
+                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Lévothyroxine</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 bg-white rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b">
+                                <h3 class="font-medium">Résultats de la vérification</h3>
+                            </div>
+                            <div class="p-4">
+                                <!-- No Interactions Warning -->
+                                <div class="p-4 rounded-lg bg-green-50 flex items-start">
+                                    <div class="p-2 rounded-full bg-green-100 text-green-600 mr-3">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Aucune interaction dangereuse détectée</h4>
+                                        <p class="text-sm text-gray-600 mt-1">Vos médicaments actuels ne présentent pas d'interactions dangereuses connues.</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Mild Interaction Warning -->
+                                <div class="p-4 rounded-lg bg-yellow-50 flex items-start mt-4">
+                                    <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Interaction modérée détectée</h4>
+                                        <p class="text-sm text-gray-600 mt-1">L'Oméprazole peut diminuer l'efficacité de l'Atorvastatine. Consultez votre médecin pour ajuster les dosages si nécessaire.</p>
+                                        <button class="text-blue-600 hover:text-blue-800 text-sm mt-2 flex items-center">
+                                            <i class="fas fa-info-circle mr-1"></i> Plus d'informations
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Check More Button -->
+                                <button class="mt-6 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center" onclick="showFullInteractionReport()">
+                                    <i class="fas fa-file-alt mr-2"></i> Voir le rapport complet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Medical Sharing Tab -->
+                <div id="sharing" class="tab-content p-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">Partage médical</h2>
+                        <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddDoctorModal()">
+                            <i class="fas fa-plus mr-1"></i> Ajouter un médecin
+                        </button>
+                    </div>
+                    <p class="text-gray-600">Partagez vos informations médicales en toute sécurité avec vos professionnels de santé</p>
+                    
+                    <div class="mt-6">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b">
+                                <h3 class="font-medium">Médecins autorisés</h3>
+                            </div>
+                            <div class="divide-y divide-gray-100">
+                                <!-- Doctor 1 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3">
+                                        <i class="fas fa-user-md"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Dr. Martin Dupont</h4>
+                                        <p class="text-sm text-gray-600">Médecin généraliste</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showShareSettingsModal('Dr. Martin Dupont')">
+                                            <i class="fas fa-share-alt"></i>
+                                        </button>
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showDoctorDetailsModal('Dr. Martin Dupont')">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Doctor 2 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3">
+                                        <i class="fas fa-user-md"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Dr. Sophie Leroy</h4>
+                                        <p class="text-sm text-gray-600">Cardiologue</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showShareSettingsModal('Dr. Sophie Leroy')">
+                                            <i class="fas fa-share-alt"></i>
+                                        </button>
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showDoctorDetailsModal('Dr. Sophie Leroy')">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Doctor 3 -->
+                                <div class="p-4 flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3">
+                                        <i class="fas fa-user-md"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium">Dr. Alain Petit</h4>
+                                        <p class="text-sm text-gray-600">Endocrinologue</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showShareSettingsModal('Dr. Alain Petit')">
+                                            <i class="fas fa-share-alt"></i>
+                                        </button>
+                                        <button class="p-2 rounded-full bg-gray-100 text-gray-600" onclick="showDoctorDetailsModal('Dr. Alain Petit')">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 bg-white rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b">
+                                <h3 class="font-medium">Partage d'urgence</h3>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex items-start">
+                                    <div class="p-2 rounded-full bg-red-100 text-red-600 mr-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Accès médical d'urgence</h4>
+                                        <p class="text-sm text-gray-600 mt-1">Activez cette option pour permettre aux professionnels de santé d'accéder à vos informations médicales en cas d'urgence.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium">Statut:</p>
+                                        <p class="text-sm text-gray-600">Actuellement désactivé</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" value="" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                <button class="mt-4 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center" onclick="showEmergencySharingModal()">
+                                    <i class="fas fa-cog mr-2"></i> Configurer le partage d'urgence
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Symptoms Tracker Tab -->
+                <div id="symptoms" class="tab-content p-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">Suivi des symptômes</h2>
+                        <button class="text-blue-600 hover:text-blue-800 flex items-center" onclick="showAddSymptomModal()">
+                            <i class="fas fa-plus mr-1"></i> Ajouter un symptôme
+                        </button>
+                    </div>
+                    <p class="text-gray-600">Enregistrez et suivez l'évolution de vos symptômes</p>
+                    
+                    <div class="mt-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Symptoms Chart -->
+                            <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-medium text-gray-800">Évolution des symptômes</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">7 jours</button>
+                                        <button class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">30 jours</button>
+                                        <button class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">90 jours</button>
+                                    </div>
+                                </div>
+                                <div class="mt-4 chart-container">
+                                    <!-- This would be replaced with an actual chart in a real implementation -->
+                                    <div class="flex items-end h-full space-x-2">
+                                        <div class="flex-1 bg-blue-100 rounded-t" style="height: 30%;"></div>
+                                        <div class="flex-1 bg-blue-200 rounded-t" style="height: 50%;"></div>
+                                        <div class="flex-1 bg-blue-300 rounded-t" style="height: 70%;"></div>
+                                        <div class="flex-1 bg-blue-400 rounded-t" style="height: 90%;"></div>
+                                        <div class="flex-1 bg-blue-500 rounded-t" style="height: 60%;"></div>
+                                        <div class="flex-1 bg-blue-600 rounded-t" style="height: 40%;"></div>
+                                        <div class="flex-1 bg-blue-700 rounded-t" style="height: 20%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Recent Symptoms -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="font-medium text-gray-800">Symptômes récents</h3>
+                                <div class="mt-4 space-y-4">
+                                    <!-- Symptom 1 -->
+                                    <div class="p-3 rounded-lg bg-red-50">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-red-100 text-red-600 mr-2">
+                                                    <i class="fas fa-head-side-virus"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium">Maux de tête</p>
+                                                    <p class="text-xs text-gray-600">Aujourd'hui 14:30 - Intensité: Moyenne</p>
+                                                </div>
+                                            </div>
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Symptom 2 -->
+                                    <div class="p-3 rounded-lg bg-yellow-50">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-yellow-100 text-yellow-600 mr-2">
+                                                    <i class="fas fa-tired"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium">Fatigue</p>
+                                                    <p class="text-xs text-gray-600">Hier 18:00 - Intensité: Faible</p>
+                                                </div>
+                                            </div>
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Symptom 3 -->
+                                    <div class="p-3 rounded-lg bg-purple-50">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-2">
+                                                    <i class="fas fa-thermometer-half"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium">Température élevée</p>
+                                                    <p class="text-xs text-gray-600">Hier matin - 37.8°C</p>
+                                                </div>
+                                            </div>
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- View All Button -->
+                                    <button class="mt-4 w-full py-2 px-4 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-list mr-2"></i> Voir tous les symptômes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Symptom Categories -->
+                        <div class="mt-6 bg-white rounded-lg shadow p-6">
+                            <h3 class="font-medium text-gray-800">Catégories de symptômes</h3>
+                            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <!-- Category 1 -->
+                                <div class="p-4 rounded-lg bg-blue-50 flex items-center">
+                                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-3">
+                                        <i class="fas fa-head-side-virus"></i>
+                                    </div>
+                                    <
+</html>

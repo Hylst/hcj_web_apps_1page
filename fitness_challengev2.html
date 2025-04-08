@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitnessChallenge | Défis sportifs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            scroll-behavior: smooth;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #6B73FF, #000DFF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s ease-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .fade-in {
+            opacity: 0;
+            transition: all 0.6s ease-out;
+            transform: translateY(20px);
+        }
+        
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .challenge-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform: perspective(1000px) rotateX(0deg);
+        }
+        
+        .challenge-card:hover {
+            transform: perspective(1000px) rotateX(5deg) translateY(-10px);
+            box-shadow: 0 14px 28px rgba(0, 13, 255, 0.1), 0 10px 10px rgba(0, 13, 255, 0.05);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .glow {
+            box-shadow: 0 0 15px rgba(107, 115, 255, 0.5);
+        }
+        
+        .tab-active {
+            position: relative;
+        }
+        
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #6B73FF, #000DFF);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation améliorée -->
+    <nav class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                    <i class="fas fa-dumbbell text-xl text-blue-600"></i>
+                </div>
+                <span class="font-bold text-2xl">Fitness<span class="font-light">Challenge</span></span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#" class="hover:text-blue-200 transition duration-300 tab-active">Accueil</a>
+                <a href="#" class="hover:text-blue-200 transition duration-300">Défis</a>
+                <a href="#" class="hover:text-blue-200 transition duration-300">Classement</a>
+                <a href="#" class="hover:text-blue-200 transition duration-300">Forum</a>
+                <a href="#" class="hover:text-blue-200 transition duration-300">Profil</a>
+                <button class="bg-white text-blue-600 font-bold rounded-full py-2 px-6 shadow-md hover:bg-gray-100 transition duration-300">
+                    Connexion
+                </button>
+            </div>
+            <div class="md:hidden">
+                <button class="mobile-menu-button p-2 focus:outline-none">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div class="mobile-menu hidden md:hidden bg-blue-900 pb-4 px-6">
+            <a href="#" class="block py-3 border-b border-blue-800 hover:text-blue-200">Accueil</a>
+            <a href="#" class="block py-3 border-b border-blue-800 hover:text-blue-200">Défis</a>
+            <a href="#" class="block py-3 border-b border-blue-800 hover:text-blue-200">Classement</a>
+            <a href="#" class="block py-3 border-b border-blue-800 hover:text-blue-200">Forum</a>
+            <a href="#" class="block py-3 hover:text-blue-200">Profil</a>
+            <div class="mt-4">
+                <button class="w-full bg-white text-blue-600 font-bold rounded-full py-2 px-6 shadow-md hover:bg-gray-100 transition duration-300">
+                    Connexion
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section améliorée -->
+    <section class="gradient-bg text-white py-24 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full opacity-10">
+            <div class="absolute top-20 left-10 w-32 h-32 rounded-full bg-white"></div>
+            <div class="absolute top-1/3 right-20 w-48 h-48 rounded-full bg-white"></div>
+            <div class="absolute bottom-20 left-1/4 w-24 h-24 rounded-full bg-white"></div>
+        </div>
+        <div class="container mx-auto px-6 text-center relative z-10">
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">Défiez vos <span class="gradient-text">limites</span></h1>
+            <p class="text-xl md:text-2xl mb-10 max-w-2xl mx-auto">Rejoignez la communauté FitnessChallenge et transformez votre passion en performance !</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button class="bg-white text-blue-600 font-bold rounded-full py-4 px-10 shadow-lg hover:bg-gray-100 transition duration-300 transform hover:scale-105 pulse">
+                    Commencer un défi <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+                <button class="bg-transparent border-2 border-white text-white font-bold rounded-full py-4 px-10 hover:bg-white hover:text-blue-600 transition duration-300 transform hover:scale-105">
+                    Voir les défis
+                </button>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent"></div>
+    </section>
+
+    <!-- Features Section améliorée -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <span class="text-blue-600 font-semibold">POURQUOI NOUS CHOISIR</span>
+                <h2 class="text-4xl font-bold text-gray-800 mt-2">Une expérience fitness <span class="gradient-text">unique</span></h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
+            </div>
+            <div class="grid md:grid-cols-3 gap-10">
+                <div class="bg-gray-50 p-8 rounded-2xl shadow-sm fade-in">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl mb-6 mx-auto">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">Défis personnalisés</h3>
+                    <p class="text-gray-600 text-center">Créez des défis sur mesure ou rejoignez des challenges existants adaptés à votre niveau et objectifs.</p>
+                    <div class="mt-6 text-center">
+                        <a href="#" class="text-blue-600 font-medium hover:text-blue-800 transition duration-300 inline-flex items-center">
+                            En savoir plus <i class="fas fa-chevron-right ml-1 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-8 rounded-2xl shadow-sm fade-in">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl mb-6 mx-auto">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">Analytique avancée</h3>
+                    <p class="text-gray-600 text-center">Suivez vos performances avec des graphiques interactifs et des statistiques détaillées en temps réel.</p>
+                    <div class="mt-6 text-center">
+                        <a href="#" class="text-blue-600 font-medium hover:text-blue-800 transition duration-300 inline-flex items-center">
+                            En savoir plus <i class="fas fa-chevron-right ml-1 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-8 rounded-2xl shadow-sm fade-in">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl mb-6 mx-auto">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">Communauté engagée</h3>
+                    <p class="text-gray-600 text-center">Connectez-vous avec des milliers de sportifs motivés et partagez vos progrès sur les réseaux sociaux.</p>
+                    <div class="mt-6 text-center">
+                        <a href="#" class="text-blue-600 font-medium hover:text-blue-800 transition duration-300 inline-flex items-center">
+                            En savoir plus <i class="fas fa-chevron-right ml-1 text-sm"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Challenges Section améliorée -->
+    <section class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-12">
+                <div class="mb-6 md:mb-0">
+                    <h2 class="text-3xl font-bold text-gray-800">Défis <span class="gradient-text">populaires</span></h2>
+                    <p class="text-gray-600">Rejoignez les défis les plus actifs de la communauté</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button class="bg-white text-gray-700 px-4 py-2 rounded-full shadow-sm hover:bg-gray-100 transition duration-300 active-challenge">
+                        Tous
+                    </button>
+                    <button class="bg-white text-gray-700 px-4 py-2 rounded-full shadow-sm hover:bg-gray-100 transition duration-300">
+                        Course
+                    </button>
+                    <button class="bg-white text-gray-700 px-4 py-2 rounded-full shadow-sm hover:bg-gray-100 transition duration-300">
+                        Musculation
+                    </button>
+                    <button class="bg-white text-gray-700 px-4 py-2 rounded-full shadow-sm hover:bg-gray-100 transition duration-300">
+                        Yoga
+                    </button>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Challenge Card 1 améliorée -->
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden challenge-card">
+                    <div class="h-48 bg-blue-50 flex items-center justify-center relative">
+                        <div class="absolute top-4 left-4 bg-white text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
+                            Nouveau
+                        </div>
+                        <i class="fas fa-running text-7xl text-blue-600 opacity-20 floating"></i>
+                        <div class="absolute bottom-4 right-4 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">
+                            <i class="fas fa-bolt mr-1"></i> Intensité: Moyenne
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">Course</span>
+                            <div class="flex items-center text-gray-500 text-sm">
+                                <i class="fas fa-calendar-alt mr-1"></i> 30 jours
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Défi 5K en 30 jours</h3>
+                        <p class="text-gray-600 mb-4">Passez de débutant à capable de courir 5km sans arrêt en un mois avec notre programme progressif !</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="flex -space-x-2 mr-3">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/44.jpg" alt="">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/men/32.jpg" alt="">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/68.jpg" alt="">
+                                </div>
+                                <span class="text-gray-500 text-sm">+24 participants</span>
+                            </div>
+                            <button class="gradient-bg text-white text-sm font-semibold px-5 py-2 rounded-full hover:opacity-90 transition duration-300 glow">
+                                Rejoindre
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Challenge Card 2 améliorée -->
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden challenge-card">
+                    <div class="h-48 bg-purple-50 flex items-center justify-center relative">
+                        <i class="fas fa-spa text-7xl text-purple-600 opacity-20 floating"></i>
+                        <div class="absolute bottom-4 right-4 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
+                            <i class="fas fa-bolt mr-1"></i> Intensité: Douce
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">Yoga</span>
+                            <div class="flex items-center text-gray-500 text-sm">
+                                <i class="fas fa-calendar-alt mr-1"></i> 21 jours
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Yoga Morning Challenge</h3>
+                        <p class="text-gray-600 mb-4">21 jours de yoga matinal pour commencer votre journée avec énergie et sérénité.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="flex -space-x-2 mr-3">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/65.jpg" alt="">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/men/75.jpg" alt="">
+                                </div>
+                                <span class="text-gray-500 text-sm">+18 participants</span>
+                            </div>
+                            <button class="gradient-bg text-white text-sm font-semibold px-5 py-2 rounded-full hover:opacity-90 transition duration-300 glow">
+                                Rejoindre
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Challenge Card 3 améliorée -->
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden challenge-card">
+                    <div class="h-48 bg-red-50 flex items-center justify-center relative">
+                        <div class="absolute top-4 left-4 bg-white text-red-600 text-xs font-bold px-3 py-1 rounded-full">
+                            Populaire
+                        </div>
+                        <i class="fas fa-fire-alt text-7xl text-red-600 opacity-20 floating"></i>
+                        <div class="absolute bottom-4 right-4 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                            <i class="fas fa-bolt mr-1"></i> Intensité: Élevée
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">HIIT</span>
+                            <div class="flex items-center text-gray-500 text-sm">
+                                <i class="fas fa-calendar-alt mr-1"></i> 14 jours
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2">Défi Brûle-graisse</h3>
+                        <p class="text-gray-600 mb-4">14 jours d'entraînement HIIT intensif pour brûler un maximum de calories et sculpter votre corps.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="flex -space-x-2 mr-3">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/men/22.jpg" alt="">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/33.jpg" alt="">
+                                    <img class="w-8 h-8 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/men/44.jpg" alt="">
+                                </div>
+                                <span class="text-gray-500 text-sm">+32 participants</span>
+                            </div>
+                            <button class="gradient-bg text-white text-sm font-semibold px-5 py-2 rounded-full hover:opacity-90 transition duration-300 glow">
+                                Rejoindre
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-12">
+                <button class="bg-white text-blue-600 font-semibold px-8 py-3 rounded-full shadow-md hover:bg-gray-50 transition duration-300 border border-gray-200 hover:border-blue-200">
+                    Voir tous les défis <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Progress Section améliorée -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <span class="text-blue-600 font-semibold">SUIVI DES PROGRÈS</span>
+                <h2 class="text-4xl font-bold text-gray-800 mt-2">Votre <span class="gradient-text">évolution</span></h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-2xl shadow-sm p-8 max-w-4xl mx-auto">
+                <div class="flex flex-col lg:flex-row items-center justify-between">
+                    <div class="mb-8 lg:mb-0 lg:w-1/2">
+                        <h3 class="text-2xl font-semibold mb-6">Votre défi actuel</h3>
+                        <div class="flex items-center mb-6 p-4 bg-white rounded-xl shadow-sm">
+                            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                                <i class="fas fa-running text-blue-600 text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-bold">Défi 5K en 30 jours</h4>
+                                <p class="text-sm text-gray-600">Jour 12 sur 30</p>
+                            </div>
+                            <div class="text-blue-600 font-bold">40%</div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                <span>Progression globale</span>
+                                <span>40% complété</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="gradient-bg h-3 rounded-full" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-4 rounded-xl shadow-sm">
+                                <p class="text-sm text-gray-500 mb-1">Séances complétées</p>
+                                <p class="text-2xl font-bold">8/20</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm">
+                                <p class="text-sm text-gray-500 mb-1">Prochain objectif</p>
+                                <p class="text-2xl font-bold">3 km</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:w-1/2 flex justify-center">
+                        <div class="relative">
+                            <svg class="w-48 h-48" viewBox="0 0 36 36">
+                                <path
+                                    d="M18 2.0845
+                                        a 15.9155 15.9155 0 0 1 0 31.831
+                                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke="#e5e7eb"
+                                    stroke-width="3"
+                                />
+                                <path
+                                    class="progress-ring__circle"
+                                    d="M18 2.0845
+                                        a 15.9155 15.9155 0 0 1 0 31.831
+                                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke="url(#progressGradient)"
+                                    stroke-width="3"
+                                    stroke-dasharray="100, 100"
+                                />
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#6B73FF" />
+                                        <stop offset="100%" stop-color="#000DFF" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center flex-col">
+                                <span class="text-4xl font-bold gradient-text">40%</span>
+                                <span class="text-sm text-gray-500">complété</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-12">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-semibold">Statistiques récentes</h3>
+                        <select class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>7 derniers jours</option>
+                            <option>30 derniers jours</option>
+                            <option>3 derniers mois</option>
+                        </select>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="p-4 rounded-lg border border-gray-100 hover:border-blue-200 transition duration-300">
+                                <p class="text-sm text-gray-500 mb-1">Distance</p>
+                                <p class="text-xl font-bold">24.5 <span class="text-sm font-normal text-gray-500">km</span></p>
+                                <div class="text-xs text-green-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-up mr-1"></i> 12% vs semaine dernière
+                                </div>
+                            </div>
+                            <div class="p-4 rounded-lg border border-gray-100 hover:border-blue-200 transition duration-300">
+                                <p class="text-sm text-gray-500 mb-1">Temps</p>
+                                <p class="text-xl font-bold">5h 22m</p>
+                                <div class="text-xs text-green-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-up mr-1"></i> 8% vs semaine dernière
+                                </div>
+                            </div>
+                            <div class="p-4 rounded-lg border border-gray-100 hover:border-blue-200 transition duration-300">
+                                <p class="text-sm text-gray-500 mb-1">Calories</p>
+                                <p class="text-xl font-bold">1,842</p>
+                                <div class="text-xs text-red-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-down mr-1"></i> 5% vs semaine dernière
+                                </div>
+                            </div>
+                            <div class="p-4 rounded-lg border border-gray-100 hover:border-blue-200 transition duration-300">
+                                <p class="text-sm text-gray-500 mb-1">Fréquence</p>
+                                <p class="text-xl font-bold">4.2 <span class="text-sm font-normal text-gray-500">/semaine</span></p>
+                                <div class="text-xs text-green-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-up mr-1"></i> 15% vs semaine dernière
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 h-64">
+                            <!-- Graphique de progression (placeholder) -->
+                            <div class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                                <i class="fas fa-chart-line text-4xl mr-3"></i> Graphique de progression
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Section améliorée -->
+    <section class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <span class="text-blue-600 font-semibold">TÉMOIGNAGES</span>
+                <h2 class="text-4xl font-bold text-gray-800 mt-2">Ce que disent nos <span class="gradient-text">membres</span></h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div class="bg-white p-8 rounded-2xl shadow-sm relative">
+                    <div class="absolute top-0 left-0 w-full h-2 gradient-bg rounded-t-2xl"></div>
+                    <div class="flex items-center mb-6">
+                        <img class="w-14 h-14 rounded-full mr-4 border-2 border-blue-200" src="https://randomuser.me/api/portraits/women/44.jpg" alt="User">
+                        <div>
+                            <h4 class="font-bold">Marie Dupont</h4>
+                            <p class="text-sm text-gray-500">A terminé le défi Yoga</p>
+                            <div class="flex mt-1">
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 mb-6 italic">"Ce défi m'a vraiment aidé à prendre l'habitude de pratiquer le yoga quotidiennement. La communauté est incroyablement supportive et les défis progressifs m'ont permis de voir des résultats concrets en quelques semaines seulement !"</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Il y a 2 jours</span>
+                        <div class="flex space-x-4">
+                            <button class="text-gray-400 hover:text-blue-600 transition duration-300">
+                                <i class="far fa-heart"></i> 24
+                            </button>
+                            <button class="text-gray-400 hover:text-blue-600 transition duration-300">
+                                <i class="far fa-comment"></i> 5
+                            </button>
+                            <button class="text-gray-400 hover:text-blue-600 transition duration-300">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-8 rounded-2xl shadow-sm relative">
+                    <div class="absolute top-0 left-0 w-full h-2 gradient-bg rounded-t-2xl"></div>
+                    <div class="flex items-center mb-6">
+                        <img class="w-14 h-14 rounded-full mr-4 border-2 border-blue-200" src="https://randomuser.me/api/portraits/men/32.jpg" alt="User">
+                        <div>
+                            <h4 class="font-bold">Jean Martin</h4>
+                            <p class="text-sm text-gray-500">A terminé le défi 5K</p>
+                            <div class="flex mt-1">
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                                <i class="fas fa-star text-yellow-400 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 mb-6 italic">"Je n'aurais jamais cru pouvoir courir 5km sans m'arrêter. La motivation du groupe et les encouragements ont fait toute la différence. Les graphiques de progression m'ont vraiment aidé à visualiser mes améliorations."</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Il y a 5 jours</span>
+                        <div class="flex space-x-4">
+                            <button class="text-gray-400 hover:text-blue-600 transition duration-300">
+                                <i class="far fa-heart"></i> 42
+                            </button>
+                            <button class="text-gray-400 hover:text-blue-600 transition duration-300">
+                                <i class="far fa-comment"></i> 8
+                            </button>
+                            <button class="text-gray-400 hover:text-blue-600 transition duration-300">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <button class="gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:opacity-90 transition duration-300 inline-flex items-center transform hover:scale-105">
+                    <i class="fas fa-comments mr-2"></i> Rejoindre la discussion
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Create Challenge Section améliorée -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="gradient-bg rounded-3xl shadow-2xl p-12 text-white relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full opacity-10">
+                    <div class="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-white"></div>
+                    <div class="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-white"></div>
+                </div>
+                <div class="relative z-10 flex flex-col lg:flex-row items-center justify-between">
+                    <div class="lg:w-1/2 mb-12 lg:mb-0">
+                        <h2 class="text-3xl md:text-4xl font-bold mb-6">Créez votre <span class="text-yellow-300">propre défi</span></h2>
+                        <p class="text-xl mb-8">Personnalisez un défi selon vos objectifs et invitez vos amis à vous rejoindre !</p>
+                        <ul class="space-y-3 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle mr-3 text-yellow-300"></i>
+                                <span>Définissez la durée et les objectifs</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle mr-3 text-yellow-300"></i>
+                                <span>Choisissez parmi plusieurs sports</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle mr-3 text-yellow-300"></i>
+                                <span>Personnalisez les récompenses</span>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <button class="bg-white text-blue-600 font-bold rounded-full py-4 px-8 shadow-lg hover:bg-gray-100 transition duration-300 transform hover:scale-105">
+                                Créer un défi <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                            <button class="bg-transparent border-2 border-white text-white font-bold rounded-full py-4 px-8 hover:bg-white hover:text-blue-600 transition duration-300 transform hover:scale-105">
+                                Voir des exemples
+                            </button>
+                        </div>
+                    </div>
+                    <div class="lg:w-1/2 flex justify-center">
+                        <div class="relative floating">
+                            <div class="w-64 h-64 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center shadow-xl">
+                                <i class="fas fa-plus text-6xl text-yellow-300"></i>
+                            </div>
+                            <div class="absolute -top-6 -right-6 bg-yellow-300 text-blue-800 font-bold rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
+                                Nouveau!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Download Section -->
+    <section class="py-16 bg-gray-900 text-white">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h2 class="text-3xl font-bold mb-4">Téléchargez notre <span class="gradient-text">application mobile</span></h2>
+                    <p class="text-gray-300 mb-6 text-lg">Accédez à tous vos défis et statistiques où que vous soyez. Disponible sur iOS et Android.</p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button class="bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg px-6 py-3 flex items-center transition duration-300">
+                            <i class="fab fa-apple text-2xl mr-3"></i>
+                            <div class="text-left">
+                                <div class="text-xs">Télécharger sur</div>
+                                <div class="text-lg">App Store</div>
+                            </div>
+                        </button>
+                        <button class="bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg px-6 py-3 flex items-center transition duration-300">
+                            <i class="fab fa-google-play text-2xl mr-3"></i>
+                            <div class="text-left">
+                                <div class="text-xs">Disponible sur</div>
+                                <div class="text-lg">Google Play</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center relative">
+                    <img src="https://cdn.dribbble.com/users/1787323/screenshots/11131244/media/8176a4e7d3118a9d5e8a7bdc5a64a8a3.png" alt="Mobile App" class="w-64 h-auto floating">
+                    <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-blue-600 rounded-full opacity-20"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-6 max-w-4xl">
+            <div class="bg-gray-50 rounded-2xl shadow-sm p-10 text-center">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Restez <span class="gradient-text">motivé</span></h2>
+                <p class="text-gray-600 mb-8 max-w-2xl mx-auto">Abonnez-vous à notre newsletter pour recevoir des conseils d'experts, des défis exclusifs et des offres spéciales.</p>
+                <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+                    <input type="email" placeholder="Votre email" class="flex-1 px-4 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="gradient-bg text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition duration-300">
+                        S'abonner
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-3">Nous ne partagerons jamais votre email. Désabonnez-vous à tout moment.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer amélioré -->
+    <footer class="bg-gray-900 text-white pt-16 pb-8">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-10">
+                <div class="lg:col-span-2">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                            <i class="fas fa-dumbbell text-xl text-white"></i>
+                        </div>
+                        <span class="font-bold text-2xl">Fitness<span class="font-light">Challenge</span></span>
+                    </div>
+                    <p class="text-gray-400 mb-6">La plateforme ultime pour relever des défis sportifs et atteindre vos objectifs fitness en communauté.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-blue-600 transition duration-300">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-blue-400 transition duration-300">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-pink-600 transition duration-300">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-red-600 transition duration-300">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Navigation</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Accueil</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Défis</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Classement</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Forum</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Profil</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">À propos</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Notre équipe</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Mentions légales</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Conditions d'utilisation</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">Politique de confidentialité</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition duration-300">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Contact</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope mt-1 mr-3 text-blue-400"></i>
+                            <a href="mailto:contact@fitnesschallenge.com" class="text-gray-400 hover:text-white transition duration-300">contact@fitnesschallenge.com</a>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone-alt mt-1 mr-3 text-blue-400"></i>
+                            <a href="tel:+33123456789" class="text-gray-400 hover:text-white transition duration-300">+33 1 23 45 67 89</a>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-3 text-blue-400"></i>
+                            <span class="text-gray-400">12 Rue du Sport, 75015 Paris</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-500 text-sm mb-4 md:mb-0">&copy; 2023 FitnessChallenge. Tous droits réservés. Créé par <a href="#" class="text-blue-400 hover:text-blue-300">Geoffroy Streit</a>.</p>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-500 hover:text-white text-sm transition duration-300">Mentions légales</a>
+                    <a href="#" class="text-gray-500 hover:text-white text-sm transition duration-300">Politique de cookies</a>
+                    <a href="#" class="text-gray-500 hover:text-white text-sm transition duration-300">Accessibilité</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.querySelector('.mobile-menu-button');
+        const mobileMenu = document.querySelector('.mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            mobileMenuButton.innerHTML = mobileMenu.classList.contains('hidden') ? 
+                '<i class="fas fa-bars text-2xl"></i>' : 
+                '<i class="fas fa-times text-2xl"></i>';
+        });
+
+        // Animate progress ring
+        document.addEventListener('DOMContentLoaded', () => {
+            const circle = document.querySelector('.progress-ring__circle');
+            if (circle) {
+                const radius = circle.r.baseVal.value;
+                const circumference = radius * 2 * Math.PI;
+                const progress = 40; // 40% progress
+
+                circle.style.strokeDasharray = circumference;
+                circle.style.strokeDashoffset = circumference - (progress / 100) * circumference;
+            }
+
+            // Tab switching for challenge categories
+            const challengeTabs = document.querySelectorAll('.active-challenge');
+            challengeTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    challengeTabs.forEach(t => t.classList.remove('gradient-bg', 'text-white', 'glow'));
+                    this.classList.add('gradient-bg', 'text-white', 'glow');
+                });
+            });
+
+            // Intersection Observer for fade-in animations
+            const fadeElements = document.querySelectorAll('.fade-in');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+
+            fadeElements.forEach(element => {
+                observer.observe(element);
+            });
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+
+        // Simple form validation for newsletter
+        const newsletterForm = document.querySelector('.newsletter-form');
+        if (newsletterForm) {
+            newsletterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const emailInput = this.querySelector('input[type="email"]');
+                if (emailInput.value && emailInput.value.includes('@')) {
+                    alert('Merci pour votre inscription à notre newsletter !');
+                    emailInput.value = '';
+                } else {
+                    alert('Veuillez entrer une adresse email valide.');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

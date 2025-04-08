@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SleepAnalyst | Analyseur de cycles de sommeil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .sleep-phase-rem {
+            background: linear-gradient(90deg, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0.3) 100%);
+        }
+        
+        .sleep-phase-deep {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.3) 100%);
+        }
+        
+        .sleep-phase-light {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.3) 100%);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-moon text-2xl"></i>
+                        <h1 class="text-2xl font-bold">SleepAnalyst</h1>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#" class="hover:text-indigo-200 transition">Tableau de bord</a>
+                        <a href="#" class="hover:text-indigo-200 transition">Historique</a>
+                        <a href="#" class="hover:text-indigo-200 transition">Conseils</a>
+                        <a href="#" class="hover:text-indigo-200 transition">Paramètres</a>
+                    </nav>
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-white text-indigo-600 px-4 py-2 rounded-full font-medium hover:bg-indigo-50 transition">
+                            <i class="fas fa-user mr-2"></i>Mon compte
+                        </button>
+                        <button class="md:hidden text-2xl">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Sleep Input Card -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-6">Enregistrer mon sommeil</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Heure de coucher</label>
+                                    <div class="relative">
+                                        <input type="time" id="bedtime" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <i class="fas fa-clock absolute right-3 top-3.5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Heure de réveil</label>
+                                    <div class="relative">
+                                        <input type="time" id="waketime" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <i class="fas fa-bell absolute right-3 top-3.5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Qualité du sommeil</label>
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Mauvaise</span>
+                                    <span>Excellente</span>
+                                </div>
+                                <input type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>1</span>
+                                    <span>2</span>
+                                    <span>3</span>
+                                    <span>4</span>
+                                    <span>5</span>
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                                <textarea class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Avez-vous bu du café tard? Stressé? etc."></textarea>
+                            </div>
+                            <div class="mt-6 flex justify-end">
+                                <button id="saveSleep" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center">
+                                    <i class="fas fa-save mr-2"></i> Enregistrer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sleep Phases Visualization -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: 0.2s">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-xl font-bold text-gray-800">Phases de sommeil</h2>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-1 text-sm bg-gray-100 rounded-lg">Aujourd'hui</button>
+                                    <button class="px-3 py-1 text-sm bg-gray-100 rounded-lg">7 jours</button>
+                                    <button class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg">30 jours</button>
+                                </div>
+                            </div>
+                            <div class="h-64">
+                                <canvas id="sleepPhasesChart"></canvas>
+                            </div>
+                            <div class="mt-6 flex flex-wrap justify-center gap-4">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-indigo-500 rounded-full mr-2"></div>
+                                    <span class="text-sm text-gray-600">REM</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                                    <span class="text-sm text-gray-600">Profond</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-emerald-500 rounded-full mr-2"></div>
+                                    <span class="text-sm text-gray-600">Léger</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-gray-300 rounded-full mr-2"></div>
+                                    <span class="text-sm text-gray-600">Éveil</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sleep Timeline -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: 0.4s">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-6">Dernière nuit</h2>
+                            <div class="relative">
+                                <!-- Timeline -->
+                                <div class="h-12 bg-gray-100 rounded-full relative overflow-hidden">
+                                    <div class="absolute top-0 left-0 h-full sleep-phase-light" style="width: 25%"></div>
+                                    <div class="absolute top-0 left-25% h-full sleep-phase-deep" style="width: 30%"></div>
+                                    <div class="absolute top-0 left-55% h-full sleep-phase-light" style="width: 20%"></div>
+                                    <div class="absolute top-0 left-75% h-full sleep-phase-rem" style="width: 25%"></div>
+                                </div>
+                                
+                                <!-- Time markers -->
+                                <div class="flex justify-between mt-2 text-xs text-gray-500">
+                                    <span>22:30</span>
+                                    <span>00:00</span>
+                                    <span>02:00</span>
+                                    <span>04:00</span>
+                                    <span>06:30</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Stats -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                                <div class="bg-indigo-50 p-4 rounded-lg">
+                                    <div class="text-indigo-600 font-bold text-2xl">7h 42m</div>
+                                    <div class="text-xs text-gray-600">Durée totale</div>
+                                </div>
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <div class="text-blue-600 font-bold text-2xl">1h 52m</div>
+                                    <div class="text-xs text-gray-600">Sommeil profond</div>
+                                </div>
+                                <div class="bg-emerald-50 p-4 rounded-lg">
+                                    <div class="text-emerald-600 font-bold text-2xl">4h 18m</div>
+                                    <div class="text-xs text-gray-600">Sommeil léger</div>
+                                </div>
+                                <div class="bg-purple-50 p-4 rounded-lg">
+                                    <div class="text-purple-600 font-bold text-2xl">1h 32m</div>
+                                    <div class="text-xs text-gray-600">Sommeil REM</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    <!-- Wearable Integration -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: 0.1s">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-xl font-bold text-gray-800">Connexion aux wearables</h2>
+                                <i class="fas fa-link text-indigo-600"></i>
+                            </div>
+                            <p class="text-gray-600 mb-6">Connectez votre dispositif pour un suivi automatique</p>
+                            <div class="space-y-4">
+                                <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Apple-logo.png/600px-Apple-logo.png" class="w-8 h-8 mr-3">
+                                        <span>Apple Watch</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                                <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Fitbit_logo_2016.svg/1200px-Fitbit_logo_2016.svg.png" class="w-8 h-8 mr-3">
+                                        <span>Fitbit</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                                <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Garmin_logo.svg/1200px-Garmin_logo.svg.png" class="w-8 h-8 mr-3">
+                                        <span>Garmin</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personalized Advice -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: 0.3s">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">Conseils personnalisés</h2>
+                            <div class="space-y-4">
+                                <div class="flex items-start">
+                                    <div class="bg-indigo-100 p-2 rounded-full mr-3 mt-1">
+                                        <i class="fas fa-mug-hot text-indigo-600"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium">Réduire la caféine</h3>
+                                        <p class="text-sm text-gray-600">Votre dernière consommation était à 17h. Essayez de ne pas en consommer après 14h.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="bg-blue-100 p-2 rounded-full mr-3 mt-1">
+                                        <i class="fas fa-moon text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium">Heure de coucher irrégulière</h3>
+                                        <p class="text-sm text-gray-600">Votre heure de coucher varie de 1h42 en moyenne. Essayez de vous coucher à la même heure.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start">
+                                    <div class="bg-emerald-100 p-2 rounded-full mr-3 mt-1">
+                                        <i class="fas fa-walking text-emerald-600"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium">Activité physique</h3>
+                                        <p class="text-sm text-gray-600">Vous dormez mieux les jours où vous faites au moins 30 minutes d'exercice.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="mt-6 w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">
+                                Voir plus de conseils
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sleep Goal -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: 0.5s">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">Votre objectif de sommeil</h2>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-700">7h 30m par nuit</span>
+                                <span class="text-sm font-medium text-indigo-600">72% réussi</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-indigo-600 h-2.5 rounded-full" style="width: 72%"></div>
+                            </div>
+                            <div class="mt-6 bg-indigo-50 p-4 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                                        <i class="fas fa-trophy text-indigo-600"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold">Bonne nouvelle!</h3>
+                                        <p class="text-sm text-gray-600">Vous avez amélioré votre temps de sommeil profond de 12% cette semaine.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Data -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: 0.7s">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">Exporter les données</h2>
+                            <p class="text-gray-600 mb-6">Téléchargez vos données de sommeil pour les analyser ou les partager avec un professionnel.</p>
+                            <div class="space-y-3">
+                                <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-excel text-green-600 mr-3"></i>
+                                        <span>Format CSV</span>
+                                    </div>
+                                    <i class="fas fa-download text-gray-400"></i>
+                                </button>
+                                <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-pdf text-red-600 mr-3"></i>
+                                        <span>Format PDF</span>
+                                    </div>
+                                    <i class="fas fa-download text-gray-400"></i>
+                                </button>
+                                <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-medical text-blue-600 mr-3"></i>
+                                        <span>Rapport médical</span>
+                                    </div>
+                                    <i class="fas fa-download text-gray-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-100 border-t border-gray-200 py-8">
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div>
+                        <h3 class="font-bold text-lg mb-4">SleepAnalyst</h3>
+                        <p class="text-gray-600">L'application ultime pour analyser et améliorer votre sommeil.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-4">Navigation</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Tableau de bord</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Historique</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Conseils</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Paramètres</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-4">Ressources</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Blog</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">FAQ</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Support</a></li>
+                            <li><a href="#" class="text-gray-600 hover:text-indigo-600 transition">Confidentialité</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg mb-4">Contact</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center text-gray-600"><i class="fas fa-envelope mr-2"></i> contact@sleepanalyst.com</li>
+                            <li class="flex items-center text-gray-600"><i class="fas fa-phone mr-2"></i> +33 1 23 45 67 89</li>
+                            <li class="flex items-center text-gray-600"><i class="fas fa-map-marker-alt mr-2"></i> Paris, France</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-500 text-sm">© 2023 SleepAnalyst. Tous droits réservés.</p>
+                    <div class="flex space-x-4 mt-4 md:mt-0">
+                        <a href="#" class="text-gray-500 hover:text-indigo-600 transition"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-500 hover:text-indigo-600 transition"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-500 hover:text-indigo-600 transition"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-500 hover:text-indigo-600 transition"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize sleep phases chart
+        const ctx = document.getElementById('sleepPhasesChart').getContext('2d');
+        const sleepPhasesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 30}, (_, i) => `${i+1} Oct`),
+                datasets: [
+                    {
+                        label: 'REM',
+                        data: Array.from({length: 30}, () => Math.floor(Math.random() * 60) + 30),
+                        backgroundColor: 'rgba(124, 58, 237, 0.7)',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Profond',
+                        data: Array.from({length: 30}, () => Math.floor(Math.random() * 90) + 30),
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Léger',
+                        data: Array.from({length: 30}, () => Math.floor(Math.random() * 180) + 60),
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Minutes'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function(context) {
+                                const total = context[0].parsed.y + context[1].parsed.y + context[2].parsed.y;
+                                const hours = Math.floor(total / 60);
+                                const mins = total % 60;
+                                return `Total: ${hours}h ${mins}m`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Save sleep data
+        document.getElementById('saveSleep').addEventListener('click', function() {
+            const bedtime = document.getElementById('bedtime').value;
+            const waketime = document.getElementById('waketime').value;
+            
+            if (!bedtime || !waketime) {
+                alert('Veuillez saisir les heures de coucher et de réveil');
+                return;
+            }
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center transform translate-y-2 opacity-0 transition-all duration-300';
+            notification.innerHTML = `
+                <i class="fas fa-check-circle mr-2"></i>
+                <span>Votre sommeil a été enregistré avec succès!</span>
+            `;
+            document.body.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => {
+                notification.classList.remove('translate-y-2');
+                notification.classList.remove('opacity-0');
+            }, 10);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-y-2');
+                notification.classList.add('opacity-0');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+            
+            // Here you would normally send data to server
+            console.log('Sleep recorded:', {bedtime, waketime});
+        });
+
+        // Animate elements on scroll
+        const fadeElements = document.querySelectorAll('.fade-in');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, {threshold: 0.1});
+        
+        fadeElements.forEach(el => {
+            el.style.opacity = 0;
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

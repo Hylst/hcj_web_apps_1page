@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaMapper | Organisateur d'idées avancé</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .node {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        .node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .node.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        
+        .connector {
+            stroke: #94a3b8;
+            stroke-width: 2;
+            fill: none;
+            transition: all 0.3s ease;
+        }
+        
+        .canvas-container {
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+            transition: background 0.3s ease;
+        }
+        
+        .modal {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        
+        .modal-hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+        
+        .audio-annotation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        
+        .tooltip {
+            position: absolute;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            z-index: 10;
+        }
+        
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+        
+        .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .node-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-item {
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-item:hover {
+            background-color: #f8fafc;
+            border-left-color: #6366f1;
+        }
+        
+        .sidebar-item.active {
+            background-color: #f1f5f9;
+            border-left-color: #6366f1;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center">
+                    <i class="fas fa-brain text-2xl text-indigo-200"></i>
+                    <h1 class="text-2xl font-bold ml-2">IdeaMapper</h1>
+                    <span class="text-xs bg-indigo-700 px-2 py-0.5 rounded-full ml-2">PRO</span>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-1 ml-6">
+                    <button id="recent-btn" class="px-3 py-1 text-sm rounded-lg hover:bg-indigo-700 flex items-center">
+                        <i class="fas fa-clock-rotate-left mr-1 text-indigo-200"></i>
+                        <span>Récents</span>
+                    </button>
+                    <button id="shared-btn" class="px-3 py-1 text-sm rounded-lg hover:bg-indigo-700 flex items-center">
+                        <i class="fas fa-share-nodes mr-1 text-indigo-200"></i>
+                        <span>Partagés</span>
+                    </button>
+                    <button id="templates-btn-header" class="px-3 py-1 text-sm rounded-lg hover:bg-indigo-700 flex items-center">
+                        <i class="fas fa-clone mr-1 text-indigo-200"></i>
+                        <span>Templates</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative hidden md:block">
+                    <button id="search-btn" class="w-48 px-3 py-1.5 bg-indigo-500 text-sm rounded-lg text-left text-indigo-100 hover:bg-indigo-700 flex items-center">
+                        <i class="fas fa-search mr-2"></i>
+                        <span>Rechercher...</span>
+                        <span class="ml-auto text-xs bg-indigo-600 px-1.5 py-0.5 rounded">⌘K</span>
+                    </button>
+                </div>
+                
+                <button id="collab-btn" class="hidden md:flex items-center space-x-1.5 bg-indigo-500 hover:bg-indigo-700 px-3 py-1 rounded-lg text-sm">
+                    <div class="relative">
+                        <div class="w-5 h-5 rounded-full bg-indigo-400 flex items-center justify-center">
+                            <i class="fas fa-user text-xs text-white"></i>
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border border-white"></div>
+                    </div>
+                    <span>Collaborer</span>
+                </button>
+                
+                <div class="relative">
+                    <button id="user-btn" class="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center hover:bg-indigo-700">
+                        <i class="fas fa-user text-sm text-white"></i>
+                    </button>
+                    <div id="user-menu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 modal modal-hidden py-1">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-user mr-2"></i> Mon compte
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-cog mr-2"></i> Paramètres
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-moon mr-2"></i> Mode sombre
+                        </a>
+                        <div class="border-t my-1"></div>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-right-from-bracket mr-2"></i> Déconnexion
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-2 flex flex-wrap items-center justify-between">
+            <div class="flex items-center space-x-1">
+                <button id="new-map" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 tooltip-container">
+                    <i class="fas fa-file mr-1 text-indigo-500"></i>
+                    <span class="hidden md:inline">Nouveau</span>
+                    <div class="tooltip">Nouvelle carte (⌘N)</div>
+                </button>
+                <button id="save-map" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 tooltip-container">
+                    <i class="fas fa-save mr-1 text-indigo-500"></i>
+                    <span class="hidden md:inline">Sauvegarder</span>
+                    <div class="tooltip">Sauvegarder (⌘S)</div>
+                </button>
+                <div class="relative">
+                    <button id="export-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 flex items-center tooltip-container">
+                        <i class="fas fa-download mr-1 text-indigo-500"></i>
+                        <span class="hidden md:inline">Exporter</span>
+                        <i class="fas fa-chevron-down ml-1 text-xs text-gray-500 hidden md:inline"></i>
+                        <div class="tooltip">Exporter la carte</div>
+                    </button>
+                    <div id="export-menu" class="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 modal modal-hidden py-1">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="export-png">
+                            <i class="fas fa-image mr-2 text-indigo-500"></i> PNG
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="export-pdf">
+                            <i class="fas fa-file-pdf mr-2 text-indigo-500"></i> PDF
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="export-svg">
+                            <i class="fas fa-file-code mr-2 text-indigo-500"></i> SVG
+                        </a>
+                        <div class="border-t my-1"></div>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="export-markdown">
+                            <i class="fas fa-file-alt mr-2 text-indigo-500"></i> Markdown
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="h-5 w-px bg-gray-200 mx-1"></div>
+                
+                <button id="undo-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-500 tooltip-container" disabled>
+                    <i class="fas fa-undo"></i>
+                    <div class="tooltip">Annuler (⌘Z)</div>
+                </button>
+                <button id="redo-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-500 tooltip-container" disabled>
+                    <i class="fas fa-redo"></i>
+                    <div class="tooltip">Rétablir (⌘⇧Z)</div>
+                </button>
+                
+                <div class="h-5 w-px bg-gray-200 mx-1"></div>
+                
+                <button id="add-node-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 tooltip-container">
+                    <i class="fas fa-plus-circle mr-1 text-indigo-500"></i>
+                    <span class="hidden md:inline">Nœud</span>
+                    <div class="tooltip">Ajouter un nœud (⌘D)</div>
+                </button>
+            </div>
+            
+            <div class="flex items-center space-x-1">
+                <div class="relative">
+                    <button id="layout-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 flex items-center tooltip-container">
+                        <i class="fas fa-sitemap mr-1 text-indigo-500"></i>
+                        <span class="hidden md:inline">Disposition</span>
+                        <i class="fas fa-chevron-down ml-1 text-xs text-gray-500 hidden md:inline"></i>
+                        <div class="tooltip">Changer la disposition</div>
+                    </button>
+                    <div id="layout-menu" class="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 modal modal-hidden py-1">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-layout="radial">
+                            <i class="fas fa-circle-nodes mr-2 text-indigo-500"></i> Radial
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-layout="hierarchical">
+                            <i class="fas fa-diagram-project mr-2 text-indigo-500"></i> Hiérarchique
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-layout="organic">
+                            <i class="fas fa-atom mr-2 text-indigo-500"></i> Organique
+                        </a>
+                    </div>
+                </div>
+                
+                <button id="presentation-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 tooltip-container">
+                    <i class="fas fa-tv mr-1 text-indigo-500"></i>
+                    <span class="hidden md:inline">Présentation</span>
+                    <div class="tooltip">Mode présentation (⌘⇧P)</div>
+                </button>
+                
+                <div class="relative">
+                    <button id="more-tools-btn" class="p-2 hover:bg-gray-100 rounded-lg text-gray-700 tooltip-container">
+                        <i class="fas fa-ellipsis-h"></i>
+                        <div class="tooltip">Plus d'outils</div>
+                    </button>
+                    <div id="more-tools-menu" class="absolute right-0 mt-1 w-56 bg-white rounded-md shadow-lg z-10 modal modal-hidden py-1">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="audio-note-btn">
+                            <i class="fas fa-microphone mr-2 text-indigo-500"></i> Annotation audio
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="custom-connector-btn">
+                            <i class="fas fa-project-diagram mr-2 text-indigo-500"></i> Connecteurs
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="history-btn">
+                            <i class="fas fa-history mr-2 text-indigo-500"></i> Historique des modifications
+                        </a>
+                        <div class="border-t my-1"></div>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="fullscreen-btn">
+                            <i class="fas fa-expand mr-2 text-indigo-500"></i> Plein écran
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-0 flex h-[calc(100vh-112px)]">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out">
+            <div class="p-4 border-b">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-folder-open mr-2 text-indigo-500"></i>
+                        Mon espace
+                    </h3>
+                    <button id="sidebar-toggle" class="text-gray-500 hover:text-gray-700 md:hidden">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                
+                <div class="mt-4 relative">
+                    <input type="text" placeholder="Rechercher..." class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500">
+                    <i class="fas fa-search absolute right-3 top-2 text-gray-400"></i>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-2">
+                <div class="mb-4">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">Mes cartes</h4>
+                    <div class="space-y-1">
+                        <div class="sidebar-item active px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-indigo-100 text-indigo-600">
+                                <i class="fas fa-brain text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Projet Innovation</div>
+                                <div class="text-xs text-gray-500">Modifié il y a 2h</div>
+                            </div>
+                        </div>
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-blue-100 text-blue-600">
+                                <i class="fas fa-briefcase text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Plan stratégique</div>
+                                <div class="text-xs text-gray-500">Modifié hier</div>
+                            </div>
+                        </div>
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-green-100 text-green-600">
+                                <i class="fas fa-graduation-cap text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Cours IA</div>
+                                <div class="text-xs text-gray-500">Modifié il y a 3j</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">Partagés avec moi</h4>
+                    <div class="space-y-1">
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-purple-100 text-purple-600">
+                                <i class="fas fa-users text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Réunion marketing</div>
+                                <div class="text-xs text-gray-500">Par Marie - il y a 1j</div>
+                            </div>
+                        </div>
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-yellow-100 text-yellow-600">
+                                <i class="fas fa-lightbulb text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Brainstorming</div>
+                                <div class="text-xs text-gray-500">Par Jean - il y a 5j</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">Templates</h4>
+                    <div class="space-y-1">
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-pink-100 text-pink-600">
+                                <i class="fas fa-clone text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Analyse SWOT</div>
+                                <div class="text-xs text-gray-500">Business</div>
+                            </div>
+                        </div>
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-red-100 text-red-600">
+                                <i class="fas fa-clone text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Plan projet</div>
+                                <div class="text-xs text-gray-500">Gestion</div>
+                            </div>
+                        </div>
+                        <div class="sidebar-item px-3 py-2 rounded-md cursor-pointer flex items-center">
+                            <div class="node-icon bg-cyan-100 text-cyan-600">
+                                <i class="fas fa-clone text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium">Prise de notes</div>
+                                <div class="text-xs text-gray-500">Éducation</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm">GS</div>
+                        <div>
+                            <div class="text-sm font-medium">Geoffroy Streit</div>
+                            <div class="text-xs text-gray-500">Pro Plan</div>
+                        </div>
+                    </div>
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-ellipsis-vertical"></i>
+                    </button>
+                </div>
+                
+                <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
+                    <span>Stockage: 75% utilisé</span>
+                    <span>15/20 Go</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="flex-1 relative overflow-hidden">
+            <div id="canvas" class="canvas-container bg-white w-full h-full overflow-auto p-8 relative">
+                <svg id="connectors" class="absolute top-0 left-0 w-full h-full pointer-events-none"></svg>
+                
+                <!-- Central Node -->
+                <div id="central-node" class="node absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 w-56 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-2">
+                        <input type="text" value="Idée centrale" class="bg-transparent font-bold text-lg w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1">
+                        <div class="flex space-x-2">
+                            <button class="text-indigo-500 hover:text-indigo-700 text-sm tooltip-container">
+                                <i class="fas fa-plus"></i>
+                                <div class="tooltip">Ajouter un enfant</div>
+                            </button>
+                            <button class="text-gray-500 hover:text-gray-700 text-sm tooltip-container">
+                                <i class="fas fa-ellipsis-h"></i>
+                                <div class="tooltip">Options</div>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea class="bg-transparent text-sm w-full h-20 focus:outline-none focus:ring-1 focus:ring-indigo-300 rounded px-1 resize-none" placeholder="Description..."></textarea>
+                    <div class="mt-2 flex justify-between items-center text-xs text-gray-500">
+                        <div class="flex items-center">
+                            <i class="fas fa-user mr-1"></i>
+                            <span>Vous</span>
+                        </div>
+                        <span>aujourd'hui</span>
+                    </div>
+                </div>
+                
+                <!-- Child Nodes (example) -->
+                <div class="node absolute top-1/4 left-1/4 bg-blue-50 border-2 border-blue-200 rounded-lg p-3 w-48 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Première idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1">
+                        <button class="text-blue-500 hover:text-blue-700 text-xs tooltip-container">
+                            <i class="fas fa-plus"></i>
+                            <div class="tooltip">Ajouter un enfant</div>
+                        </button>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 flex items-center">
+                        <i class="fas fa-user mr-1 text-xs"></i>
+                        <span>Vous</span>
+                    </div>
+                </div>
+                
+                <div class="node absolute top-1/4 right-1/4 bg-green-50 border-2 border-green-200 rounded-lg p-3 w-48 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Deuxième idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-green-500 rounded px-1">
+                        <button class="text-green-500 hover:text-green-700 text-xs tooltip-container">
+                            <i class="fas fa-plus"></i>
+                            <div class="tooltip">Ajouter un enfant</div>
+                        </button>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 flex items-center">
+                        <i class="fas fa-user mr-1 text-xs"></i>
+                        <span>Marie</span>
+                    </div>
+                </div>
+                
+                <div class="node absolute bottom-1/4 left-1/4 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3 w-48 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Troisième idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-yellow-500 rounded px-1">
+                        <button class="text-yellow-500 hover:text-yellow-700 text-xs tooltip-container">
+                            <i class="fas fa-plus"></i>
+                            <div class="tooltip">Ajouter un enfant</div>
+                        </button>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 flex items-center">
+                        <i class="fas fa-user mr-1 text-xs"></i>
+                        <span>Jean</span>
+                    </div>
+                </div>
+                
+                <div class="node absolute bottom-1/4 right-1/4 bg-red-50 border-2 border-red-200 rounded-lg p-3 w-48 cursor-move shadow-md audio-annotation" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Note audio" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-red-500 rounded px-1">
+                        <button class="text-red-500 hover:text-red-700 text-xs tooltip-container">
+                            <i class="fas fa-play"></i>
+                            <div class="tooltip">Écouter</div>
+                        </button>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 flex items-center">
+                        <i class="fas fa-microphone mr-1 text-xs"></i>
+                        <span>0:32</span>
+                    </div>
+                </div>
+                
+                <!-- Floating Action Button for Mobile -->
+                <div class="fixed bottom-6 right-6 md:hidden">
+                    <button id="mobile-fab" class="w-14 h-14 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-plus text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Zoom Controls -->
+            <div class="zoom-controls">
+                <button id="zoom-in" class="p-2 text-gray-700 hover:bg-gray-100 border-b">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button id="zoom-out" class="p-2 text-gray-700 hover:bg-gray-100">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            
+            <!-- Mini-map Navigation -->
+            <div id="minimap" class="absolute bottom-4 left-4 w-32 h-24 bg-white border border-gray-200 rounded-md overflow-hidden shadow-sm hidden md:block">
+                <div id="minimap-viewport" class="absolute border border-indigo-400 bg-indigo-100 bg-opacity-30"></div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-1 text-xs text-gray-500 flex justify-between items-center">
+                <div>
+                    <span id="node-count">5 nœuds</span>
+                    <span class="mx-2">•</span>
+                    <span id="connector-count">4 connecteurs</span>
+                </div>
+                <div>
+                    <span id="zoom-level">100%</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar - Node Properties -->
+        <div id="properties-sidebar" class="w-64 bg-white border-l border-gray-200 p-4 overflow-y-auto hidden md:block">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-semibold text-gray-800">Propriétés</h3>
+                <button id="close-properties" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="no-selection" class="text-center py-8">
+                <i class="fas fa-mouse-pointer text-3xl text-gray-300 mb-2"></i>
+                <p class="text-gray-500">Sélectionnez un nœud pour modifier ses propriétés</p>
+            </div>
+            
+            <div id="node-properties" class="hidden">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 h-24"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+                    <div class="color-palette">
+                        <div class="color-option bg-indigo-500 border-2 border-indigo-700" data-color="indigo"></div>
+                        <div class="color-option bg-blue-500 border-2 border-blue-700" data-color="blue"></div>
+                        <div class="color-option bg-green-500 border-2 border-green-700" data-color="green"></div>
+                        <div class="color-option bg-yellow-500 border-2 border-yellow-700" data-color="yellow"></div>
+                        <div class="color-option bg-red-500 border-2 border-red-700" data-color="red"></div>
+                        <div class="color-option bg-purple-500 border-2 border-purple-700" data-color="purple"></div>
+                        <div class="color-option bg-pink-500 border-2 border-pink-700" data-color="pink"></div>
+                        <div class="color-option bg-gray-500 border-2 border-gray-700" data-color="gray"></div>
+                        <div class="color-option bg-white border-2 border-gray-300" data-color="white"></div>
+                        <div class="color-option bg-black border-2 border-gray-800" data-color="black"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Icône</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-lightbulb text-indigo-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-briefcase text-blue-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-graduation-cap text-green-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-question-circle text-yellow-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-check-circle text-purple-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-star text-pink-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-clock text-gray-500"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-heart text-red-400"></i>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <i class="fas fa-plus text-gray-700"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Forme</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <div class="w-6 h-6 border-2 border-indigo-500 rounded-md mx-auto"></div>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <div class="w-6 h-6 border-2 border-indigo-500 rounded-full mx-auto"></div>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <div class="w-6 h-6 border-2 border-indigo-500 mx-auto"></div>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <div class="w-6 h-6 border-2 border-indigo-500 rounded-lg mx-auto"></div>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <div class="w-6 h-6 border-2 border-indigo-500 rounded-tl-full rounded-br-full mx-auto"></div>
+                        </button>
+                        <button class="p-2 border rounded-md hover:bg-gray-100">
+                            <div class="w-6 h-6 border-2 border-indigo-500 rounded-tr-full rounded-bl-full mx-auto"></div>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Liens</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                            <div class="flex items-center">
+                                <i class="fas fa-link text-gray-500 mr-2"></i>
+                                <span class="text-sm">Document.pdf</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <button class="w-full py-1.5 text-sm text-indigo-600 hover:text-indigo-800 flex items-center justify-center">
+                            <i class="fas fa-plus mr-1"></i>
+                            <span>Ajouter un lien</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full flex items-center">
+                            Important
+                            <button class="ml-1 text-indigo-400 hover:text-indigo-600">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex items-center">
+                            Idée
+                            <button class="ml-1 text-blue-400 hover:text-blue-600">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" placeholder="Ajouter un tag" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <button class="absolute right-2 top-1.5 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4 mt-4">
+                    <button class="w-full py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 flex items-center justify-center">
+                        <i class="fas fa-trash-alt mr-2"></i>
+                        <span>Supprimer le nœud</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div id="templates-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-4/5 max-w-6xl max-h-[90vh] overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">Bibliothèque de templates</h3>
+                <button id="close-templates" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 border-b">
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-sm rounded-lg bg-indigo-100 text-indigo-700">Tous</button>
+                    <button class="px-3 py-1 text-sm rounded-lg hover:bg-gray-100">Business</button>
+                    <button class="px-3 py-1 text-sm rounded-lg hover:bg-gray-100">Éducation</button>
+                    <button class="px-3 py-1 text-sm rounded-lg hover:bg-gray-100">Personnel</button>
+                    <button class="px-3 py-1 text-sm rounded-lg hover:bg-gray-100">Technologie</button>
+                </div>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto" style="max-height: calc(90vh - 120px)">
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-indigo-50 flex items-center justify-center relative">
+                        <i class="fas fa-lightbulb text-5xl text-indigo-400"></i>
+                        <div class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm">
+                            <i class="fas fa-star text-yellow-400 text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-lightbulb text-indigo-500 mr-2"></i>
+                            Brainstorming
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour session de brainstorming</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 124 fois</span>
+                            <button class="text-sm text-indigo-600 hover:text-indigo-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-briefcase text-5xl text-blue-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-briefcase text-blue-500 mr-2"></i>
+                            Gestion de projet
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour planifier un projet</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 89 fois</span>
+                            <button class="text-sm text-blue-600 hover:text-blue-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-green-50 flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-5xl text-green-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
+                            Prise de notes
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour prise de notes efficace</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 76 fois</span>
+                            <button class="text-sm text-green-600 hover:text-green-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-yellow-50 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-5xl text-yellow-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-chart-line text-yellow-500 mr-2"></i>
+                            Analyse SWOT
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour analyse SWOT</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 64 fois</span>
+                            <button class="text-sm text-yellow-600 hover:text-yellow-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-purple-50 flex items-center justify-center">
+                        <i class="fas fa-sitemap text-5xl text-purple-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-sitemap text-purple-500 mr-2"></i>
+                            Organigramme
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure hiérarchique</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 52 fois</span>
+                            <button class="text-sm text-purple-600 hover:text-purple-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-pink-50 flex items-center justify-center">
+                        <i class="fas fa-book text-5xl text-pink-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-book text-pink-500 mr-2"></i>
+                            Résumé de livre
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour résumer un livre</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 41 fois</span>
+                            <button class="text-sm text-pink-600 hover:text-pink-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-red-50 flex items-center justify-center">
+                        <i class="fas fa-users text-5xl text-red-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-users text-red-500 mr-2"></i>
+                            Profil client
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour profil client</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 38 fois</span>
+                            <button class="text-sm text-red-600 hover:text-red-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-cyan-50 flex items-center justify-center">
+                        <i class="fas fa-flask text-5xl text-cyan-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-flask text-cyan-500 mr-2"></i>
+                            Méthode scientifique
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour expériences</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 29 fois</span>
+                            <button class="text-sm text-cyan-600 hover:text-cyan-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="border rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                    <div class="h-40 bg-orange-50 flex items-center justify-center">
+                        <i class="fas fa-map-marked-alt text-5xl text-orange-400"></i>
+                    </div>
+                    <div class="p-4">
+                        <h4 class="font-medium flex items-center">
+                            <i class="fas fa-map-marked-alt text-orange-500 mr-2"></i>
+                            Plan voyage
+                        </h4>
+                        <p class="text-sm text-gray-500 mt-1">Structure pour organiser un voyage</p>
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Utilisé 27 fois</span>
+                            <button class="text-sm text-orange-600 hover:text-orange-800">Appliquer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-between items-center bg-gray-50">
+                <button class="px-4 py-2 border rounded-lg hover:bg-gray-100">
+                    <i class="fas fa-plus mr-2"></i>
+                    Créer un template
+                </button>
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Importer un template
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Annotation Modal -->
+    <div id="audio-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-xl shadow-xl w-96">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">Annotation audio</h3>
+                <button id="close-audio" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="flex justify-center mb-6">
+                    <div class="relative">
+                        <button id="record-btn" class="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow-lg transition-colors">
+                            <i class="fas fa-microphone text-xl"></i>
+                        </button>
+                        <div class="absolute -inset-1 rounded-full bg-red-100 opacity-0 animate-ping" id="recording-pulse"></div>
+                    </div>
+                </div>
+                
+                <div class="text-center mb-6">
+                    <p id="recording-status" class="text-gray-600 font-medium">Prêt à enregistrer</p>
+                    <p id="recording-timer" class="text-2xl font-mono mt-2 hidden">00:00</p>
+                    
+                    <div id="audio-visualizer" class="h-3 bg-gray-100 rounded-full mt-4 overflow-hidden hidden">
+                        <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-0" id="audio-level"></div>
+                    </div>
+                </div>
+                
+                <div id="playback-controls" class="hidden">
+                    <div class="flex items-center justify-center space-x-4 mb-4">
+                        <button id="play-btn" class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center hover:bg-indigo-200">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <div class="flex-1">
+                            <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500 w-0" id="playback-progress"></div>
+                            </div>
+                        </div>
+                        <span id="playback-time" class="text-xs text-gray-500">0:00</span>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button id="save-audio" class="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center">
+                            <i class="fas fa-save mr-2"></i>
+                            Enregistrer
+                        </button>
+                        <button id="delete-audio" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Connectors Modal -->
+    <div id="connectors-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-xl shadow-xl w-96">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">Connecteurs personnalisés</h3>
+                <button id="close-connectors" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Style de ligne</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button class="px-4 py-2 border rounded-lg connector-option hover:bg-gray-50 flex flex-col items-center" data-style="solid">
+                            <div class="w-full h-1 bg-gray-800 mb-2"></div>
+                            <span class="text-xs">Plein</span>
+                        </button>
+                        <button class="px-4 py-2 border rounded-lg connector-option hover:bg-gray-50 flex flex-col items-center" data-style="dashed">
+                            <div class="w-full h-1 bg-gray-800 mb-2" style="background: repeating-linear-gradient(to right, black, black 4px, transparent 4px, transparent 8px);"></div>
+                            <span class="text-xs">Tiretés</span>
+                        </button>
+                        <button class="px-4 py-2 border rounded-lg connector-option hover:bg-gray-50 flex flex-col items-center" data-style="dotted">
+                            <div class="w-full h-1 bg-gray-800 mb-2" style="background: repeating-linear-gradient(to right, black, black 2px, transparent 2px, transparent 4px);"></div>
+                            <span class="text-xs">Pointillés</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Couleur</label>
+                    <div class="grid grid-cols-5 gap-3">
+                        <button class="color-option w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md" data-color="#ef4444"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md" data-color="#3b82f6"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-green-500 border-2 border-white shadow-md" data-color="#10b981"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-yellow-500 border-2 border-white shadow-md" data-color="#f59e0b"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-purple-500 border-2 border-white shadow-md" data-color="#8b5cf6"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-pink-500 border-2 border-white shadow-md" data-color="#ec4899"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-indigo-500 border-2 border-white shadow-md" data-color="#6366f1"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-gray-500 border-2 border-white shadow-md" data-color="#6b7280"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-black border-2 border-white shadow-md" data-color="#000000"></button>
+                        <button class="color-option w-8 h-8 rounded-full bg-white border-2 border-gray-300 shadow-md" data-color="#ffffff"></button>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Épaisseur</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button class="width-option px-4 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-width="1">
+                            <div class="w-full h-0.5 bg-gray-800 mb-2"></div>
+                            <span class="text-xs">Fin</span>
+                        </button>
+                        <button class="width-option px-4 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-width="2">
+                            <div class="w-full h-1 bg-gray-800 mb-2"></div>
+                            <span class="text-xs">Moyen</span>
+                        </button>
+                        <button class="width-option px-4 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-width="3">
+                            <div class="w-full h-1.5 bg-gray-800 mb-2"></div>
+                            <span class="text-xs">Épais</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Flèches</label>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button class="arrow-option px-3 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-arrow="none">
+                            <svg width="60" height="20" viewBox="0 0 60 20" class="mb-1">
+                                <line x1="5" y1="10" x2="55" y2="10" stroke="black" stroke-width="2"/>
+                            </svg>
+                            <span class="text-xs">Aucune</span>
+                        </button>
+                        <button class="arrow-option px-3 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-arrow="forward">
+                            <svg width="60" height="20" viewBox="0 0 60 20" class="mb-1">
+                                <line x1="5" y1="10" x2="55" y2="10" stroke="black" stroke-width="2"/>
+                                <path d="M55 10 L45 5 L45 15 Z" fill="black"/>
+                            </svg>
+                            <span class="text-xs">Avant</span>
+                        </button>
+                        <button class="arrow-option px-3 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-arrow="backward">
+                            <svg width="60" height="20" viewBox="0 0 60 20" class="mb-1">
+                                <line x1="5" y1="10" x2="55" y2="10" stroke="black" stroke-width="2"/>
+                                <path d="M5 10 L15 5 L15 15 Z" fill="black"/>
+                            </svg>
+                            <span class="text-xs">Arrière</span>
+                        </button>
+                        <button class="arrow-option px-3 py-2 border rounded-lg hover:bg-gray-50 flex flex-col items-center" data-arrow="both">
+                            <svg width="60" height="20" viewBox="0 0 60 20" class="mb-1">
+                                <line x1="5" y1="10" x2="55" y2="10" stroke="black" stroke-width="2"/>
+                                <path d="M55 10 L45 5 L45 15 Z" fill="black"/>
+                                <path d="M5 10 L15 5 L15 15 Z" fill="black"/>
+                            </svg>
+                            <span class="text-xs">Les deux</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4 flex justify-end">
+                    <button id="reset-connectors" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg mr-2">
+                        Réinitialiser
+                    </button>
+                    <button id="apply-connector" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        Appliquer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presentation Mode -->
+    <div id="presentation-mode" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50 hidden">
+        <div class="w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden">
+            <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
+                <div class="flex items-center">
+                    <h3 class="text-xl font-bold">Mode Présentation</h3>
+                    <span class="ml-4 px-2 py-0.5 bg-indigo-700 rounded-full text-xs">Plein écran (F11)</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="slide-count" class="text-sm">1/5</span>
+                    <button id="exit-presentation" class="text-white hover:text-indigo-200 p-1 rounded-full hover:bg-indigo-700">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-8 h-[70vh] flex items-center justify-center bg-gradient-to-br from-indigo-50 to-white">
+                <div class="text-center max-w-2xl">
+                    <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-brain text-3xl text-indigo-500"></i>
+                    </div>
+                    <h2 class="text-4xl font-bold mb-4 text-gray-800">Idée centrale</h2>
+                    <p class="text-xl text-gray-600 mb-6">Voici le point de départ de notre réflexion</p>
+                    <div class="bg-white rounded-lg p-4 inline-block shadow-sm">
+                        <div class="flex justify-center space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-between bg-gray-50">
+                <button id="prev-slide" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Précédent
+                </button>
+                <div class="flex items-center space-x-2">
+                    <button id="presentation-pause" class="p-2 text-gray-700 hover:bg-gray-200 rounded-full">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button id="presentation-play" class="p-2 text-gray-700 hover:bg-gray-200 rounded-full hidden">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <span class="text-sm text-gray-500">Mode auto: 5s</span>
+                </div>
+                <button id="next-slide" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center">
+                    Suivant
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collaboration Modal -->
+    <div id="collab-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">Collaboration en temps réel</h3>
+                <button id="close-collab" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto" style="max-height: calc(90vh - 120px)">
+                <div class="border rounded-xl p-4">
+                    <h4 class="font-medium text-lg mb-4 flex items-center">
+                        <i class="fas fa-user-plus mr-2 text-indigo-500"></i>
+                        Inviter des collaborateurs
+                    </h4>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <div class="flex">
+                            <input type="email" placeholder="email@exemple.com" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <button class="px-4 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700">
+                                Inviter
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Lien de partage</label>
+                        <div class="flex">
+                            <input type="text" value="ideamapper.app/c/abc123" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50" readonly>
+                            <button class="px-3 py-2 bg-gray-100 border border-l-0 rounded-r-md hover:bg-gray-200">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Permissions</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option>Peut modifier</option>
+                            <option>Peut commenter</option>
+                            <option>Peut voir</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="border rounded-xl p-4">
+                    <h4 class="font-medium text-lg mb-4 flex items-center">
+                        <i class="fas fa-users mr-2 text-blue-500"></i>
+                        Collaborateurs (3)
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm mr-3">GS</div>
+                                <div>
+                                    <div class="font-medium">Geoffroy Streit</div>
+                                    <div class="text-xs text-gray-500">Propriétaire</div>
+                                </div>
+                            </div>
+                            <div class="text-xs
+</html>

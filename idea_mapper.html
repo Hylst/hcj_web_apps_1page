@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaMapper | Organisateur d'idées</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .node {
+            transition: all 0.3s ease;
+        }
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .connector {
+            stroke: #94a3b8;
+            stroke-width: 2;
+            fill: none;
+        }
+        .canvas-container {
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal-hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+        .audio-annotation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-brain text-2xl"></i>
+                <h1 class="text-2xl font-bold">IdeaMapper</h1>
+                <span class="text-sm bg-indigo-700 px-2 py-1 rounded-full">v1.0</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="collab-btn" class="flex items-center space-x-1 bg-indigo-500 hover:bg-indigo-700 px-3 py-1 rounded-lg">
+                    <i class="fas fa-users"></i>
+                    <span>Collaboration</span>
+                </button>
+                <button id="user-btn" class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-2 flex flex-wrap items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <button id="new-map" class="p-2 hover:bg-gray-100 rounded">
+                    <i class="fas fa-file mr-1"></i> Nouveau
+                </button>
+                <button id="save-map" class="p-2 hover:bg-gray-100 rounded">
+                    <i class="fas fa-save mr-1"></i> Sauvegarder
+                </button>
+                <div class="relative">
+                    <button id="export-btn" class="p-2 hover:bg-gray-100 rounded">
+                        <i class="fas fa-download mr-1"></i> Exporter
+                    </button>
+                    <div id="export-menu" class="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 modal modal-hidden">
+                        <div class="py-1">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="export-png">
+                                <i class="fas fa-image mr-2"></i> PNG
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="export-pdf">
+                                <i class="fas fa-file-pdf mr-2"></i> PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button id="templates-btn" class="p-2 hover:bg-gray-100 rounded">
+                    <i class="fas fa-clone mr-1"></i> Templates
+                </button>
+                <button id="presentation-btn" class="p-2 hover:bg-gray-100 rounded">
+                    <i class="fas fa-tv mr-1"></i> Présentation
+                </button>
+                <div class="relative">
+                    <button id="more-tools-btn" class="p-2 hover:bg-gray-100 rounded">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div id="more-tools-menu" class="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 modal modal-hidden">
+                        <div class="py-1">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="audio-note-btn">
+                                <i class="fas fa-microphone mr-2"></i> Annotation audio
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="custom-connector-btn">
+                                <i class="fas fa-project-diagram mr-2"></i> Connecteurs
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="layout-btn">
+                                <i class="fas fa-sitemap mr-2"></i> Disposition
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-4 flex">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white rounded-lg shadow-md mr-4 p-4 hidden md:block">
+            <h3 class="font-bold text-lg mb-4 flex items-center">
+                <i class="fas fa-layer-group mr-2"></i> Bibliothèque
+            </h3>
+            <div class="space-y-2">
+                <div class="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                    <div class="flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-400 mr-2"></i>
+                        <span>Idées créatives</span>
+                    </div>
+                </div>
+                <div class="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                    <div class="flex items-center">
+                        <i class="fas fa-briefcase text-blue-400 mr-2"></i>
+                        <span>Projets</span>
+                    </div>
+                </div>
+                <div class="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                    <div class="flex items-center">
+                        <i class="fas fa-graduation-cap text-green-400 mr-2"></i>
+                        <span>Éducation</span>
+                    </div>
+                </div>
+                <div class="p-2 hover:bg-gray-100 rounded cursor-pointer">
+                    <div class="flex items-center">
+                        <i class="fas fa-chart-line text-purple-400 mr-2"></i>
+                        <span>Stratégie</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-lg mt-6 mb-4 flex items-center">
+                <i class="fas fa-users mr-2"></i> Collaborateurs
+            </h3>
+            <div class="space-y-2">
+                <div class="flex items-center p-2">
+                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs mr-2">JD</div>
+                    <span>Jean Dupont</span>
+                </div>
+                <div class="flex items-center p-2">
+                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs mr-2">MS</div>
+                    <span>Marie Smith</span>
+                </div>
+                <div class="flex items-center p-2">
+                    <div class="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs mr-2">YT</div>
+                    <span>Yves Tremblay</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="flex-1 relative">
+            <div id="canvas" class="canvas-container bg-white rounded-lg shadow-md w-full h-screen-80 overflow-auto p-8">
+                <svg id="connectors" class="absolute top-0 left-0 w-full h-full pointer-events-none"></svg>
+                
+                <!-- Central Node -->
+                <div id="central-node" class="node absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-indigo-100 border-2 border-indigo-300 rounded-lg p-4 w-48 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-2">
+                        <input type="text" value="Idée centrale" class="bg-transparent font-bold text-lg w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1">
+                        <div class="flex space-x-1">
+                            <button class="text-indigo-500 hover:text-indigo-700 text-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="text-gray-500 hover:text-gray-700 text-sm">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea class="bg-transparent text-sm w-full h-16 focus:outline-none focus:ring-1 focus:ring-indigo-300 rounded px-1 resize-none" placeholder="Description..."></textarea>
+                </div>
+                
+                <!-- Child Nodes (example) -->
+                <div class="node absolute top-1/4 left-1/4 bg-blue-100 border-2 border-blue-300 rounded-lg p-3 w-40 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Première idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1">
+                        <button class="text-blue-500 hover:text-blue-700 text-xs">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="node absolute top-1/4 right-1/4 bg-green-100 border-2 border-green-300 rounded-lg p-3 w-40 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Deuxième idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-green-500 rounded px-1">
+                        <button class="text-green-500 hover:text-green-700 text-xs">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="node absolute bottom-1/4 left-1/4 bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 w-40 cursor-move shadow-md" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Troisième idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-yellow-500 rounded px-1">
+                        <button class="text-yellow-500 hover:text-yellow-700 text-xs">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="node absolute bottom-1/4 right-1/4 bg-red-100 border-2 border-red-300 rounded-lg p-3 w-40 cursor-move shadow-md audio-annotation" draggable="true">
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Note audio" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-red-500 rounded px-1">
+                        <button class="text-red-500 hover:text-red-700 text-xs">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div id="templates-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-lg shadow-xl w-3/4 max-w-4xl max-h-screen overflow-auto">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">Bibliothèque de templates</h3>
+                <button id="close-templates" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md">
+                    <div class="h-32 bg-indigo-100 flex items-center justify-center">
+                        <i class="fas fa-lightbulb text-4xl text-indigo-500"></i>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-medium">Brainstorming</h4>
+                        <p class="text-sm text-gray-500">Structure pour session de brainstorming</p>
+                    </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md">
+                    <div class="h-32 bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-briefcase text-4xl text-blue-500"></i>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-medium">Gestion de projet</h4>
+                        <p class="text-sm text-gray-500">Structure pour planifier un projet</p>
+                    </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md">
+                    <div class="h-32 bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-4xl text-green-500"></i>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-medium">Prise de notes</h4>
+                        <p class="text-sm text-gray-500">Structure pour prise de notes efficace</p>
+                    </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md">
+                    <div class="h-32 bg-yellow-100 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-4xl text-yellow-500"></i>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-medium">Analyse SWOT</h4>
+                        <p class="text-sm text-gray-500">Structure pour analyse SWOT</p>
+                    </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md">
+                    <div class="h-32 bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-sitemap text-4xl text-purple-500"></i>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-medium">Organigramme</h4>
+                        <p class="text-sm text-gray-500">Structure hiérarchique</p>
+                    </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden cursor-pointer hover:shadow-md">
+                    <div class="h-32 bg-pink-100 flex items-center justify-center">
+                        <i class="fas fa-book text-4xl text-pink-500"></i>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-medium">Résumé de livre</h4>
+                        <p class="text-sm text-gray-500">Structure pour résumer un livre</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end">
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Appliquer le template
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Annotation Modal -->
+    <div id="audio-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-lg shadow-xl w-96">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">Annotation audio</h3>
+                <button id="close-audio" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="flex justify-center mb-4">
+                    <button id="record-btn" class="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600">
+                        <i class="fas fa-microphone text-xl"></i>
+                    </button>
+                </div>
+                <div class="text-center mb-4">
+                    <p id="recording-status" class="text-gray-600">Prêt à enregistrer</p>
+                    <div id="audio-visualizer" class="h-8 bg-gray-100 rounded-full mt-2 overflow-hidden hidden">
+                        <div class="h-full bg-indigo-500 w-0" id="audio-level"></div>
+                    </div>
+                </div>
+                <div id="playback-controls" class="hidden">
+                    <audio id="audio-playback" controls class="w-full mb-2"></audio>
+                    <button id="save-audio" class="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        Enregistrer l'annotation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Connectors Modal -->
+    <div id="connectors-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal modal-hidden">
+        <div class="bg-white rounded-lg shadow-xl w-96">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">Connecteurs personnalisés</h3>
+                <button id="close-connectors" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Style de ligne</label>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 border rounded-lg connector-option" data-style="solid">
+                            <div class="w-16 h-1 bg-black"></div>
+                        </button>
+                        <button class="px-3 py-1 border rounded-lg connector-option" data-style="dashed">
+                            <div class="w-16 h-1 bg-black" style="background: repeating-linear-gradient(to right, black, black 4px, transparent 4px, transparent 8px);"></div>
+                        </button>
+                        <button class="px-3 py-1 border rounded-lg connector-option" data-style="dotted">
+                            <div class="w-16 h-1 bg-black" style="background: repeating-linear-gradient(to right, black, black 2px, transparent 2px, transparent 4px);"></div>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+                    <div class="flex space-x-2">
+                        <button class="w-8 h-8 rounded-full bg-red-500 border-2 border-white shadow-md color-option" data-color="#ef4444"></button>
+                        <button class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow-md color-option" data-color="#3b82f6"></button>
+                        <button class="w-8 h-8 rounded-full bg-green-500 border-2 border-white shadow-md color-option" data-color="#10b981"></button>
+                        <button class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white shadow-md color-option" data-color="#f59e0b"></button>
+                        <button class="w-8 h-8 rounded-full bg-purple-500 border-2 border-white shadow-md color-option" data-color="#8b5cf6"></button>
+                        <button class="w-8 h-8 rounded-full bg-gray-500 border-2 border-white shadow-md color-option" data-color="#6b7280"></button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Épaisseur</label>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 border rounded-lg width-option" data-width="1">Fin</button>
+                        <button class="px-3 py-1 border rounded-lg width-option" data-width="2">Moyen</button>
+                        <button class="px-3 py-1 border rounded-lg width-option" data-width="3">Épais</button>
+                    </div>
+                </div>
+                <div class="flex justify-end pt-4 border-t">
+                    <button id="apply-connector" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        Appliquer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presentation Mode -->
+    <div id="presentation-mode" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50 hidden">
+        <div class="w-full max-w-4xl bg-white rounded-lg shadow-2xl overflow-hidden">
+            <div class="p-4 bg-indigo-600 text-white flex justify-between items-center">
+                <h3 class="text-xl font-bold">Mode Présentation</h3>
+                <div class="flex items-center space-x-4">
+                    <span id="slide-count" class="text-sm">1/5</span>
+                    <button id="exit-presentation" class="text-white hover:text-indigo-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-8 h-96 flex items-center justify-center">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold mb-4">Idée centrale</h2>
+                    <p class="text-lg text-gray-600">Voici le point de départ de notre réflexion</p>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-between">
+                <button id="prev-slide" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                    <i class="fas fa-arrow-left mr-2"></i> Précédent
+                </button>
+                <button id="next-slide" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Suivant <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 border-t mt-8 py-4">
+        <div class="container mx-auto px-4 text-center text-gray-600 text-sm">
+            <p>IdeaMapper &copy; 2023 - Créé par Geoffroy Streit</p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const exportBtn = document.getElementById('export-btn');
+        const exportMenu = document.getElementById('export-menu');
+        const moreToolsBtn = document.getElementById('more-tools-btn');
+        const moreToolsMenu = document.getElementById('more-tools-menu');
+        const templatesBtn = document.getElementById('templates-btn');
+        const templatesModal = document.getElementById('templates-modal');
+        const closeTemplates = document.getElementById('close-templates');
+        const audioNoteBtn = document.getElementById('audio-note-btn');
+        const audioModal = document.getElementById('audio-modal');
+        const closeAudio = document.getElementById('close-audio');
+        const recordBtn = document.getElementById('record-btn');
+        const recordingStatus = document.getElementById('recording-status');
+        const audioVisualizer = document.getElementById('audio-visualizer');
+        const audioLevel = document.getElementById('audio-level');
+        const playbackControls = document.getElementById('playback-controls');
+        const audioPlayback = document.getElementById('audio-playback');
+        const saveAudio = document.getElementById('save-audio');
+        const customConnectorBtn = document.getElementById('custom-connector-btn');
+        const connectorsModal = document.getElementById('connectors-modal');
+        const closeConnectors = document.getElementById('close-connectors');
+        const connectorOptions = document.querySelectorAll('.connector-option');
+        const colorOptions = document.querySelectorAll('.color-option');
+        const widthOptions = document.querySelectorAll('.width-option');
+        const applyConnector = document.getElementById('apply-connector');
+        const presentationBtn = document.getElementById('presentation-btn');
+        const presentationMode = document.getElementById('presentation-mode');
+        const exitPresentation = document.getElementById('exit-presentation');
+        const prevSlide = document.getElementById('prev-slide');
+        const nextSlide = document.getElementById('next-slide');
+        const slideCount = document.getElementById('slide-count');
+        const nodes = document.querySelectorAll('.node');
+        const canvas = document.getElementById('canvas');
+        const connectorsSvg = document.getElementById('connectors');
+
+        // Toggle export menu
+        exportBtn.addEventListener('click', () => {
+            exportMenu.classList.toggle('modal-hidden');
+            moreToolsMenu.classList.add('modal-hidden');
+        });
+
+        // Toggle more tools menu
+        moreToolsBtn.addEventListener('click', () => {
+            moreToolsMenu.classList.toggle('modal-hidden');
+            exportMenu.classList.add('modal-hidden');
+        });
+
+        // Close menus when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!exportBtn.contains(e.target) && !exportMenu.contains(e.target)) {
+                exportMenu.classList.add('modal-hidden');
+            }
+            if (!moreToolsBtn.contains(e.target) && !moreToolsMenu.contains(e.target)) {
+                moreToolsMenu.classList.add('modal-hidden');
+            }
+        });
+
+        // Templates modal
+        templatesBtn.addEventListener('click', () => {
+            templatesModal.classList.remove('modal-hidden');
+        });
+
+        closeTemplates.addEventListener('click', () => {
+            templatesModal.classList.add('modal-hidden');
+        });
+
+        // Audio annotation modal
+        audioNoteBtn.addEventListener('click', () => {
+            audioModal.classList.remove('modal-hidden');
+        });
+
+        closeAudio.addEventListener('click', () => {
+            audioModal.classList.add('modal-hidden');
+            stopRecording();
+        });
+
+        // Audio recording simulation
+        let isRecording = false;
+        let audioChunks = [];
+        
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        function startRecording() {
+            isRecording = true;
+            recordBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            recordBtn.classList.remove('bg-red-500');
+            recordBtn.classList.add('bg-gray-500');
+            recordingStatus.textContent = 'Enregistrement en cours...';
+            audioVisualizer.classList.remove('hidden');
+            
+            // Simulate audio level changes
+            let level = 0;
+            const interval = setInterval(() => {
+                if (!isRecording) {
+                    clearInterval(interval);
+                    return;
+                }
+                level = Math.random() * 100;
+                audioLevel.style.width = `${level}%`;
+            }, 100);
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            recordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            recordBtn.classList.remove('bg-gray-500');
+            recordBtn.classList.add('bg-red-500');
+            recordingStatus.textContent = 'Enregistrement terminé';
+            audioVisualizer.classList.add('hidden');
+            playbackControls.classList.remove('hidden');
+            
+            // Simulate playback (would be real audio in production)
+            audioPlayback.src = '#'; // Would be URL.createObjectURL(blob) in real app
+        }
+
+        saveAudio.addEventListener('click', () => {
+            // In a real app, would save the audio blob to the node
+            alert('Annotation audio enregistrée!');
+            audioModal.classList.add('modal-hidden');
+            playbackControls.classList.add('hidden');
+        });
+
+        // Custom connectors modal
+        customConnectorBtn.addEventListener('click', () => {
+            connectorsModal.classList.remove('modal-hidden');
+        });
+
+        closeConnectors.addEventListener('click', () => {
+            connectorsModal.classList.add('modal-hidden');
+        });
+
+        // Connector styling
+        let selectedStyle = 'solid';
+        let selectedColor = '#3b82f6';
+        let selectedWidth = '2';
+
+        connectorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.connector-option').forEach(opt => {
+                    opt.classList.remove('border-indigo-500', 'border-2');
+                });
+                option.classList.add('border-indigo-500', 'border-2');
+                selectedStyle = option.dataset.style;
+            });
+        });
+
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.color-option').forEach(opt => {
+                    opt.classList.remove('ring-2', 'ring-offset-2', 'ring-indigo-500');
+                });
+                option.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-500');
+                selectedColor = option.dataset.color;
+            });
+        });
+
+        widthOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.width-option').forEach(opt => {
+                    opt.classList.remove('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+                });
+                option.classList.add('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+                selectedWidth = option.dataset.width;
+            });
+        });
+
+        applyConnector.addEventListener('click', () => {
+            // In a real app, would apply these styles to the connectors
+            alert(`Connecteurs configurés: Style ${selectedStyle}, Couleur ${selectedColor}, Épaisseur ${selectedWidth}`);
+            connectorsModal.classList.add('modal-hidden');
+        });
+
+        // Presentation mode
+        presentationBtn.addEventListener('click', () => {
+            presentationMode.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        });
+
+        exitPresentation.addEventListener('click', () => {
+            presentationMode.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        });
+
+        let currentSlide = 1;
+        const totalSlides = 5;
+
+        function updateSlideCounter() {
+            slideCount.textContent = `${currentSlide}/${totalSlides}`;
+        }
+
+        nextSlide.addEventListener('click', () => {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                updateSlideCounter();
+                // In a real app, would update the presentation content
+            }
+        });
+
+        prevSlide.addEventListener('click', () => {
+            if (currentSlide > 1) {
+                currentSlide--;
+                updateSlideCounter();
+                // In a real app, would update the presentation content
+            }
+        });
+
+        // Node dragging functionality
+        nodes.forEach(node => {
+            node.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', node.id);
+                setTimeout(() => {
+                    node.classList.add('opacity-50');
+                }, 0);
+            });
+
+            node.addEventListener('dragend', () => {
+                node.classList.remove('opacity-50');
+                updateConnectors();
+            });
+        });
+
+        canvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('text/plain');
+            const node = document.getElementById(id);
+            
+            // Calculate new position based on drop coordinates
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - (node.offsetWidth / 2);
+            const y = e.clientY - rect.top - (node.offsetHeight / 2);
+            
+            node.style.left = `${x}px`;
+            node.style.top = `${y}px`;
+            
+            updateConnectors();
+        });
+
+        // Connector drawing functionality
+        function updateConnectors() {
+            // Clear existing connectors
+            connectorsSvg.innerHTML = '';
+            
+            // In a real app, would draw lines between connected nodes
+            // This is a simplified version that just connects all nodes to the center
+            
+            const centralNode = document.getElementById('central-node');
+            const centralRect = centralNode.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            const centralX = centralRect.left - canvasRect.left + (centralRect.width / 2);
+            const centralY = centralRect.top - canvasRect.top + (centralRect.height / 2);
+            
+            nodes.forEach(node => {
+                if (node !== centralNode) {
+                    const nodeRect = node.getBoundingClientRect();
+                    const nodeX = nodeRect.left - canvasRect.left + (nodeRect.width / 2);
+                    const nodeY = nodeRect.top - canvasRect.top + (nodeRect.height / 2);
+                    
+                    // Draw a line from the node to the central node
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', centralX);
+                    line.setAttribute('y1', centralY);
+                    line.setAttribute('x2', nodeX);
+                    line.setAttribute('y2', nodeY);
+                    line.setAttribute('class', 'connector');
+                    connectorsSvg.appendChild(line);
+                }
+            });
+        }
+
+        // Initialize connectors
+        updateConnectors();
+
+        // Export functionality
+        document.getElementById('export-png').addEventListener('click', () => {
+            alert('Exportation en PNG simulée. En production, cela utiliserait html2canvas ou une librairie similaire.');
+        });
+
+        document.getElementById('export-pdf').addEventListener('click', () => {
+            alert('Exportation en PDF simulée. En production, cela utiliserait jsPDF ou une librairie similaire.');
+        });
+
+        // Add new node button functionality
+        document.querySelectorAll('.node button .fa-plus').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newNode = document.createElement('div');
+                newNode.className = 'node absolute bg-white border-2 border-gray-300 rounded-lg p-3 w-40 cursor-move shadow-md';
+                newNode.innerHTML = `
+                    <div class="flex justify-between items-start mb-1">
+                        <input type="text" value="Nouvelle idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-gray-500 rounded px-1">
+                        <button class="text-gray-500 hover:text-gray-700 text-xs">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                `;
+                newNode.draggable = true;
+                
+                // Position near the parent node
+                const parentNode = btn.closest('.node');
+                const parentRect = parentNode.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                const x = parentRect.left - canvasRect.left + parentRect.width + 20;
+                const y = parentRect.top - canvasRect.top;
+                
+                newNode.style.left = `${x}px`;
+                newNode.style.top = `${y}px`;
+                
+                canvas.appendChild(newNode);
+                
+                // Add drag events to the new node
+                newNode.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', newNode.id);
+                    setTimeout(() => {
+                        newNode.classList.add('opacity-50');
+                    }, 0);
+                });
+
+                newNode.addEventListener('dragend', () => {
+                    newNode.classList.remove('opacity-50');
+                    updateConnectors();
+                });
+                
+                // Add plus button functionality to the new node
+                newNode.querySelector('.fa-plus').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const newChildNode = document.createElement('div');
+                    newChildNode.className = 'node absolute bg-white border-2 border-gray-300 rounded-lg p-3 w-40 cursor-move shadow-md';
+                    newChildNode.innerHTML = `
+                        <div class="flex justify-between items-start mb-1">
+                            <input type="text" value="Sous-idée" class="bg-transparent font-medium w-full focus:outline-none focus:ring-1 focus:ring-gray-500 rounded px-1">
+                            <button class="text-gray-500 hover:text-gray-700 text-xs">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    `;
+                    newChildNode.draggable = true;
+                    
+                    const newNodeRect = newNode.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    
+                    const childX = newNodeRect.left - canvasRect.left;
+                    const childY = newNodeRect.top - canvasRect.top + newNodeRect.height + 20;
+                    
+                    newChildNode.style.left = `${childX}px`;
+                    newChildNode.style.top = `${childY}px`;
+                    
+                    canvas.appendChild(newChildNode);
+                    
+                    // Add drag events to the new child node
+                    newChildNode.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', newChildNode.id);
+                        setTimeout(() => {
+                            newChildNode.classList.add('opacity-50');
+                        }, 0);
+                    });
+
+                    newChildNode.addEventListener('dragend', () => {
+                        newChildNode.classList.remove('opacity-50');
+                        updateConnectors();
+                    });
+                    
+                    updateConnectors();
+                });
+                
+                updateConnectors();
+            });
+        });
+    </script>
+</body>
+</html>

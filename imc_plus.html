@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMC+ | Calculateur d'IMC avec conseils | Par Geoffroy Streit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .bmi-chart {
+            background: linear-gradient(to right, 
+                #4ade80 0%, 
+                #4ade80 18.5%, 
+                #a3e635 18.5%, 
+                #a3e635 25%, 
+                #facc15 25%, 
+                #facc15 30%, 
+                #fbbf24 30%, 
+                #fbbf24 35%, 
+                #fb923c 35%, 
+                #fb923c 40%, 
+                #f87171 40%);
+            height: 30px;
+            border-radius: 15px;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .history-chart {
+            height: 200px;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-indigo-800 mb-2">IMC<span class="text-indigo-600">+</span></h1>
+            <p class="text-lg text-gray-600">Calculateur d'Indice de Masse Corporelle avec conseils personnalisés</p>
+            <div class="mt-4 text-sm text-gray-500">Créé par Geoffroy Streit</div>
+        </header>
+        
+        <!-- Main Calculator -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Calculator Form -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">Calculateur IMC</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="height" class="block text-sm font-medium text-gray-700 mb-1">Taille (cm)</label>
+                        <div class="relative">
+                            <input type="number" id="height" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="170">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span class="text-gray-500">cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">Poids (kg)</label>
+                        <div class="relative">
+                            <input type="number" id="weight" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="70">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span class="text-gray-500">kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Âge</label>
+                        <input type="number" id="age" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="30">
+                    </div>
+                    <div>
+                        <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">Sexe</label>
+                        <select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="male">Homme</option>
+                            <option value="female">Femme</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="activity" class="block text-sm font-medium text-gray-700 mb-1">Niveau d'activité</label>
+                    <select id="activity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="sedentary">Sédentaire (peu ou pas d'exercice)</option>
+                        <option value="light">Légèrement actif (1-3 jours/semaine)</option>
+                        <option value="moderate">Modérément actif (3-5 jours/semaine)</option>
+                        <option value="active">Très actif (6-7 jours/semaine)</option>
+                        <option value="extreme">Extrêmement actif (sportif professionnel)</option>
+                    </select>
+                </div>
+                
+                <button id="calculate-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                    <i class="fas fa-calculator mr-2"></i> Calculer mon IMC
+                </button>
+                
+                <!-- Results Section (Initially Hidden) -->
+                <div id="results-section" class="mt-8 hidden">
+                    <div class="border-t pt-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Vos résultats</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <!-- BMI Value -->
+                            <div class="bg-indigo-50 rounded-lg p-4 text-center">
+                                <div class="text-sm font-medium text-indigo-700 mb-1">Votre IMC</div>
+                                <div id="bmi-value" class="text-3xl font-bold text-indigo-800">--</div>
+                                <div id="bmi-category" class="text-sm font-medium mt-1">--</div>
+                            </div>
+                            
+                            <!-- Ideal Weight -->
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <div class="text-sm font-medium text-blue-700 mb-1">Poids idéal</div>
+                                <div id="ideal-weight" class="text-3xl font-bold text-blue-800">--</div>
+                                <div class="text-sm font-medium mt-1">kg</div>
+                            </div>
+                            
+                            <!-- Body Fat -->
+                            <div class="bg-purple-50 rounded-lg p-4 text-center">
+                                <div class="text-sm font-medium text-purple-700 mb-1">Masse grasse</div>
+                                <div id="body-fat" class="text-3xl font-bold text-purple-800">--</div>
+                                <div class="text-sm font-medium mt-1">%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- BMI Chart -->
+                        <div class="mb-6">
+                            <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>16</span>
+                                <span>18.5</span>
+                                <span>25</span>
+                                <span>30</span>
+                                <span>35</span>
+                                <span>40</span>
+                            </div>
+                            <div class="bmi-chart relative">
+                                <div id="bmi-indicator" class="absolute top-0 h-8 w-1 bg-black -ml-1" style="left: 50%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-600 mt-1">
+                                <span>Maigreur</span>
+                                <span>Normal</span>
+                                <span>Surpoids</span>
+                                <span>Obésité modérée</span>
+                                <span>Obésité sévère</span>
+                                <span>Obésité morbide</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Interpretation -->
+                        <div id="interpretation" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-yellow-600"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-yellow-800">Interprétation</h4>
+                                    <div id="interpretation-text" class="text-sm text-yellow-700 mt-1">
+                                        Calculez votre IMC pour voir l'interprétation.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Health Risks -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-800 mb-2">Risques pour la santé</h4>
+                            <div id="health-risks" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <!-- Dynamically filled -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Nutrition Recommendations -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Recommandations nutritionnelles</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Daily Calories -->
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-fire text-green-600 mr-2"></i>
+                                    <h4 class="text-sm font-medium text-green-800">Besoins caloriques quotidiens</h4>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <div id="daily-calories" class="text-2xl font-bold text-green-800">--</div>
+                                        <div class="text-xs text-green-600">kcal/jour</div>
+                                    </div>
+                                    <div class="text-xs text-green-600 text-right">
+                                        Pour <span id="calories-goal">maintenir</span> votre poids
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Macronutrients -->
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-utensils text-blue-600 mr-2"></i>
+                                    <h4 class="text-sm font-medium text-blue-800">Répartition des macronutriments</h4>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-center">
+                                    <div>
+                                        <div class="text-lg font-bold text-blue-800" id="protein-percent">--</div>
+                                        <div class="text-xs text-blue-600">Protéines</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-lg font-bold text-blue-800" id="carbs-percent">--</div>
+                                        <div class="text-xs text-blue-600">Glucides</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-lg font-bold text-blue-800" id="fat-percent">--</div>
+                                        <div class="text-xs text-blue-600">Lipides</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Food Recommendations -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-800 mb-2">Aliments recommandés</h4>
+                            <div id="food-recommendations" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <!-- Dynamically filled -->
+                            </div>
+                        </div>
+                        
+                        <!-- Meal Plan -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-800 mb-2">Exemple de plan alimentaire</h4>
+                            <div id="meal-plan" class="bg-white border rounded-lg divide-y">
+                                <!-- Dynamically filled -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Weight Goals -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Objectifs de poids</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <!-- Weight Loss -->
+                            <div class="bg-red-50 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-weight text-red-600 mr-2"></i>
+                                    <h4 class="text-sm font-medium text-red-800">Perte de poids</h4>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="text-lg font-bold text-red-800" id="weight-loss-calories">--</div>
+                                    <div class="text-xs text-red-600">kcal/jour pour perdre 0.5kg/semaine</div>
+                                </div>
+                                <button class="text-xs text-red-600 hover:text-red-800 font-medium">Voir plan</button>
+                            </div>
+                            
+                            <!-- Weight Maintenance -->
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-balance-scale text-green-600 mr-2"></i>
+                                    <h4 class="text-sm font-medium text-green-800">Maintien</h4>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="text-lg font-bold text-green-800" id="maintenance-calories">--</div>
+                                    <div class="text-xs text-green-600">kcal/jour pour maintenir votre poids</div>
+                                </div>
+                                <button class="text-xs text-green-600 hover:text-green-800 font-medium">Voir plan</button>
+                            </div>
+                            
+                            <!-- Weight Gain -->
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-weight-hanging text-blue-600 mr-2"></i>
+                                    <h4 class="text-sm font-medium text-blue-800">Prise de poids</h4>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="text-lg font-bold text-blue-800" id="weight-gain-calories">--</div>
+                                    <div class="text-xs text-blue-600">kcal/jour pour gagner 0.5kg/semaine</div>
+                                </div>
+                                <button class="text-xs text-blue-600 hover:text-blue-800 font-medium">Voir plan</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Tracker -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-800 mb-2">Suivi de progression</h4>
+                            <div class="bg-white border rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div>
+                                        <div class="text-xs text-gray-500">Objectif</div>
+                                        <div class="font-medium" id="weight-goal-text">--</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">Progression</div>
+                                        <div class="font-medium" id="weight-progress-text">--</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative pt-1">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                                                Progression
+                                            </span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs font-semibold inline-block text-indigo-600">
+                                                <span id="progress-percent">0</span>%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-200">
+                                        <div id="progress-bar" style="width: 0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-600"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <div class="text-xs text-gray-500">Poids actuel</div>
+                                        <div class="font-medium" id="current-weight">-- kg</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">Objectif</div>
+                                        <div class="font-medium" id="target-weight">-- kg</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">Différence</div>
+                                        <div class="font-medium" id="weight-difference">-- kg</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Doctor Integration -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Conseils médicaux</h3>
+                        
+                        <div class="bg-white border rounded-lg p-4 mb-6">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-user-md text-indigo-600 text-2xl"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-gray-800">Recommandation médicale</h4>
+                                    <div id="doctor-recommendation" class="text-sm text-gray-600 mt-1">
+                                        Calculez votre IMC pour voir les recommandations médicales.
+                                    </div>
+                                    <div class="mt-3">
+                                        <button class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                            <i class="fas fa-calendar-alt mr-1"></i> Prendre rendez-vous
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- BMI History -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Historique IMC</h2>
+                    
+                    <div class="history-chart mb-4">
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                            <i class="fas fa-history mr-1"></i> Voir l'historique complet
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Health Tips -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Conseils santé</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-1">
+                                <i class="fas fa-heartbeat text-red-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="text-sm font-medium text-gray-800">Activité physique</h4>
+                                <p class="text-sm text-gray-600">Au moins 150 minutes d'activité modérée par semaine.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-1">
+                                <i class="fas fa-apple-alt text-green-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="text-sm font-medium text-gray-800">Alimentation</h4>
+                                <p class="text-sm text-gray-600">5 portions de fruits et légumes par jour.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-1">
+                                <i class="fas fa-glass-whiskey text-blue-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="text-sm font-medium text-gray-800">Hydratation</h4>
+                                <p class="text-sm text-gray-600">1.5 à 2 litres d'eau par jour.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">FAQ Scientifique</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <button class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-800 focus:outline-none">
+                                <span>Qu'est-ce que l'IMC ?</span>
+                                <i class="fas fa-chevron-down text-gray-500"></i>
+                            </button>
+                            <div class="mt-2 text-sm text-gray-600 hidden">
+                                L'Indice de Masse Corporelle est une mesure qui évalue la corpulence en fonction de la taille et du poids.
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <button class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-800 focus:outline-none">
+                                <span>L'IMC est-il fiable ?</span>
+                                <i class="fas fa-chevron-down text-gray-500"></i>
+                            </button>
+                            <div class="mt-2 text-sm text-gray-600 hidden">
+                                L'IMC est un indicateur utile mais ne tient pas compte de la masse musculaire. Consultez un professionnel pour une évaluation complète.
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <button class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-800 focus:outline-none">
+                                <span>Comment calculer les besoins caloriques ?</span>
+                                <i class="fas fa-chevron-down text-gray-500"></i>
+                            </button>
+                            <div class="mt-2 text-sm text-gray-600 hidden">
+                                Nous utilisons l'équation de Harris-Benedict ajustée selon votre niveau d'activité.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <button class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                            <i class="fas fa-question-circle mr-1"></i> Voir toutes les questions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-sm text-gray-500">
+            <p>IMC+ - Calculateur d'Indice de Masse Corporelle avec conseils personnalisés</p>
+            <p class="mt-1">© 2023 Geoffroy Streit. Tous droits réservés.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // BMI Calculation
+            const calculateBtn = document.getElementById('calculate-btn');
+            const resultsSection = document.getElementById('results-section');
+            
+            calculateBtn.addEventListener('click', calculateBMI);
+            
+            // FAQ Accordion
+            const faqButtons = document.querySelectorAll('#faq button');
+            faqButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    content.classList.toggle('hidden');
+                    const icon = button.querySelector('i');
+                    icon.classList.toggle('fa-chevron-down');
+                    icon.classList.toggle('fa-chevron-up');
+                });
+            });
+            
+            // Sample data for history chart
+            const historyChart = new Chart(
+                document.getElementById('historyChart'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                        datasets: [
+                            {
+                                label: 'IMC',
+                                data: [22.1, 22.3, 22.5, 22.8, 23.0, 23.2],
+                                borderColor: '#4f46e5',
+                                backgroundColor: '#4f46e5',
+                                tension: 0.3,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 20,
+                                max: 30
+                            }
+                        }
+                    }
+                }
+            );
+            
+            function calculateBMI() {
+                const height = parseFloat(document.getElementById('height').value) / 100; // convert to meters
+                const weight = parseFloat(document.getElementById('weight').value);
+                const age = parseInt(document.getElementById('age').value);
+                const gender = document.getElementById('gender').value;
+                const activity = document.getElementById('activity').value;
+                
+                if (!height || !weight || !age) {
+                    alert('Veuillez remplir tous les champs');
+                    return;
+                }
+                
+                // Calculate BMI
+                const bmi = weight / (height * height);
+                const roundedBMI = Math.round(bmi * 10) / 10;
+                
+                // Display BMI
+                document.getElementById('bmi-value').textContent = roundedBMI;
+                
+                // Determine BMI category
+                let category, categoryClass;
+                if (bmi < 16.5) {
+                    category = "Maigreur extrême";
+                    categoryClass = "text-blue-600";
+                } else if (bmi < 18.5) {
+                    category = "Maigreur";
+                    categoryClass = "text-blue-500";
+                } else if (bmi < 25) {
+                    category = "Poids normal";
+                    categoryClass = "text-green-600";
+                } else if (bmi < 30) {
+                    category = "Surpoids";
+                    categoryClass = "text-yellow-600";
+                } else if (bmi < 35) {
+                    category = "Obésité modérée";
+                    categoryClass = "text-orange-600";
+                } else if (bmi < 40) {
+                    category = "Obésité sévère";
+                    categoryClass = "text-red-600";
+                } else {
+                    category = "Obésité morbide";
+                    categoryClass = "text-red-800";
+                }
+                
+                document.getElementById('bmi-category').textContent = category;
+                document.getElementById('bmi-category').className = `text-sm font-medium mt-1 ${categoryClass}`;
+                
+                // Position BMI indicator on chart
+                const bmiIndicator = document.getElementById('bmi-indicator');
+                let position;
+                if (bmi < 16) position = 0;
+                else if (bmi > 40) position = 100;
+                else position = ((bmi - 16) / (40 - 16)) * 100;
+                bmiIndicator.style.left = `${position}%`;
+                
+                // Calculate ideal weight (Hamwi formula)
+                let idealWeight;
+                if (gender === 'male') {
+                    idealWeight = 48 + 2.7 * ((height * 100) - 152.4) / 2.54;
+                } else {
+                    idealWeight = 45.5 + 2.2 * ((height * 100) - 152.4) / 2.54;
+                }
+                document.getElementById('ideal-weight').textContent = Math.round(idealWeight * 10) / 10;
+                
+                // Calculate body fat percentage
+                let bodyFat;
+                if (gender === 'male') {
+                    bodyFat = (1.20 * bmi) + (0.23 * age) - 16.2;
+                } else {
+                    bodyFat = (1.20 * bmi) + (0.23 * age) - 5.4;
+                }
+                document.getElementById('body-fat').textContent = Math.round(bodyFat * 10) / 10;
+                
+                // Set interpretation
+                let interpretation;
+                if (bmi < 18.5) {
+                    interpretation = "Votre IMC indique une insuffisance pondérale. Une consultation avec un nutritionniste pourrait vous aider à atteindre un poids santé.";
+                } else if (bmi < 25) {
+                    interpretation = "Votre IMC est dans la fourchette normale. Continuez à maintenir un mode de vie sain avec une alimentation équilibrée et une activité physique régulière.";
+                } else if (bmi < 30) {
+                    interpretation = "Votre IMC indique un surpoids. Une perte de poids modérée (5-10% de votre poids actuel) pourrait améliorer votre santé. Consultez un professionnel pour des conseils personnalisés.";
+                } else {
+                    interpretation = "Votre IMC indique une obésité. Il est recommandé de consulter un professionnel de santé pour évaluer les risques et mettre en place un plan de prise en charge adapté.";
+                }
+                document.getElementById('interpretation-text').textContent = interpretation;
+                
+                // Set health risks
+                const healthRisksContainer = document.getElementById('health-risks');
+                healthRisksContainer.innerHTML = '';
+                
+                let risks = [];
+                if (bmi < 18.5) {
+                    risks = [
+                        {icon: 'fa-bone', text: 'Ostéoporose', color: 'bg-blue-100 text-blue-800'},
+                        {icon: 'fa-procedures', text: 'Fatigue chronique', color: 'bg-blue-100 text-blue-800'},
+                        {icon: 'fa-immune-system', text: 'Système immunitaire affaibli', color: 'bg-blue-100 text-blue-800'}
+                    ];
+                } else if (bmi < 25) {
+                    risks = [
+                        {icon: 'fa-heart', text: 'Risque cardiovasculaire faible', color: 'bg-green-100 text-green-800'},
+                        {icon: 'fa-smile', text: 'Meilleure qualité de vie', color: 'bg-green-100 text-green-800'}
+                    ];
+                } else if (bmi < 30) {
+                    risks = [
+                        {icon: 'fa-heartbeat', text: 'Hypertension', color: 'bg-yellow-100 text-yellow-800'},
+                        {icon: 'fa-vial', text: 'Diabète de type 2', color: 'bg-yellow-100 text-yellow-800'},
+                        {icon: 'fa-joint', text: 'Problèmes articulaires', color: 'bg-yellow-100 text-yellow-800'}
+                    ];
+                } else {
+                    risks = [
+                        {icon: 'fa-heart-broken', text: 'Maladies cardiovasculaires', color: 'bg-red-100 text-red-800'},
+                        {icon: 'fa-vial', text: 'Diabète de type 2', color: 'bg-red-100 text-red-800'},
+                        {icon: 'fa-lungs', text: 'Apnée du sommeil', color: 'bg-red-100 text-red-800'},
+                        {icon: 'fa-dna', text: 'Certains cancers', color: 'bg-red-100 text-red-800'}
+                    ];
+                }
+                
+                risks.forEach(risk => {
+                    const riskElement = document.createElement('div');
+                    riskElement.className = `flex items-center p-2 rounded ${risk.color}`;
+                    riskElement.innerHTML = `
+                        <i class="fas ${risk.icon} mr-2"></i>
+                        <span class="text-xs font-medium">${risk.text}</span>
+                    `;
+                    healthRisksContainer.appendChild(riskElement);
+                });
+                
+                // Calculate daily calories (Harris-Benedict equation)
+                let bmr;
+                if (gender === 'male') {
+                    bmr = 88.362 + (13.397 * weight) + (4.799 * height * 100) - (5.677 * age);
+                } else {
+                    bmr = 447.593 + (9.247 * weight) + (3.098 * height * 100) - (4.330 * age);
+                }
+                
+                let activityFactor;
+                switch(activity) {
+                    case 'sedentary': activityFactor = 1.2; break;
+                    case 'light': activityFactor = 1.375; break;
+                    case 'moderate': activityFactor = 1.55; break;
+                    case 'active': activityFactor = 1.725; break;
+                    case 'extreme': activityFactor = 1.9; break;
+                    default: activityFactor = 1.2;
+                }
+                
+                const maintenanceCalories = Math.round(bmr * activityFactor);
+                document.getElementById('daily-calories').textContent = maintenanceCalories;
+                document.getElementById('maintenance-calories').textContent = maintenanceCalories;
+                document.getElementById('weight-loss-calories').textContent = Math.max(maintenanceCalories - 500, 1200);
+                document.getElementById('weight-gain-calories').textContent = maintenanceCalories + 500;
+                
+                // Set macronutrients
+                let proteinPercent, carbsPercent, fatPercent;
+                if (bmi >= 25) {
+                    // Higher protein for weight loss
+                    proteinPercent = "30%";
+                    carbsPercent = "40%";
+                    fatPercent = "30%";
+                } else if (bmi < 18.5) {
+                    // Higher carbs for weight gain
+                    proteinPercent = "20%";
+                    carbsPercent = "50%";
+                    fatPercent = "30%";
+                } else {
+                    // Balanced
+                    proteinPercent = "25%";
+                    carbsPercent = "45%";
+                    fatPercent = "30%";
+                }
+                
+                document.getElementById('protein-percent').textContent = proteinPercent;
+                document.getElementById('carbs-percent').textContent = carbsPercent;
+                document.getElementById('fat-percent').textContent = fatPercent;
+                
+                // Set food recommendations
+                const foodRecContainer = document.getElementById('food-recommendations');
+                foodRecContainer.innerHTML = '';
+                
+                let foods = [];
+                if (bmi >= 25) {
+                    foods = [
+                        {icon: 'fa-leaf', name: 'Légumes verts', bg: 'bg-green-100', text: 'text-green-800'},
+                        {icon: 'fa-drumstick-bite', name: 'Protéines maigres', bg: 'bg-blue-100', text: 'text-blue-800'},
+                        {icon: 'fa-seedling', name: 'Graines', bg: 'bg-yellow-100', text: 'text-yellow-800'},
+                        {icon: 'fa-apple-alt', name: 'Fruits pauvres en sucre', bg: 'bg-red-100', text: 'text-red-800'}
+                    ];
+                } else if (bmi < 18.5) {
+                    foods = [
+                        {icon: 'fa-bread-slice', name: 'Céréales complètes', bg: 'bg-yellow-100', text: 'text-yellow-800'},
+                        {icon: 'fa-cheese', name: 'Produits laitiers', bg: 'bg-blue-100', text: 'text-blue-800'},
+                        {icon: 'fa-fish', name: 'Poissons gras', bg: 'bg-green-100', text: 'text-green-800'},
+                        {icon: 'fa-egg', name: 'Œufs', bg: 'bg-red-100', text: 'text-red-800'}
+                    ];
+                } else {
+                    foods = [
+                        {icon: 'fa-apple-alt', name: 'Fruits', bg: 'bg-green-100', text: 'text-green-800'},
+                        {icon: 'fa-carrot', name: 'Légumes', bg: 'bg-yellow-100', text: 'text-yellow-800'},
+                        {icon: 'fa-fish', name: 'Poisson', bg: 'bg-blue-100', text: 'text-blue-800'},
+                        {icon: 'fa-seedling', name: 'Noix et graines', bg: 'bg-red-100', text: 'text-red-800'}
+                    ];
+                }
+                
+                foods.forEach(food => {
+                    const foodElement = document.createElement('div');
+                    foodElement.className = `flex flex-col items-center p-2 rounded-lg ${food.bg} ${food.text}`;
+                    foodElement.innerHTML = `
+                        <i class="fas ${food.icon} text-xl mb-1"></i>
+                        <span class="text-xs text-center font-medium">${food.name}</span>
+                    `;
+                    foodRecContainer.appendChild(foodElement);
+                });
+                
+                // Set meal plan
+                const mealPlanContainer = document.getElementById('meal-plan');
+                mealPlanContainer.innerHTML = '';
+                
+                let meals = [];
+                if (bmi >= 25) {
+                    meals = [
+                        {time: 'Petit-déjeuner', meal: 'Omelette aux légumes, avocat, thé vert'},
+                        {time: 'Collation', meal: 'Yaourt grec avec noix'},
+                        {time: 'Déjeuner', meal: 'Poulet grillé, quinoa, brocolis vapeur'},
+                        {time: 'Goûter', meal: 'Bâtonnets de légumes avec houmous'},
+                        {time: 'Dîner', meal: 'Saumon, salade verte, patate douce'}
+                    ];
+                } else if (bmi < 18.5) {
+                    meals = [
+                        {time: 'Petit-déjeuner', meal: 'Porridge avec fruits secs et miel'},
+                        {time: 'Collation', meal: 'Smoothie banane-beurre de cacahuète'},
+                        {time: 'Déjeuner', meal: 'Pâtes complètes, boulettes de viande, sauce tomate'},
+                        {time: 'Goûter', meal: 'Fromage blanc et fruits'},
+                        {time: 'Dîner', meal: 'Riz, poulet curry, légumes sautés'}
+                    ];
+                } else {
+                    meals = [
+                        {time: 'Petit-déjeuner', meal: 'Muesli, lait, fruits frais'},
+                        {time: 'Collation', meal: 'Fruit et poignée d\'amandes'},
+                        {time: 'Déjeuner', meal: 'Salade composée avec protéines'},
+                        {time: 'Goûter', meal: 'Yaourt et fruits rouges'},
+                        {time: 'Dîner', meal: 'Poisson, légumes variés, féculents complets'}
+                    ];
+                }
+                
+                meals.forEach(meal => {
+                    const mealElement = document.createElement('div');
+                    mealElement.className = 'p-3';
+                    mealElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div class="font-medium text-gray-800">${meal.time}</div>
+                            <div class="text-sm text-gray-600">${meal.meal}</div>
+                        </div>
+                    `;
+                    mealPlanContainer.appendChild(mealElement);
+                });
+                
+                // Set doctor recommendation
+                let doctorRec;
+                if (bmi < 18.5) {
+                    doctorRec = "Une consultation avec un nutritionniste est recommandée pour évaluer les causes de votre insuffisance pondérale et établir un plan nutritionnel adapté.";
+                } else if (bmi < 25) {
+                    doctorRec = "Votre poids est dans la norme. Un bilan de santé annuel est recommandé pour maintenir votre bonne santé.";
+                } else if (bmi < 30) {
+                    doctorRec = "Une consultation avec un médecin ou un nutritionniste pourrait vous aider à perdre du poids de manière saine et durable.";
+                } else {
+                    doctorRec = "Une consultation médicale est fortement recommandée pour évaluer les risques associés à votre obésité et mettre en place une prise en charge adaptée.";
+                }
+                document.getElementById('doctor-recommendation').textContent = doctorRec;
+                
+                // Set weight goals
+                document.getElementById('current-weight').textContent = `${weight} kg`;
+                
+                let targetWeight;
+                if (bmi < 18.5) {
+                    targetWeight = Math.round(idealWeight * 1.05); // Aim for slightly above ideal
+                    document.getElementById('calories-goal').textContent = 'prendre du poids';
+                } else if (bmi < 25) {
+                    targetWeight = weight;
+                    document.getElementById('calories-goal').textContent = 'maintenir';
+                } else {
+                    targetWeight = Math.round(idealWeight * 0.95); // Aim for slightly below ideal
+                    document.getElementById('calories-goal').textContent = 'perdre du poids';
+                }
+                
+                document.getElementById('target-weight').textContent = `${targetWeight} kg`;
+                
+                const weightDifference = Math.abs(weight - targetWeight);
+                document.getElementById('weight-difference').textContent = `${weightDifference} kg`;
+                
+                let goalText;
+                if (bmi < 18.5) {
+                    goalText = `Prendre ${weightDifference} kg pour atteindre un poids santé`;
+                } else if (bmi < 25) {
+                    goalText = `Maintenir votre poids actuel de ${weight} kg`;
+                } else {
+                    goalText = `Perdre ${weightDifference} kg pour atteindre un poids santé`;
+                }
+                document.getElementById('weight-goal-text').textContent = goalText;
+                
+                let progressText;
+                let progressPercent;
+                if (bmi < 18.5) {
+                    const sampleCurrent = weight / idealWeight * 100 - 100;
+                    progressPercent = Math.min(Math.round(sampleCurrent / 5 * 100), 100);
+                    progressText = `Vous êtes à ${progressPercent}% de votre objectif de prise de poids`;
+                } else if (bmi < 25) {
+                    progressPercent = 100;
+                    progressText = `Vous maintenez un poids santé`;
+                } else {
+                    const sampleCurrent = (1 - (weight - idealWeight) / (weight - targetWeight)) * 100;
+                    progressPercent = Math.round(sampleCurrent);
+                    progressText = `Vous avez accompli ${progressPercent}% de votre objectif de perte de poids`;
+                }
+                
+                document.getElementById('progress-percent').textContent = progressPercent;
+                document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+                document.getElementById('weight-progress-text').textContent = progressText;
+                
+                // Show results
+                resultsSection.classList.remove('hidden');
+                
+                // Scroll to results
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>
