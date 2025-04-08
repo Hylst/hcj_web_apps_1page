@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydratAlert - Traqueur d'hydratation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .drink-btn:hover {
+            transform: translateY(-5px);
+        }
+        .badge:hover {
+            transform: scale(1.1);
+        }
+        .chart-container {
+            height: 250px;
+        }
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-blue-50 to-white min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="flex flex-col items-center mb-8">
+            <div class="flex items-center justify-center bg-blue-100 rounded-full p-4 shadow-lg mb-4 pulse-animation">
+                <i class="fas fa-tint text-blue-600 text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-blue-800 mb-2">HydratAlert</h1>
+            <p class="text-blue-600">Par Geoffroy Streit</p>
+            <div class="mt-4 flex space-x-2">
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Version 2.0</span>
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">En ligne</span>
+            </div>
+        </header>
+
+        <!-- Introduction Section -->
+        <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3">Bienvenue sur HydratAlert</h2>
+            <p class="text-gray-600 mb-3">
+                HydratAlert est votre compagnon intelligent pour une hydratation optimale. Ce tracker vous aide à :
+            </p>
+            <ul class="list-disc pl-5 text-gray-600 space-y-1">
+                <li>Suivre votre consommation d'eau et autres boissons</li>
+                <li>Recevoir des rappels personnalisés selon vos besoins</li>
+                <li>Adapter vos objectifs en fonction de la météo et activité</li>
+                <li>Visualiser vos progrès avec des graphiques clairs</li>
+                <li>Débloquer des badges de motivation</li>
+                <li>Exporter vos données vers Apple Health/Google Fit</li>
+            </ul>
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-blue-800 font-medium"><i class="fas fa-info-circle mr-2"></i> Conseil du jour : Boire un verre d'eau au réveil aide à réhydrater votre corps après la nuit.</p>
+            </div>
+        </section>
+
+        <!-- Main Dashboard -->
+        <main>
+            <!-- Weather and Goal Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="mr-4 text-5xl">
+                            <i class="fas fa-sun text-yellow-400" id="weatherIcon"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800" id="weatherText">Météo: Ensoleillé</h2>
+                            <p class="text-gray-600">Objectif recommandé: <span id="recommendedGoal">2.5L</span></p>
+                            <p class="text-sm text-gray-500" id="locationText">Localisation: Paris, FR</p>
+                        </div>
+                    </div>
+                    <div class="relative w-32 h-32">
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <circle class="text-gray-200" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+                            <circle class="text-blue-500 progress-ring__circle" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" 
+                                    stroke-dasharray="251.2" stroke-dashoffset="125.6" id="progressCircle" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl font-bold text-blue-700" id="currentAmount">1.25L</span>
+                            <span class="text-sm text-gray-500">sur <span id="dailyGoal">2.5L</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-sm font-medium text-blue-700">Progression</span>
+                        <span class="text-sm font-medium text-blue-700" id="progressPercentage">50%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" id="progressBar" style="width: 50%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Add Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Ajouter une consommation</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button class="drink-btn bg-blue-100 hover:bg-blue-200 text-blue-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300" data-type="water" data-amount="250">
+                        <i class="fas fa-glass-water text-3xl mb-2"></i>
+                        <span>250ml Eau</span>
+                    </button>
+                    <button class="drink-btn bg-green-100 hover:bg-green-200 text-green-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300" data-type="coffee" data-amount="200">
+                        <i class="fas fa-mug-hot text-3xl mb-2"></i>
+                        <span>200ml Café</span>
+                    </button>
+                    <button class="drink-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300" data-type="tea" data-amount="150">
+                        <i class="fas fa-wine-glass-alt text-3xl mb-2"></i>
+                        <span>150ml Thé</span>
+                    </button>
+                    <button class="drink-btn bg-purple-100 hover:bg-purple-200 text-purple-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300" id="customDrinkBtn">
+                        <i class="fas fa-cocktail text-3xl mb-2"></i>
+                        <span>Personnalisé</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Custom Add Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6" id="customDrinkSection">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Ajout personnalisé</h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Type de boisson</label>
+                        <select class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" id="drinkType">
+                            <option value="water">Eau</option>
+                            <option value="coffee">Café</option>
+                            <option value="tea">Thé</option>
+                            <option value="juice">Jus</option>
+                            <option value="soda">Soda</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantité (ml)</label>
+                        <input type="number" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" id="drinkAmount" placeholder="250" min="1" max="1000">
+                    </div>
+                    <div class="flex items-end">
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition-colors duration-300" id="addCustomDrink">
+                            Ajouter
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Statistiques</h2>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2">Consommation aujourd'hui</h3>
+                        <div class="chart-container">
+                            <canvas id="todayChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2">Historique 7 jours</h3>
+                        <div class="chart-container">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm flex items-center" id="exportDataBtn">
+                        <i class="fas fa-download mr-1"></i> Exporter les données
+                    </button>
+                </div>
+            </section>
+
+            <!-- Drink History Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Historique des consommations</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heure</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantité</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="drinkHistory">
+                            <!-- Rows will be added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Badges Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Badges de réussite</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" id="badgesContainer">
+                    <!-- Badges will be added dynamically -->
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Paramètres</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Notifications</h3>
+                            <p class="text-sm text-gray-500">Rappels pour boire de l'eau</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" id="notificationsToggle" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Sons de rappel</h3>
+                            <p class="text-sm text-gray-500">Activer les sons</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" id="soundsToggle" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Objectif quotidien</h3>
+                            <p class="text-sm text-gray-500">Définir manuellement (ml)</p>
+                        </div>
+                        <input type="number" class="w-20 border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" id="dailyGoalInput" value="2500" min="500" max="5000">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Fréquence des rappels</h3>
+                            <p class="text-sm text-gray-500">Intervalle entre notifications</p>
+                        </div>
+                        <select class="border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" id="reminderInterval">
+                            <option value="30">30 minutes</option>
+                            <option value="60" selected>1 heure</option>
+                            <option value="90">1h30</option>
+                            <option value="120">2 heures</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Export santé</h3>
+                            <p class="text-sm text-gray-500">Exporter vers Apple Health/Google Fit</p>
+                        </div>
+                        <button class="bg-green-600 hover:bg-green-700 text-white py-1 px-4 rounded-md transition-colors duration-300 text-sm" id="healthExportBtn">
+                            Exporter
+                        </button>
+                    </div>
+                    <div class="pt-4 border-t border-gray-200">
+                        <button class="text-red-600 hover:text-red-800 text-sm flex items-center" id="resetDataBtn">
+                            <i class="fas fa-trash-alt mr-1"></i> Réinitialiser toutes les données
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reminder Section -->
+            <section class="bg-blue-50 border border-blue-200 rounded-xl shadow-md p-6 mb-6" id="reminderSection">
+                <div class="flex items-center">
+                    <div class="mr-4 text-blue-600 text-3xl">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-blue-800 mb-1">Prochain rappel</h2>
+                        <p class="text-blue-600" id="nextReminderText">Dans 15 minutes - 12:30</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-col sm:flex-row justify-between gap-2">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300 flex-1" id="drankBtn">
+                        <i class="fas fa-check mr-2"></i> J'ai bu
+                    </button>
+                    <button class="bg-white hover:bg-gray-100 text-blue-600 border border-blue-300 py-2 px-4 rounded-md transition-colors duration-300 flex-1" id="snoozeBtn">
+                        <i class="fas fa-clock mr-2"></i> Reporter
+                    </button>
+                    <button class="bg-white hover:bg-gray-100 text-gray-600 border border-gray-300 py-2 px-4 rounded-md transition-colors duration-300 flex-1" id="skipBtn">
+                        <i class="fas fa-times mr-2"></i> Ignorer
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-600 text-sm mt-8">
+            <p>HydratAlert - Traqueur d'hydratation intelligent</p>
+            <p class="mt-1">Développé par Geoffroy Streit - © 2023</p>
+            <div class="flex justify-center space-x-4 mt-4">
+                <a href="#" class="text-blue-600 hover:text-blue-800"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-blue-600 hover:text-blue-800"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-github"></i></a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal hidden" id="modal">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">Notification</h3>
+                <button class="text-gray-500 hover:text-gray-700" id="closeModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4" id="modalContent">
+                Contenu de la modal
+            </div>
+            <div class="flex justify-end">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300" id="modalConfirmBtn">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio for reminders -->
+    <audio id="reminderSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // App State
+        const state = {
+            dailyGoal: 2500, // in ml
+            currentIntake: 1250, // in ml
+            drinksHistory: [],
+            badges: [
+                { id: 'beginner', name: 'Débutant', description: '1er jour complet', icon: 'fa-medal', color: 'yellow', unlocked: true },
+                { id: 'hydrated', name: 'Hydraté', description: '3 jours consécutifs', icon: 'fa-trophy', color: 'blue', unlocked: true },
+                { id: 'expert', name: 'Expert', description: '7 jours consécutifs', icon: 'fa-star', color: 'purple', unlocked: false },
+                { id: 'master', name: 'Maître', description: '30 jours consécutifs', icon: 'fa-crown', color: 'red', unlocked: false },
+                { id: 'hot_day', name: 'Journée chaude', description: 'Objectif atteint par temps chaud', icon: 'fa-sun', color: 'orange', unlocked: false },
+                { id: 'early_bird', name: 'Lève-tôt', description: 'Premier verre avant 7h', icon: 'fa-clock', color: 'green', unlocked: false }
+            ],
+            settings: {
+                notifications: true,
+                sounds: true,
+                reminderInterval: 60 // in minutes
+            },
+            nextReminder: null,
+            reminderTimeout: null
+        };
+
+        // DOM Elements
+        const elements = {
+            progressCircle: document.getElementById('progressCircle'),
+            currentAmount: document.getElementById('currentAmount'),
+            dailyGoal: document.getElementById('dailyGoal'),
+            progressPercentage: document.getElementById('progressPercentage'),
+            progressBar: document.getElementById('progressBar'),
+            drinkHistory: document.getElementById('drinkHistory'),
+            badgesContainer: document.getElementById('badgesContainer'),
+            notificationsToggle: document.getElementById('notificationsToggle'),
+            soundsToggle: document.getElementById('soundsToggle'),
+            dailyGoalInput: document.getElementById('dailyGoalInput'),
+            reminderInterval: document.getElementById('reminderInterval'),
+            nextReminderText: document.getElementById('nextReminderText'),
+            reminderSection: document.getElementById('reminderSection'),
+            drankBtn: document.getElementById('drankBtn'),
+            snoozeBtn: document.getElementById('snoozeBtn'),
+            skipBtn: document.getElementById('skipBtn'),
+            drinkType: document.getElementById('drinkType'),
+            drinkAmount: document.getElementById('drinkAmount'),
+            addCustomDrink: document.getElementById('addCustomDrink'),
+            customDrinkBtn: document.getElementById('customDrinkBtn'),
+            healthExportBtn: document.getElementById('healthExportBtn'),
+            exportDataBtn: document.getElementById('exportDataBtn'),
+            resetDataBtn: document.getElementById('resetDataBtn'),
+            modal: document.getElementById('modal'),
+            modalTitle: document.getElementById('modalTitle'),
+            modalContent: document.getElementById('modalContent'),
+            modalConfirmBtn: document.getElementById('modalConfirmBtn'),
+            closeModalBtn: document.getElementById('closeModalBtn'),
+            reminderSound: document.getElementById('reminderSound'),
+            weatherIcon: document.getElementById('weatherIcon'),
+            weatherText: document.getElementById('weatherText'),
+            recommendedGoal: document.getElementById('recommendedGoal')
+        };
+
+        // Initialize the app
+        function initApp() {
+            // Load from localStorage if available
+            const savedState = localStorage.getItem('hydratAlertState');
+            if (savedState) {
+                Object.assign(state, JSON.parse(savedState));
+            }
+
+            // Set up UI based on state
+            updateProgress();
+            renderDrinkHistory();
+            renderBadges();
+            updateSettingsUI();
+            setupReminder();
+
+            // Initialize charts
+            initCharts();
+
+            // Simulate weather data (in a real app, this would come from an API)
+            simulateWeather();
+
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        // Update progress visualization
+        function updateProgress() {
+            const percentage = Math.min(100, (state.currentIntake / state.dailyGoal) * 100);
+            const offset = 251.2 - (251.2 * percentage / 100);
+            
+            elements.progressCircle.setAttribute('stroke-dashoffset', offset);
+            elements.currentAmount.textContent = `${(state.currentIntake / 1000).toFixed(2)}L`;
+            elements.dailyGoal.textContent = `${(state.dailyGoal / 1000).toFixed(1)}L`;
+            elements.progressPercentage.textContent = `${Math.round(percentage)}%`;
+            elements.progressBar.style.width = `${percentage}%`;
+            
+            // Check for goal achievement
+            if (percentage >= 100 && !state.badges.find(b => b.id === 'daily_goal').unlocked) {
+                unlockBadge('daily_goal');
+                showModal('Félicitations!', 'Vous avez atteint votre objectif quotidien!');
+            }
+        }
+
+        // Add a drink to history
+        function addDrink(type, amount) {
+            const now = new Date();
+            const drink = {
+                id: Date.now(),
+                type: type,
+                amount: parseInt(amount),
+                timestamp: now.getTime(),
+                timeString: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            state.drinksHistory.unshift(drink);
+            state.currentIntake += drink.amount;
+            
+            // Save to localStorage
+            saveState();
+            
+            // Update UI
+            updateProgress();
+            renderDrinkHistory();
+            updateTodayChart();
+            
+            // Check for badges
+            checkForBadges(drink);
+            
+            return drink;
+        }
+
+        // Remove a drink from history
+        function removeDrink(id) {
+            const index = state.drinksHistory.findIndex(drink => drink.id === id);
+            if (index !== -1) {
+                const drink = state.drinksHistory[index];
+                state.currentIntake -= drink.amount;
+                state.drinksHistory.splice(index, 1);
+                
+                // Save to localStorage
+                saveState();
+                
+                // Update UI
+                updateProgress();
+                renderDrinkHistory();
+                updateTodayChart();
+            }
+        }
+
+        // Render drink history table
+        function renderDrinkHistory() {
+            elements.drinkHistory.innerHTML = '';
+            
+            if (state.drinksHistory.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="4" class="px-4 py-4 text-center text-gray-500">Aucune consommation enregistrée aujourd'hui</td>
+                `;
+                elements.drinkHistory.appendChild(row);
+                return;
+            }
+            
+            state.drinksHistory.forEach(drink => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                let icon, color;
+                switch(drink.type) {
+                    case 'water':
+                        icon = 'fa-glass-water';
+                        color = 'text-blue-500';
+                        break;
+                    case 'coffee':
+                        icon = 'fa-mug-hot';
+                        color = 'text-green-500';
+                        break;
+                    case 'tea':
+                        icon = 'fa-wine-glass-alt';
+                        color = 'text-yellow-500';
+                        break;
+                    case 'juice':
+                        icon = 'fa-glass-whiskey';
+                        color = 'text-orange-500';
+                        break;
+                    case 'soda':
+                        icon = 'fa-glass-cheers';
+                        color = 'text-purple-500';
+                        break;
+                    default:
+                        icon = 'fa-cocktail';
+                        color = 'text-pink-500';
+                }
+                
+                row.innerHTML = `
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${drink.timeString}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <i class="fas ${icon} ${color} mr-2"></i>
+                            <span class="text-sm text-gray-900 capitalize">${drink.type}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-900">${drink.amount}ml</span>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 delete-drink" data-id="${drink.id}">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                
+                elements.drinkHistory.appendChild(row);
+            });
+            
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-drink').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    removeDrink(id);
+                });
+            });
+        }
+
+        // Render badges
+        function renderBadges() {
+            elements.badgesContainer.innerHTML = '';
+            
+            state.badges.forEach(badge => {
+                let bgColor, borderColor, textColor;
+                
+                switch(badge.color) {
+                    case 'yellow':
+                        bgColor = 'bg-yellow-100';
+                        borderColor = 'border-yellow-300';
+                        textColor = 'text-yellow-800';
+                        break;
+                    case 'blue':
+                        bgColor = 'bg-blue-100';
+                        borderColor = 'border-blue-300';
+                        textColor = 'text-blue-800';
+                        break;
+                    case 'purple':
+                        bgColor = 'bg-purple-100';
+                        borderColor = 'border-purple-300';
+                        textColor = 'text-purple-800';
+                        break;
+                    case 'red':
+                        bgColor = 'bg-red-100';
+                        borderColor = 'border-red-300';
+                        textColor = 'text-red-800';
+                        break;
+                    case 'orange':
+                        bgColor = 'bg-orange-100';
+                        borderColor = 'border-orange-300';
+                        textColor = 'text-orange-800';
+                        break;
+                    case 'green':
+                        bgColor = 'bg-green-100';
+                        borderColor = 'border-green-300';
+                        textColor = 'text-green-800';
+                        break;
+                    default:
+                        bgColor = 'bg-gray-100';
+                        borderColor = 'border-gray-300';
+                        textColor = 'text-gray-800';
+                }
+                
+                const badgeElement = document.createElement('div');
+                badgeElement.className = `badge ${bgColor} border-2 ${borderColor} rounded-lg p-4 flex flex-col items-center cursor-pointer ${badge.unlocked ? '' : 'opacity-60'}`;
+                badgeElement.innerHTML = `
+                    <i class="fas ${badge.icon} ${textColor} text-3xl mb-2 ${badge.unlocked ? '' : 'text-gray-400'}""></i>
+                    <span class="font-medium ${textColor} ${badge.unlocked ? '' : 'text-gray-500'}">${badge.name}</span>
+                    <span class="text-xs ${badge.unlocked ? textColor.replace('800', '600') : 'text-gray-400'}">${badge.description}</span>
+                `;
+                
+                if (badge.unlocked) {
+                    badgeElement.addEventListener('click', () => {
+                        showModal(badge.name, `Badge débloqué: ${badge.description}`);
+                    });
+                }
+                
+                elements.badgesContainer.appendChild(badgeElement);
+            });
+        }
+
+        // Unlock a badge
+        function unlockBadge(id) {
+            const badge = state.badges.find(b => b.id === id);
+            if (badge && !badge.unlocked) {
+                badge.unlocked = true;
+                saveState();
+                renderBadges();
+                return true;
+            }
+            return false;
+        }
+
+        // Check for badge achievements
+        function checkForBadges(drink) {
+            // Check for early bird badge
+            const drinkTime = new Date(drink.timestamp);
+            if (drinkTime.getHours() < 7 && drink.type === 'water') {
+                unlockBadge('early_bird');
+            }
+            
+            // Add more badge checks here...
+        }
+
+        // Update settings UI based on state
+        function updateSettingsUI() {
+            elements.notificationsToggle.checked = state.settings.notifications;
+            elements.soundsToggle.checked = state.settings.sounds;
+            elements.dailyGoalInput.value = state.dailyGoal;
+            elements.reminderInterval.value = state.settings.reminderInterval;
+        }
+
+        // Save state to localStorage
+        function saveState() {
+            localStorage.setItem('hydratAlertState', JSON.stringify(state));
+        }
+
+        // Set up reminder system
+        function setupReminder() {
+            // Clear existing timeout if any
+            if (state.reminderTimeout) {
+                clearTimeout(state.reminderTimeout);
+            }
+            
+            // If notifications are disabled, hide the reminder section
+            if (!state.settings.notifications) {
+                elements.reminderSection.classList.add('hidden');
+                return;
+            }
+            
+            // Show reminder section
+            elements.reminderSection.classList.remove('hidden');
+            
+            // Calculate next reminder time
+            const now = new Date();
+            const intervalMs = state.settings.reminderInterval * 60 * 1000;
+            
+            // If we don't have a next reminder or it's in the past, set a new one
+            if (!state.nextReminder || state.nextReminder < now.getTime()) {
+                state.nextReminder = now.getTime() + intervalMs;
+                saveState();
+            }
+            
+            // Calculate time until next reminder
+            const timeUntilReminder = state.nextReminder - now.getTime();
+            
+            // Update UI with next reminder time
+            const reminderTime = new Date(state.nextReminder);
+            const hours = reminderTime.getHours().toString().padStart(2, '0');
+            const minutes = reminderTime.getMinutes().toString().padStart(2, '0');
+            elements.nextReminderText.textContent = `À ${hours}:${minutes}`;
+            
+            // Set timeout for next reminder
+            state.reminderTimeout = setTimeout(() => {
+                triggerReminder();
+            }, timeUntilReminder);
+        }
+
+        // Trigger a reminder
+        function triggerReminder() {
+            // Play sound if enabled
+            if (state.settings.sounds) {
+                elements.reminderSound.play();
+            }
+            
+            // Show notification if enabled
+            if (state.settings.notifications && Notification.permission === 'granted') {
+                new Notification('HydratAlert', {
+                    body: 'Il est temps de boire un verre d\'eau!',
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3081/3081161.png'
+                });
+            }
+            
+            // Set up next reminder
+            setupReminder();
+        }
+
+        // Initialize charts
+        function initCharts() {
+            // Today's consumption chart
+            const todayCtx = document.getElementById('todayChart').getContext('2d');
+            window.todayChart = new Chart(todayCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['6h', '9h', '12h', '15h', '18h', '21h'],
+                    datasets: [{
+                        label: 'Consommation (ml)',
+                        data: [250, 400, 300, 200, 100, 0],
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 500,
+                            ticks: {
+                                stepSize: 100
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Weekly consumption chart
+            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+            window.weeklyChart = new Chart(weeklyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                    datasets: [{
+                        label: 'Consommation (L)',
+                        data: [1.8, 2.1, 2.4, 1.9, 2.2, 2.5, 2.0],
+                        fill: false,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 3,
+                            ticks: {
+                                stepSize: 0.5
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update today's chart with real data
+        function updateTodayChart() {
+            // In a real app, this would group drinks by time period
+            // For demo purposes, we'll just simulate some data
+            const data = [250, 400, 300, 200, 100, 0];
+            const currentHour = new Date().getHours();
+            
+            if (currentHour >= 6 && currentHour < 9) data[0] += 100;
+            else if (currentHour >= 9 && currentHour < 12) data[1] += 100;
+            else if (currentHour >= 12 && currentHour < 15) data[2] += 100;
+            else if (currentHour >= 15 && currentHour < 18) data[3] += 100;
+            else if (currentHour >= 18 && currentHour < 21) data[4] += 100;
+            else data[5] += 100;
+            
+            window.todayChart.data.datasets[0].data = data;
+            window.todayChart.update();
+        }
+
+        // Simulate weather data
+        function simulateWeather() {
+            // In a real app, this would come from a weather API
+            const weatherTypes = [
+                { type: 'sunny', icon: 'fa-sun', text: 'Ensoleillé', recommendation: 2500 },
+                { type: 'cloudy', icon: 'fa-cloud', text: 'Nuageux', recommendation: 2200 },
+                { type: 'rainy', icon: 'fa-cloud-rain', text: 'Pluvieux', recommendation: 2000 },
+                { type: 'hot', icon: 'fa-temperature-high', text: 'Chaud', recommendation: 3000 },
+                { type: 'cold', icon: 'fa-temperature-low', text: 'Froid', recommendation: 1800 }
+            ];
+            
+            const randomWeather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+            
+            elements.weatherIcon.className = `fas ${randomWeather.icon} text-${randomWeather.type === 'hot' ? 'red' : randomWeather.type === 'cold' ? 'blue' : 'yellow'}-400`;
+            elements.weatherText.textContent = `Météo: ${randomWeather.text}`;
+            elements.recommendedGoal.textContent = `${(randomWeather.recommendation / 1000).toFixed(1)}L`;
+            
+            // Adjust daily goal based on weather recommendation
+            if (state.dailyGoal < randomWeather.recommendation * 0.9 || state.dailyGoal > randomWeather.recommendation * 1.1) {
+                state.dailyGoal = randomWeather.recommendation;
+                elements.dailyGoalInput.value = state.dailyGoal;
+                updateProgress();
+            }
+        }
+
+        // Show modal dialog
+        function showModal(title, content) {
+            elements.modalTitle.textContent = title;
+            elements.modalContent.textContent = content;
+            elements.modal.classList.remove('hidden');
+        }
+
+        // Hide modal dialog
+        function hideModal() {
+            elements.modal.classList.add('hidden');
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Quick drink buttons
+            document.querySelectorAll('.drink-btn[data-type][data-amount]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const type = this.getAttribute('data-type');
+                    const amount = this.getAttribute('data-amount');
+                    addDrink(type, amount);
+                    
+                    // Animation effect
+                    this.classList.add('animate-ping');
+                    setTimeout(() => {
+                        this.classList.remove('animate-ping');
+                    }, 300);
+                });
+            });
+            
+            // Custom drink button
+            elements.customDrinkBtn.addEventListener('click', function() {
+                elements.customDrinkSection.scrollIntoView({ behavior: 'smooth' });
+                elements.drinkAmount.focus();
+            });
+            
+            // Add custom drink
+            elements.addCustomDrink.addEventListener('click', function() {
+                const type = elements.drinkType.value;
+                const amount = elements.drinkAmount.value;
+                
+                if (amount && amount > 0 && amount <= 1000) {
+                    addDrink(type, amount);
+                    elements.drinkAmount.value = '';
+                    showModal('Succès', `${amount}ml de ${type} ajouté avec succès!`);
+                } else {
+                    showModal('Erreur', 'Veuillez entrer une quantité valide (1-1000ml)');
+                }
+            });
+            
+            // Settings toggles
+            elements.notificationsToggle.addEventListener('change', function() {
+                state.settings.notifications = this.checked;
+                saveState();
+                setupReminder();
+                
+                // Request notification permission if enabling
+                if (this.checked && Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                }
+            });
+            
+            elements.soundsToggle.addEventListener('change', function() {
+                state.settings.sounds = this.checked;
+                saveState();
+            });
+            
+            // Daily goal input
+            elements.dailyGoalInput.addEventListener('change', function() {
+                const newGoal = parseInt(this.value);
+                if (newGoal >= 500 && newGoal <= 5000) {
+                    state.dailyGoal = newGoal;
+                    saveState();
+                    updateProgress();
+                } else {
+                    this.value = state.dailyGoal;
+                    showModal('Valeur invalide', 'Veuillez entrer un objectif entre 500ml et 5000ml');
+                }
+            });
+            
+            // Reminder interval
+            elements.reminderInterval.addEventListener('change', function() {
+                state.settings.reminderInterval = parseInt(this.value);
+                saveState();
+                setupReminder();
+            });
+            
+            // Reminder buttons
+            elements.drankBtn.addEventListener('click', function() {
+                addDrink('water', 250);
+                showModal('Bravo!', 'Vous avez pris une bonne habitude en buvant de l\'eau.');
+                setupReminder();
+            });
+            
+            elements.snoozeBtn.addEventListener('click', function() {
+                // Snooze for 15 minutes
+                state.nextReminder = Date.now() + (15 * 60 * 1000);
+                saveState();
+                setupReminder();
+                showModal('Rappel reporté', 'Le prochain rappel sera dans 15 minutes.');
+            });
+            
+            elements.skipBtn.addEventListener('click', function() {
+                // Skip this reminder, next will be at normal interval
+                state.nextReminder = Date.now() + (state.settings.reminderInterval * 60 * 1000);
+                saveState();
+                setupReminder();
+                showModal('Rappel ignoré', 'Le prochain rappel sera à l\'heure normale.');
+            });
+            
+            // Health export
+            elements.healthExportBtn.addEventListener('click', function() {
+                showModal('Export santé', 'Fonctionnalité d\'export vers Apple Health/Google Fit. Dans une application réelle, cela permettrait de synchroniser vos données d\'hydratation avec votre application santé préférée.');
+            });
+            
+            // Data export
+            elements.exportDataBtn.addEventListener('click', function() {
+                const data = {
+                    dailyGoal: state.dailyGoal,
+                    currentIntake: state.currentIntake,
+                    drinksHistory: state.drinksHistory,
+                    date: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hydratalert-data-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showModal('Export réussi', 'Vos données ont été exportées avec succès.');
+            });
+            
+            // Reset data
+            elements.resetDataBtn.addEventListener('click', function() {
+                if (confirm('Êtes-vous sûr de vouloir réinitialiser toutes les données? Cette action est irréversible.')) {
+                    localStorage.removeItem('hydratAlertState');
+                    window.location.reload();
+                }
+            });
+            
+            // Modal buttons
+            elements.closeModalBtn.addEventListener('click', hideModal);
+            elements.modalConfirmBtn.addEventListener('click', hideModal);
+            
+            // Request notification permission on page load if notifications are enabled
+            if (state.settings.notifications && Notification.permission !== 'granted') {
+                Notification.requestPermission();
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoffroy Streit - SportTracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                            <i class="fas fa-running text-2xl text-indigo-600"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold">SportTracker</h1>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <button class="relative">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center">3</span>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" class="w-10 h-10 rounded-full border-2 border-white">
+                            <span class="font-medium">Geoffroy S.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Welcome Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Bonjour Geoffroy !</h2>
+                                <p class="text-gray-600 mt-2">Prêt pour votre séance d'aujourd'hui ?</p>
+                            </div>
+                            <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium">
+                                <i class="fas fa-calendar-day mr-2"></i> Lundi 12 Juin
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <div class="flex items-center">
+                                    <div class="bg-blue-100 p-3 rounded-full mr-3">
+                                        <i class="fas fa-fire text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Calories brûlées</p>
+                                        <p class="font-bold text-gray-800">1,250 kcal</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                                <div class="flex items-center">
+                                    <div class="bg-purple-100 p-3 rounded-full mr-3">
+                                        <i class="fas fa-heartbeat text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Rythme cardiaque</p>
+                                        <p class="font-bold text-gray-800">72 bpm</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                                <div class="flex items-center">
+                                    <div class="bg-green-100 p-3 rounded-full mr-3">
+                                        <i class="fas fa-walking text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Pas aujourd'hui</p>
+                                        <p class="font-bold text-gray-800">8,742</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Session -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Séance d'entraînement</h2>
+                            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full text-sm font-medium transition duration-300">
+                                <i class="fas fa-plus mr-2"></i> Nouvelle séance
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Current Session -->
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-300">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-bold text-lg text-gray-800">Cardio & Musculation</h3>
+                                        <div class="flex items-center mt-2 space-x-4">
+                                            <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i> 14:00 - 15:30</span>
+                                            <span class="text-sm text-gray-600"><i class="fas fa-bolt mr-1"></i> Intensité: Élevée</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex items-center space-x-4">
+                                    <div class="flex-1 bg-gray-100 rounded-full h-2">
+                                        <div class="bg-indigo-600 h-2 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700">75% complété</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Completed Sessions -->
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-bold text-lg text-gray-800">Yoga & Étirements</h3>
+                                        <div class="flex items-center mt-2 space-x-4">
+                                            <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i> 08:00 - 08:45</span>
+                                            <span class="text-sm text-gray-600"><i class="fas fa-bolt mr-1"></i> Intensité: Modérée</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Terminé</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">Séance réussie</span>
+                                    </div>
+                                    <button class="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition">
+                                        Voir détails
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-bold text-lg text-gray-800">Course à pied</h3>
+                                        <div class="flex items-center mt-2 space-x-4">
+                                            <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i> Hier, 18:00 - 19:15</span>
+                                            <span class="text-sm text-gray-600"><i class="fas fa-bolt mr-1"></i> Intensité: Élevée</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Terminé</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">8.5 km en 1h15</span>
+                                    </div>
+                                    <button class="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition">
+                                        Voir détails
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Charts -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Votre progression</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm rounded-full bg-indigo-600 text-white">Semaine</button>
+                                <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">Mois</button>
+                                <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">Année</button>
+                            </div>
+                        </div>
+                        
+                        <div class="h-64">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                        
+                        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Séances</p>
+                                <p class="text-2xl font-bold text-indigo-600">12</p>
+                                <p class="text-xs text-green-500">+2 vs semaine dernière</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Durée totale</p>
+                                <p class="text-2xl font-bold text-indigo-600">9h30</p>
+                                <p class="text-xs text-green-500">+1h15 vs semaine dernière</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Calories</p>
+                                <p class="text-2xl font-bold text-indigo-600">8,450</p>
+                                <p class="text-xs text-green-500">+1,200 vs semaine dernière</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Objectif</p>
+                                <div class="relative w-16 h-16 mx-auto">
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path
+                                            d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none"
+                                            stroke="#e6e6e6"
+                                            stroke-width="3"
+                                            stroke-dasharray="100, 100"
+                                        />
+                                        <path
+                                            d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none"
+                                            stroke="#4f46e5"
+                                            stroke-width="3"
+                                            stroke-dasharray="65, 100"
+                                            class="progress-ring__circle"
+                                        />
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-indigo-600">65%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    <!-- SMART Goals -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Objectifs SMART</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <div class="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white">
+                                            <i class="fas fa-bullseye text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-800">Courir un semi-marathon</h3>
+                                        <p class="text-sm text-gray-600 mt-1">Objectif: 21km d'ici 3 mois • Progression: 12km</p>
+                                        <div class="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                                            <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 57%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <div class="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white">
+                                            <i class="fas fa-dumbbell text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-800">Développer la force</h3>
+                                        <p class="text-sm text-gray-600 mt-1">Squat 100kg d'ici 2 mois • Actuel: 80kg</p>
+                                        <div class="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                                            <div class="bg-purple-600 h-1.5 rounded-full" style="width: 80%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 bg-green-50 rounded-lg border border-green-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-1">
+                                        <div class="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-white">
+                                            <i class="fas fa-heart text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-800">Perte de poids</h3>
+                                        <p class="text-sm text-gray-600 mt-1">Atteindre 75kg d'ici 4 mois • Actuel: 82kg</p>
+                                        <div class="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                                            <div class="bg-green-600 h-1.5 rounded-full" style="width: 30%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coach Connection -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Votre coach</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-comment-dots"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Coach" class="w-16 h-16 rounded-full border-2 border-indigo-100">
+                            <div>
+                                <h3 class="font-bold text-gray-800">Marie Dubois</h3>
+                                <p class="text-sm text-gray-600">Coach sportif certifié</p>
+                                <div class="mt-1 flex space-x-1">
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Dernier message:</span>
+                                <span class="text-sm font-medium">Aujourd'hui, 09:30</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Prochain rendez-vous:</span>
+                                <span class="text-sm font-medium">Mercredi, 14:00</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Partage des données:</span>
+                                <span class="text-sm font-medium text-green-600">Actif</span>
+                            </div>
+                        </div>
+                        
+                        <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition duration-300">
+                            <i class="fas fa-paper-plane mr-2"></i> Envoyer un message
+                        </button>
+                    </div>
+
+                    <!-- Wearable Devices -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Appareils connectés</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                        <i class="fas fa-watch"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-800">Apple Watch</h3>
+                                        <p class="text-xs text-gray-500">Connecté • 98% batterie</p>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-800">Fitbit Charge 5</h3>
+                                        <p class="text-xs text-gray-500">Dernière synchro: 2h</p>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
+                                    <i class="fas fa-exclamation"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg opacity-50">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                        <i class="fas fa-shoe-prints"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-500">Podomètre</h3>
+                                        <p class="text-xs text-gray-400">Non connecté</p>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Sessions -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Prochaines séances</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-calendar-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-lg mr-3 text-center">
+                                    <p class="text-xs font-bold">MAR</p>
+                                    <p class="text-lg font-bold">13</p>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Musculation - Haut du corps</h3>
+                                    <p class="text-sm text-gray-600">08:00 - 09:30 • Salle de sport</p>
+                                    <div class="mt-1 flex space-x-2">
+                                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Intensité élevée</span>
+                                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">Avec coach</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg mr-3 text-center">
+                                    <p class="text-xs font-bold">MER</p>
+                                    <p class="text-lg font-bold">14</p>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Course à pied - Endurance</h3>
+                                    <p class="text-sm text-gray-600">18:00 - 19:00 • Parc des Buttes</p>
+                                    <div class="mt-1 flex space-x-2">
+                                        <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Intensité modérée</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="bg-pink-100 text-pink-800 px-3 py-1 rounded-lg mr-3 text-center">
+                                    <p class="text-xs font-bold">VEN</p>
+                                    <p class="text-lg font-bold">16</p>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Natation - Technique</h3>
+                                    <p class="text-sm text-gray-600">07:30 - 08:30 • Piscine municipale</p>
+                                    <div class="mt-1 flex space-x-2">
+                                        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Échauffement</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bg-white border-t border-gray-200 fixed bottom-0 w-full lg:hidden">
+            <div class="flex justify-around items-center h-16">
+                <a href="#" class="flex flex-col items-center justify-center text-indigo-600">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-xs mt-1">Accueil</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-chart-line text-xl"></i>
+                    <span class="text-xs mt-1">Progression</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <div class="relative">
+                        <i class="fas fa-plus-circle text-3xl text-indigo-600 absolute -top-6 -left-1"></i>
+                    </div>
+                    <span class="text-xs mt-6">Nouvelle</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-dumbbell text-xl"></i>
+                    <span class="text-xs mt-1">Séances</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-user text-xl"></i>
+                    <span class="text-xs mt-1">Profil</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize Chart
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        const progressChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                datasets: [
+                    {
+                        label: 'Durée (min)',
+                        data: [45, 90, 60, 120, 75, 0, 60],
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Intensité moyenne',
+                        data: [3, 5, 4, 7, 6, 0, 5],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 2,
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 20
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading data
+            setTimeout(() => {
+                const loadingElements = document.querySelectorAll('.animate-pulse-slow');
+                loadingElements.forEach(el => {
+                    el.classList.remove('animate-pulse-slow');
+                    el.classList.remove('bg-gray-200');
+                });
+            }, 1500);
+            
+            // Bottom navigation active state
+            const navItems = document.querySelectorAll('nav a');
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navItems.forEach(i => {
+                        i.classList.remove('text-indigo-600');
+                        i.classList.add('text-gray-500');
+                    });
+                    this.classList.remove('text-gray-500');
+                    this.classList.add('text-indigo-600');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

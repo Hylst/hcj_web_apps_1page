@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydratAlert - Traqueur d'hydratation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .drink-btn:hover {
+            transform: translateY(-5px);
+        }
+        .badge {
+            transition: all 0.3s ease;
+        }
+        .badge:hover {
+            transform: scale(1.1);
+        }
+        .chart-container {
+            height: 250px;
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-blue-50 to-white min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="flex flex-col items-center mb-8">
+            <div class="flex items-center justify-center bg-blue-100 rounded-full p-4 shadow-lg mb-4">
+                <i class="fas fa-tint text-blue-600 text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-blue-800 mb-2">HydratAlert</h1>
+            <p class="text-blue-600">Par Geoffroy Streit</p>
+            <div class="mt-4 flex space-x-2">
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Version 1.0</span>
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">En ligne</span>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main>
+            <!-- Weather and Goal Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="mr-4 text-5xl">
+                            <i class="fas fa-sun text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800">Météo: Ensoleillé</h2>
+                            <p class="text-gray-600">Objectif recommandé: 2.5L</p>
+                        </div>
+                    </div>
+                    <div class="relative w-32 h-32">
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <circle class="text-gray-200" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+                            <circle class="text-blue-500 progress-ring__circle" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" 
+                                    stroke-dasharray="251.2" stroke-dashoffset="125.6" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl font-bold text-blue-700">1.25L</span>
+                            <span class="text-sm text-gray-500">sur 2.5L</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-sm font-medium text-blue-700">Progression</span>
+                        <span class="text-sm font-medium text-blue-700">50%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 50%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Add Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Ajouter une consommation</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button class="drink-btn bg-blue-100 hover:bg-blue-200 text-blue-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300">
+                        <i class="fas fa-glass-water text-3xl mb-2"></i>
+                        <span>250ml Eau</span>
+                    </button>
+                    <button class="drink-btn bg-green-100 hover:bg-green-200 text-green-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300">
+                        <i class="fas fa-mug-hot text-3xl mb-2"></i>
+                        <span>200ml Café</span>
+                    </button>
+                    <button class="drink-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300">
+                        <i class="fas fa-wine-glass-alt text-3xl mb-2"></i>
+                        <span>150ml Thé</span>
+                    </button>
+                    <button class="drink-btn bg-purple-100 hover:bg-purple-200 text-purple-800 py-4 px-2 rounded-lg flex flex-col items-center transition-all duration-300">
+                        <i class="fas fa-cocktail text-3xl mb-2"></i>
+                        <span>Personnalisé</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Custom Add Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Ajout personnalisé</h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Type de boisson</label>
+                        <select class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Eau</option>
+                            <option>Café</option>
+                            <option>Thé</option>
+                            <option>Jus</option>
+                            <option>Soda</option>
+                            <option>Autre</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantité (ml)</label>
+                        <input type="number" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="250">
+                    </div>
+                    <div class="flex items-end">
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition-colors duration-300">
+                            Ajouter
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Statistiques</h2>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2">Consommation aujourd'hui</h3>
+                        <div class="chart-container">
+                            <canvas id="todayChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2">Historique 7 jours</h3>
+                        <div class="chart-container">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Badges Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Badges de réussite</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div class="badge bg-yellow-100 border-2 border-yellow-300 rounded-lg p-4 flex flex-col items-center cursor-pointer">
+                        <i class="fas fa-medal text-yellow-500 text-3xl mb-2"></i>
+                        <span class="font-medium text-yellow-800">Débutant</span>
+                        <span class="text-xs text-yellow-600">1er jour</span>
+                    </div>
+                    <div class="badge bg-blue-100 border-2 border-blue-300 rounded-lg p-4 flex flex-col items-center cursor-pointer">
+                        <i class="fas fa-trophy text-blue-500 text-3xl mb-2"></i>
+                        <span class="font-medium text-blue-800">Hydraté</span>
+                        <span class="text-xs text-blue-600">3 jours</span>
+                    </div>
+                    <div class="badge bg-gray-100 border-2 border-gray-300 rounded-lg p-4 flex flex-col items-center cursor-pointer">
+                        <i class="fas fa-lock text-gray-400 text-3xl mb-2"></i>
+                        <span class="font-medium text-gray-500">Expert</span>
+                        <span class="text-xs text-gray-500">7 jours</span>
+                    </div>
+                    <div class="badge bg-gray-100 border-2 border-gray-300 rounded-lg p-4 flex flex-col items-center cursor-pointer">
+                        <i class="fas fa-lock text-gray-400 text-3xl mb-2"></i>
+                        <span class="font-medium text-gray-500">Maître</span>
+                        <span class="text-xs text-gray-500">30 jours</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Paramètres</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Notifications</h3>
+                            <p class="text-sm text-gray-500">Rappels pour boire de l'eau</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Sons de rappel</h3>
+                            <p class="text-sm text-gray-500">Activer les sons</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Objectif quotidien</h3>
+                            <p class="text-sm text-gray-500">Définir manuellement</p>
+                        </div>
+                        <input type="number" class="w-20 border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" value="2500">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Export santé</h3>
+                            <p class="text-sm text-gray-500">Exporter vers Apple Health/Google Fit</p>
+                        </div>
+                        <button class="bg-green-600 hover:bg-green-700 text-white py-1 px-4 rounded-md transition-colors duration-300 text-sm">
+                            Exporter
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reminder Section -->
+            <section class="bg-blue-50 border border-blue-200 rounded-xl shadow-md p-6 mb-6">
+                <div class="flex items-center">
+                    <div class="mr-4 text-blue-600 text-3xl">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-blue-800 mb-1">Prochain rappel</h2>
+                        <p class="text-blue-600">Dans 15 minutes - 12:30</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-between">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-300">
+                        <i class="fas fa-check mr-2"></i> J'ai bu
+                    </button>
+                    <button class="bg-white hover:bg-gray-100 text-blue-600 border border-blue-300 py-2 px-4 rounded-md transition-colors duration-300">
+                        <i class="fas fa-clock mr-2"></i> Reporter
+                    </button>
+                    <button class="bg-white hover:bg-gray-100 text-gray-600 border border-gray-300 py-2 px-4 rounded-md transition-colors duration-300">
+                        <i class="fas fa-times mr-2"></i> Ignorer
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-600 text-sm mt-8">
+            <p>HydratAlert - Traqueur d'hydratation intelligent</p>
+            <p class="mt-1">Développé par Geoffroy Streit - © 2023</p>
+            <div class="flex justify-center space-x-4 mt-4">
+                <a href="#" class="text-blue-600 hover:text-blue-800"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-blue-600 hover:text-blue-800"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-github"></i></a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Today's consumption chart
+        const todayCtx = document.getElementById('todayChart').getContext('2d');
+        const todayChart = new Chart(todayCtx, {
+            type: 'bar',
+            data: {
+                labels: ['6h', '9h', '12h', '15h', '18h', '21h'],
+                datasets: [{
+                    label: 'Consommation (ml)',
+                    data: [250, 400, 300, 200, 100, 0],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(59, 130, 246, 0.3)'
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(59, 130, 246, 0.5)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 500,
+                        ticks: {
+                            stepSize: 100
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Weekly consumption chart
+        const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+        const weeklyChart = new Chart(weeklyCtx, {
+            type: 'line',
+            data: {
+                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                datasets: [{
+                    label: 'Consommation (L)',
+                    data: [1.8, 2.1, 2.4, 1.9, 2.2, 2.5, 2.0],
+                    fill: false,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 3,
+                        ticks: {
+                            stepSize: 0.5
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Drink buttons functionality
+        document.querySelectorAll('.drink-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Animation effect
+                this.classList.add('animate-ping');
+                setTimeout(() => {
+                    this.classList.remove('animate-ping');
+                }, 300);
+                
+                // Update progress (simplified for demo)
+                const progressCircle = document.querySelector('.progress-ring__circle');
+                const currentOffset = parseFloat(progressCircle.getAttribute('stroke-dashoffset'));
+                const newOffset = Math.max(0, currentOffset - 25.12); // Decrease by ~10%
+                progressCircle.setAttribute('stroke-dashoffset', newOffset);
+                
+                // Update text
+                const progressText = document.querySelector('.absolute span:first-child');
+                const currentText = progressText.textContent;
+                const currentValue = parseFloat(currentText);
+                progressText.textContent = (currentValue + 0.25).toFixed(2) + 'L';
+                
+                // Update progress bar
+                const progressBar = document.querySelector('.bg-blue-600');
+                const currentWidth = parseFloat(progressBar.style.width);
+                progressBar.style.width = (currentWidth + 10) + '%';
+                
+                // Update percentage
+                document.querySelector('.flex.justify-between span:last-child').textContent = 
+                    Math.round((currentValue + 0.25) / 2.5 * 100) + '%';
+            });
+        });
+
+        // Custom drink add functionality
+        document.querySelector('section:nth-of-type(4) button').addEventListener('click', function() {
+            const quantity = document.querySelector('section:nth-of-type(4) input').value;
+            if (quantity && quantity > 0) {
+                alert(`Ajout de ${quantity}ml enregistré !`);
+                // Here you would normally update the charts and progress
+            }
+        });
+
+        // Settings toggles
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const label = this.closest('label');
+                if (this.checked) {
+                    label.querySelector('div').classList.add('peer-checked:bg-blue-600');
+                    label.querySelector('div').classList.remove('bg-gray-200');
+                } else {
+                    label.querySelector('div').classList.remove('peer-checked:bg-blue-600');
+                    label.querySelector('div').classList.add('bg-gray-200');
+                }
+            });
+        });
+
+        // Reminder buttons
+        document.querySelector('section:last-of-type button:first-of-type').addEventListener('click', function() {
+            alert('Bravo ! Continuez à bien vous hydrater.');
+        });
+    </script>
+</body>
+</html>

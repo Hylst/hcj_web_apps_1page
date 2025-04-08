@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoffroy Streit - SportTracker | Journal d'entraînement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .modal-enter {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        
+        .modal-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .modal-exit {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .modal-exit-active {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        
+        .session-active {
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                            <i class="fas fa-running text-2xl text-indigo-600"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold">SportTracker</h1>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <button class="relative" id="notifications-btn">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs flex items-center justify-center">3</span>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" class="w-10 h-10 rounded-full border-2 border-white">
+                            <span class="font-medium">Geoffroy S.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 container mx-auto px-4 py-8 pb-16 lg:pb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Welcome Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">Bonjour Geoffroy !</h2>
+                                <p class="text-gray-600 mt-2">Prêt pour votre séance d'aujourd'hui ?</p>
+                            </div>
+                            <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium">
+                                <i class="fas fa-calendar-day mr-2"></i> <span id="current-date">Lundi 12 Juin</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <div class="flex items-center">
+                                    <div class="bg-blue-100 p-3 rounded-full mr-3">
+                                        <i class="fas fa-fire text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Calories brûlées</p>
+                                        <p class="font-bold text-gray-800"><span id="calories-burned">1,250</span> kcal</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                                <div class="flex items-center">
+                                    <div class="bg-purple-100 p-3 rounded-full mr-3">
+                                        <i class="fas fa-heartbeat text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Rythme cardiaque</p>
+                                        <p class="font-bold text-gray-800"><span id="heart-rate">72</span> bpm</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                                <div class="flex items-center">
+                                    <div class="bg-green-100 p-3 rounded-full mr-3">
+                                        <i class="fas fa-walking text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Pas aujourd'hui</p>
+                                        <p class="font-bold text-gray-800"><span id="steps-today">8,742</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Session -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Séance d'entraînement</h2>
+                            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full text-sm font-medium transition duration-300" id="new-session-btn">
+                                <i class="fas fa-plus mr-2"></i> Nouvelle séance
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" id="sessions-container">
+                            <!-- Sessions will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Progress Charts -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Votre progression</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm rounded-full bg-indigo-600 text-white period-btn" data-period="week">Semaine</button>
+                                <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 period-btn" data-period="month">Mois</button>
+                                <button class="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 period-btn" data-period="year">Année</button>
+                            </div>
+                        </div>
+                        
+                        <div class="h-64">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                        
+                        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Séances</p>
+                                <p class="text-2xl font-bold text-indigo-600"><span id="sessions-count">12</span></p>
+                                <p class="text-xs text-green-500" id="sessions-comparison">+2 vs semaine dernière</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Durée totale</p>
+                                <p class="text-2xl font-bold text-indigo-600"><span id="total-duration">9h30</span></p>
+                                <p class="text-xs text-green-500" id="duration-comparison">+1h15 vs semaine dernière</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Calories</p>
+                                <p class="text-2xl font-bold text-indigo-600"><span id="total-calories">8,450</span></p>
+                                <p class="text-xs text-green-500" id="calories-comparison">+1,200 vs semaine dernière</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500">Objectif</p>
+                                <div class="relative w-16 h-16 mx-auto">
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path
+                                            d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none"
+                                            stroke="#e6e6e6"
+                                            stroke-width="3"
+                                            stroke-dasharray="100, 100"
+                                        />
+                                        <path
+                                            d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none"
+                                            stroke="#4f46e5"
+                                            stroke-width="3"
+                                            stroke-dasharray="65, 100"
+                                            class="progress-ring__circle"
+                                            id="goal-progress-circle"
+                                        />
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-indigo-600" id="goal-percentage">65%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    <!-- SMART Goals -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Objectifs SMART</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800" id="new-goal-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" id="goals-container">
+                            <!-- Goals will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Coach Connection -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Votre coach</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800" id="message-coach-btn">
+                                <i class="fas fa-comment-dots"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Coach" class="w-16 h-16 rounded-full border-2 border-indigo-100">
+                            <div>
+                                <h3 class="font-bold text-gray-800">Marie Dubois</h3>
+                                <p class="text-sm text-gray-600">Coach sportif certifié</p>
+                                <div class="mt-1 flex space-x-1">
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Dernier message:</span>
+                                <span class="text-sm font-medium" id="last-message">Aujourd'hui, 09:30</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Prochain rendez-vous:</span>
+                                <span class="text-sm font-medium" id="next-appointment">Mercredi, 14:00</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Partage des données:</span>
+                                <span class="text-sm font-medium text-green-600" id="data-sharing">Actif</span>
+                            </div>
+                        </div>
+                        
+                        <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition duration-300" id="send-message-btn">
+                            <i class="fas fa-paper-plane mr-2"></i> Envoyer un message
+                        </button>
+                    </div>
+
+                    <!-- Wearable Devices -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Appareils connectés</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800" id="connect-device-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" id="devices-container">
+                            <!-- Devices will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Sessions -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Prochaines séances</h2>
+                            <button class="text-indigo-600 hover:text-indigo-800" id="add-schedule-btn">
+                                <i class="fas fa-calendar-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" id="upcoming-sessions-container">
+                            <!-- Upcoming sessions will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bg-white border-t border-gray-200 fixed bottom-0 w-full lg:hidden">
+            <div class="flex justify-around items-center h-16">
+                <a href="#" class="flex flex-col items-center justify-center text-indigo-600">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-xs mt-1">Accueil</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-chart-line text-xl"></i>
+                    <span class="text-xs mt-1">Progression</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <div class="relative">
+                        <i class="fas fa-plus-circle text-3xl text-indigo-600 absolute -top-6 -left-1"></i>
+                    </div>
+                    <span class="text-xs mt-6">Nouvelle</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-dumbbell text-xl"></i>
+                    <span class="text-xs mt-1">Séances</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-user text-xl"></i>
+                    <span class="text-xs mt-1">Profil</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Modals -->
+    <!-- New Session Modal -->
+    <div id="new-session-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Nouvelle séance</h3>
+                    <button class="text-gray-500 hover:text-gray-700" id="close-session-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="session-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="session-type" class="block text-sm font-medium text-gray-700 mb-1">Type de séance</label>
+                            <select id="session-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="running">Course à pied</option>
+                                <option value="cycling">Cyclisme</option>
+                                <option value="swimming">Natation</option>
+                                <option value="strength">Musculation</option>
+                                <option value="yoga">Yoga</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="session-duration" class="block text-sm font-medium text-gray-700 mb-1">Durée (minutes)</label>
+                            <input type="number" id="session-duration" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="60">
+                        </div>
+                        
+                        <div>
+                            <label for="session-intensity" class="block text-sm font-medium text-gray-700 mb-1">Intensité</label>
+                            <select id="session-intensity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="low">Faible</option>
+                                <option value="moderate">Modérée</option>
+                                <option value="high">Élevée</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="session-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="session-notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Détails sur la séance..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" id="cancel-session">
+                            Annuler
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            Commencer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Session Modal -->
+    <div id="active-session-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800" id="active-session-title">Course à pied</h3>
+                    <button class="text-gray-500 hover:text-gray-700" id="close-active-session-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="text-center py-6">
+                    <div class="text-5xl font-bold text-indigo-600 mb-2" id="session-timer">00:00:00</div>
+                    <div class="text-gray-600">Temps écoulé</div>
+                    
+                    <div class="mt-8 grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold" id="session-calories">0</div>
+                            <div class="text-sm text-gray-600">kcal</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold" id="session-heart-rate">--</div>
+                            <div class="text-sm text-gray-600">bpm</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold" id="session-distance">0.0</div>
+                            <div class="text-sm text-gray-600">km</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-center space-x-4">
+                    <button class="w-12 h-12 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600" id="stop-session-btn">
+                        <i class="fas fa-stop"></i>
+                    </button>
+                    <button class="w-12 h-12 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center hover:bg-gray-300 hidden" id="resume-session-btn">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="w-12 h-12 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center hover:bg-gray-300" id="pause-session-btn">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Goal Modal -->
+    <div id="new-goal-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Nouvel objectif SMART</h3>
+                    <button class="text-gray-500 hover:text-gray-700" id="close-goal-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="goal-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="goal-title" class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                            <input type="text" id="goal-title" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ex: Courir un semi-marathon">
+                        </div>
+                        
+                        <div>
+                            <label for="goal-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <select id="goal-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="distance">Distance</option>
+                                <option value="weight">Poids</option>
+                                <option value="strength">Force</option>
+                                <option value="endurance">Endurance</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="goal-target" class="block text-sm font-medium text-gray-700 mb-1">Objectif</label>
+                                <input type="number" id="goal-target" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="100">
+                            </div>
+                            <div>
+                                <label for="goal-unit" class="block text-sm font-medium text-gray-700 mb-1">Unité</label>
+                                <input type="text" id="goal-unit" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="km" value="km">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="goal-deadline" class="block text-sm font-medium text-gray-700 mb-1">Date limite</label>
+                            <input type="date" id="goal-deadline" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        
+                        <div>
+                            <label for="goal-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="goal-description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Pourquoi cet objectif est important..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" id="cancel-goal">
+                            Annuler
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect Device Modal -->
+    <div id="connect-device-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Connecter un appareil</h3>
+                    <button class="text-gray-500 hover:text-gray-700" id="close-device-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center" id="connect-apple-watch">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+                            <i class="fab fa-apple"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium">Apple Watch</h4>
+                            <p class="text-sm text-gray-600">Connectez votre montre Apple</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center" id="connect-fitbit">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-4">
+                            <i class="fab fa-fitbit"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium">Fitbit</h4>
+                            <p class="text-sm text-gray-600">Connectez votre appareil Fitbit</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center" id="connect-garmin">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-4">
+                            <i class="fas fa-watch-fitness"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium">Garmin</h4>
+                            <p class="text-sm text-gray-600">Connectez votre appareil Garmin</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center" id="connect-other">
+                        <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 mr-4">
+                            <i class="fas fa-bluetooth-b"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium">Autre appareil</h4>
+                            <p class="text-sm text-gray-600">Connectez via Bluetooth</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <button class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" id="cancel-connect-device">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Coach Modal -->
+    <div id="message-coach-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 h-[80vh] flex flex-col">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Coach" class="w-10 h-10 rounded-full mr-3">
+                    <div>
+                        <h3 class="font-bold">Marie Dubois</h3>
+                        <p class="text-xs text-gray-600">En ligne</p>
+                    </div>
+                </div>
+                <button class="text-gray-500 hover:text-gray-700" id="close-message-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 p-4 overflow-y-auto" id="message-container">
+                <!-- Messages will appear here -->
+                <div class="flex mb-4">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Coach" class="w-8 h-8 rounded-full mr-2">
+                    <div>
+                        <div class="bg-gray-100 rounded-lg p-3 max-w-xs">
+                            <p>Bonjour Geoffroy, comment s'est passée votre séance d'hier ?</p>
+                            <p class="text-xs text-gray-500 mt-1">09:30</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex mb-4 justify-end">
+                    <div>
+                        <div class="bg-indigo-100 rounded-lg p-3 max-w-xs">
+                            <p>Très bien, j'ai fait 8km en 45 minutes !</p>
+                            <p class="text-xs text-gray-500 mt-1 text-right">09:32</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center">
+                    <input type="text" placeholder="Écrivez un message..." class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Details Modal -->
+    <div id="session-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800" id="session-details-title">Détails de la séance</h3>
+                    <button class="text-gray-500 hover:text-gray-700" id="close-details-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Date</span>
+                        <span class="font-medium" id="session-date">12 juin 2023</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Durée</span>
+                        <span class="font-medium" id="session-duration-detail">1h15</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Type</span>
+                        <span class="font-medium" id="session-type-detail">Course à pied</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Intensité</span>
+                        <span class="font-medium" id="session-intensity-detail">Élevée</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Distance</span>
+                        <span class="font-medium" id="session-distance-detail">8.5 km</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Calories</span>
+                        <span class="font-medium" id="session-calories-detail">650 kcal</span>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-gray-200">
+                        <h4 class="font-medium text-gray-800 mb-2">Notes</h4>
+                        <p class="text-gray-600" id="session-notes-detail">Bonne séance malgré la chaleur. J'ai maintenu un rythme constant.</p>
+                    </div>
+                    
+                    <div class="pt-4">
+                        <button class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" id="close-details-btn">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            activeSession: null,
+            sessions: [],
+            goals: [],
+            devices: [],
+            upcomingSessions: [],
+            messages: [],
+            currentPeriod: 'week',
+            isSessionActive: false,
+            isSessionPaused: false,
+            sessionStartTime: null,
+            sessionPauseTime: null,
+            totalPausedTime: 0,
+            heartRateInterval: null,
+            caloriesInterval: null,
+            distanceInterval: null
+        };
+
+        // DOM Elements
+        const elements = {
+            newSessionBtn: document.getElementById('new-session-btn'),
+            newSessionModal: document.getElementById('new-session-modal'),
+            closeSessionModal: document.getElementById('close-session-modal'),
+            sessionForm: document.getElementById('session-form'),
+            cancelSession: document.getElementById('cancel-session'),
+            sessionsContainer: document.getElementById('sessions-container'),
+            activeSessionModal: document.getElementById('active-session-modal'),
+            closeActiveSessionModal: document.getElementById('close-active-session-modal'),
+            activeSessionTitle: document.getElementById('active-session-title'),
+            sessionTimer: document.getElementById('session-timer'),
+            sessionCalories: document.getElementById('session-calories'),
+            sessionHeartRate: document.getElementById('session-heart-rate'),
+            sessionDistance: document.getElementById('session-distance'),
+            stopSessionBtn: document.getElementById('stop-session-btn'),
+            pauseSessionBtn: document.getElementById('pause-session-btn'),
+            resumeSessionBtn: document.getElementById('resume-session-btn'),
+            newGoalBtn: document.getElementById('new-goal-btn'),
+            newGoalModal: document.getElementById('new-goal-modal'),
+            closeGoalModal: document.getElementById('close-goal-modal'),
+            goalForm: document.getElementById('goal-form'),
+            cancelGoal: document.getElementById('cancel-goal'),
+            goalsContainer: document.getElementById('goals-container'),
+            connectDeviceBtn: document.getElementById('connect-device-btn'),
+            connectDeviceModal: document.getElementById('connect-device-modal'),
+            closeDeviceModal: document.getElementById('close-device-modal'),
+            devicesContainer: document.getElementById('devices-container'),
+            messageCoachBtn: document.getElementById('message-coach-btn'),
+            messageCoachModal: document.getElementById('message-coach-modal'),
+            closeMessageModal: document.getElementById('close-message-modal'),
+            sendMessageBtn: document.getElementById('send-message-btn'),
+            upcomingSessionsContainer: document.getElementById('upcoming-sessions-container'),
+            sessionDetailsModal: document.getElementById('session-details-modal'),
+            closeDetailsModal: document.getElementById('close-details-modal'),
+            periodBtns: document.querySelectorAll('.period-btn'),
+            currentDate: document.getElementById('current-date'),
+            caloriesBurned: document.getElementById('calories-burned'),
+            heartRate: document.getElementById('heart-rate'),
+            stepsToday: document.getElementById('steps-today'),
+            sessionsCount: document.getElementById('sessions-count'),
+            totalDuration: document.getElementById('total-duration'),
+            totalCalories: document.getElementById('total-calories'),
+            goalPercentage: document.getElementById('goal-percentage'),
+            goalProgressCircle: document.getElementById('goal-progress-circle'),
+            lastMessage: document.getElementById('last-message'),
+            nextAppointment: document.getElementById('next-appointment'),
+            dataSharing: document.getElementById('data-sharing')
+        };
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current date
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            elements.currentDate.textContent = now.toLocaleDateString('fr-FR', options);
+            
+            // Load initial data
+            loadInitialData();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Initialize charts
+            initializeCharts();
+            
+            // Simulate wearable data if connected
+            simulateWearableData();
+        });
+
+        function loadInitialData() {
+            // Mock data for initial load
+            state.sessions = [
+                {
+                    id: 1,
+                    type: 'running',
+                    typeName: 'Course à pied',
+                    duration: 75,
+                    intensity: 'high',
+                    intensityName: 'Élevée',
+                    date: new Date(Date.now() - 86400000), // Yesterday
+                    distance: 8.5,
+                    calories: 650,
+                    notes: 'Bonne séance malgré la chaleur. J\'ai maintenu un rythme constant.',
+                    completed: true
+                },
+                {
+                    id: 2,
+                    type: 'yoga',
+                    typeName: 'Yoga & Étirements',
+                    duration: 45,
+                    intensity: 'moderate',
+                    intensityName: 'Modérée',
+                    date: new Date(),
+                    distance: 0,
+                    calories: 250,
+                    notes: 'Séance de récupération, étirements profonds.',
+                    completed: true
+                }
+            ];
+
+            state.goals = [
+                {
+                    id: 1,
+                    title: 'Courir un semi-marathon',
+                    type: 'distance',
+                    current: 12,
+                    target: 21,
+                    unit: 'km',
+                    deadline: new Date(Date.now() + 7776000000), // 3 months from now
+                    progress: 57,
+                    color: 'indigo'
+                },
+                {
+                    id: 2,
+                    title: 'Développer la force',
+                    type: 'strength',
+                    current: 80,
+                    target: 100,
+                    unit: 'kg',
+                    deadline: new Date(Date.now() + 5184000000), // 2 months from now
+                    progress: 80,
+                    color: 'purple'
+                },
+                {
+                    id: 3,
+                    title: 'Perte de poids',
+                    type: 'weight',
+                    current: 82,
+                    target: 75,
+                    unit: 'kg',
+                    deadline: new Date(Date.now() + 10368000000), // 4 months from now
+                    progress: 30,
+                    color: 'green'
+                }
+            ];
+
+            state.devices = [
+                {
+                    id: 1,
+                    name: 'Apple Watch',
+                    type: 'watch',
+                    connected: true,
+                    battery: 98,
+                    lastSync: 'maintenant'
+                },
+                {
+                    id: 2,
+                    name: 'Fitbit Charge 5',
+                    type: 'tracker',
+                    connected: true,
+                    battery: 65,
+                    lastSync: 'il y a 2h'
+                },
+                {
+                    id: 3,
+                    name: 'Podomètre',
+                    type: 'pedometer',
+                    connected: false
+                }
+            ];
+
+            state.upcomingSessions = [
+                {
+                    id: 1,
+                    type: 'strength',
+                    typeName: 'Musculation - Haut du corps',
+                    duration: 90,
+                    date: new Date(Date.now() + 86400000), // Tomorrow
+                    location: 'Salle de sport',
+                    intensity: 'high',
+                    intensityName: 'Élevée',
+                    withCoach: true
+                },
+                {
+                    id: 2,
+                    type: 'running',
+                    typeName: 'Course à pied - Endurance',
+                    duration: 60,
+                    date: new Date(Date.now() + 2 * 86400000), // Day after tomorrow
+                    location: 'Parc des Buttes',
+                    intensity: 'moderate',
+                    intensityName: 'Modérée',
+                    withCoach: false
+                },
+                {
+                    id: 3,
+                    type: 'swimming',
+                    typeName: 'Natation - Technique',
+                    duration: 60,
+                    date: new Date(Date.now() + 4 * 86400000), // 4 days from now
+                    location: 'Piscine municipale',
+                    intensity: 'low',
+                    intensityName: 'Faible',
+                    withCoach: false
+                }
+            ];
+
+            state.messages = [
+                {
+                    id: 1,
+                    sender: 'coach',
+                    text: 'Bonjour Geoffroy, comment s\'est passée votre séance d\'hier ?',
+                    time: '09:30',
+                    date: new Date()
+                },
+                {
+                    id: 2,
+                    sender: 'user',
+                    text: 'Très bien, j\'ai fait 8km en 45 minutes !',
+                    time: '09:32',
+                    date: new Date()
+                }
+            ];
+
+            // Render all components
+            renderSessions();
+            renderGoals();
+            renderDevices();
+            renderUpcomingSessions();
+            updateStats();
+        }
+
+        function setupEventListeners() {
+            // Session modal
+            elements.newSessionBtn.addEventListener('click', () => {
+                elements.newSessionModal.classList.remove('hidden');
+            });
+
+            elements.closeSessionModal.addEventListener('click', () => {
+                elements.newSessionModal.classList.add('hidden');
+            });
+
+            elements.cancelSession.addEventListener('click', () => {
+                elements.newSessionModal.classList.add('hidden');
+            });
+
+            elements.sessionForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                startNewSession();
+            });
+
+            // Active session modal
+            elements.closeActiveSessionModal.addEventListener('click', () => {
+                // Don't allow closing during active session
+                if (state.isSessionActive && !state.isSessionPaused) {
+                    return;
+                }
+                elements.activeSessionModal.classList.add('hidden');
+            });
+
+            elements.stopSessionBtn.addEventListener('click', stopSession);
+            elements.pauseSessionBtn.addEventListener('click', pauseSession);
+            elements.resumeSessionBtn.addEventListener('click', resumeSession);
+
+            // Goal modal
+            elements.newGoalBtn.addEventListener('click', () => {
+                elements.newGoalModal.classList.remove('hidden');
+            });
+
+            elements.closeGoalModal.addEventListener('click', () => {
+                elements.goalForm.reset();
+                elements.newGoalModal.classList.add('hidden');
+            });
+
+            elements.cancelGoal.addEventListener('click', () => {
+                elements.goalForm.reset();
+                elements.newGoalModal.classList.add('hidden');
+            });
+
+            elements.goalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                addNewGoal();
+            });
+
+            // Device modal
+            elements.connectDeviceBtn.addEventListener('click', () => {
+                elements.connectDeviceModal.classList.remove('hidden');
+            });
+
+            elements.closeDeviceModal.addEventListener('click', () => {
+                elements.connectDeviceModal.classList.add('hidden');
+            });
+
+            document.getElementById('cancel-connect-device').addEventListener('click', () => {
+                elements.connectDeviceModal.classList.add('hidden');
+            });
+
+            document.getElementById('connect-apple-watch').addEventListener('click', () => {
+                connectDevice('Apple Watch');
+            });
+
+            document.getElementById('connect-fitbit').addEventListener('click', () => {
+                connectDevice('Fitbit');
+            });
+
+            document.getElementById('connect-garmin').addEventListener('click', () => {
+                connectDevice('Garmin');
+            });
+
+            document.getElementById('connect-other').addEventListener('click', () => {
+                connectDevice('Autre appareil');
+            });
+
+            // Message modal
+            elements.messageCoachBtn.addEventListener('click', () => {
+                elements.messageCoachModal.classList.remove('hidden');
+            });
+
+            elements.closeMessageModal.addEventListener('click', () => {
+                elements.messageCoachModal.classList.add('hidden');
+            });
+
+            elements.sendMessageBtn.addEventListener('click', () => {
+                elements.messageCoachModal.classList.remove('hidden');
+            });
+
+            // Period buttons
+            elements.periodBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.periodBtns.forEach(b => {
+                        b.classList.remove('bg-indigo-600', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-600');
+                    });
+                    
+                    btn.classList.remove('bg-gray-100', 'text-gray-600');
+                    btn.classList.add('bg-indigo-600', 'text-white');
+                    
+                    state.currentPeriod = btn.dataset.period;
+                    updateStats();
+                    updateChart();
+                });
+            });
+
+            // Session details modal
+            elements.closeDetailsModal.addEventListener('click', () => {
+                elements.sessionDetailsModal.classList.add('hidden');
+            });
+
+            document.getElementById('close-details-btn').addEventListener('click', () => {
+                elements.sessionDetailsModal.classList.add('hidden');
+            });
+        }
+
+        function initializeCharts() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            state.progressChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                    datasets: [
+                        {
+                            label: 'Durée (min)',
+                            data: [45, 90, 60, 120, 75, 0, 60],
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Intensité moyenne',
+                            data: [3, 5, 4, 7, 6, 0, 5],
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            // This would normally fetch data based on the selected period
+            // For demo purposes, we'll just modify the existing data slightly
+            const durationData = [45, 90, 60, 120, 75, 0, 60];
+            const intensityData = [3, 5, 4, 7, 6, 0, 5];
+            
+            if (state.currentPeriod === 'month') {
+                // Simulate month data
+                state.progressChart.data.labels = Array.from({length: 30}, (_, i) => (i + 1) + '');
+                state.progressChart.data.datasets[0].data = Array.from({length: 30}, () => Math.floor(Math.random() * 120));
+                state.progressChart.data.datasets[1].data = Array.from({length: 30}, () => Math.floor(Math.random() * 7));
+            } else if (state.currentPeriod === 'year') {
+                // Simulate year data
+                state.progressChart.data.labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                state.progressChart.data.datasets[0].data = [420, 380, 450, 520, 480, 550, 600, 580, 620, 650, 630, 700];
+                state.progressChart.data.datasets[1].data = [3, 4, 5, 6, 5, 6, 7, 6, 7, 7, 6, 8];
+            } else {
+                // Week data
+                state.progressChart.data.labels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+                state.progressChart.data.datasets[0].data = durationData;
+                state.progressChart.data.datasets[1].data = intensityData;
+            }
+            
+            state.progressChart.update();
+        }
+
+        function renderSessions() {
+            elements.sessionsContainer.innerHTML = '';
+            
+            // Current session (if any)
+            if (state.activeSession) {
+                const sessionEl = createSessionElement(state.activeSession, true);
+                elements.sessionsContainer.appendChild(sessionEl);
+            }
+            
+            // Completed sessions
+            state.sessions.forEach(session => {
+                const sessionEl = createSessionElement(session, false);
+                elements.sessionsContainer.appendChild(sessionEl);
+            });
+        }
+
+        function createSessionElement(session, isActive) {
+            const sessionEl = document.createElement('div');
+            sessionEl.className = `border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-300 ${isActive ? 'session-active bg-indigo-50' : 'bg-gray-50'}`;
+            sessionEl.dataset.sessionId = session.id;
+            
+            const intensityClass = {
+                low: 'bg-green-100 text-green-800',
+                moderate: 'bg-yellow-100 text-yellow-800',
+                high: 'bg-red-100 text-red-800'
+            };
+            
+            const intensityText = {
+                low: 'Faible',
+                moderate: 'Modérée',
+                high: 'Élevée'
+            };
+            
+            const typeName = session.typeName || getTypeName(session.type);
+            const intensityName = session.intensityName || intensityText[session.intensity];
+            
+            sessionEl.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">${typeName}</h3>
+                        <div class="flex items-center mt-2 space-x-4">
+                            <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i> ${formatSessionTime(session.date)}</span>
+                            <span class="text-sm text-gray-600"><i class="fas fa-bolt mr-1"></i> Intensité: ${intensityName}</span>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        ${isActive ? `
+                            <button class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition session-control" data-action="pause">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                        ` : session.completed ? `
+                            <div class="flex items-center">
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Terminé</span>
+                            </div>
+                        ` : `
+                            <button class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition session-control" data-action="start">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        `}
+                        <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition session-control" data-action="more">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+                ${isActive ? `
+                    <div class="mt-4 flex items-center space-x-4">
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                            <div class="bg-indigo-600 h-2 rounded-full" style="width: ${calculateSessionProgress(session)}%"></div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">${Math.round(calculateSessionProgress(session))}% complété</span>
+                    </div>
+                ` : session.completed ? `
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">${session.distance ? session.distance + ' km' : 'Séance réussie'}</span>
+                        </div>
+                        <button class="text-indigo-600 hover:text-indigo-800 text-sm font-medium transition session-control" data-action="details">
+                            Voir détails
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+            
+            // Add event listeners to control buttons
+            const controlButtons = sessionEl.querySelectorAll('.session-control');
+            controlButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.dataset.action;
+                    const sessionId = parseInt(sessionEl.dataset.sessionId);
+                    const session = state.sessions.find(s => s.id === sessionId) || state.activeSession;
+                    
+                    switch(action) {
+                        case 'start':
+                            startExistingSession(session);
+                            break;
+                        case 'pause':
+                            pauseSession();
+                            break;
+                        case 'more':
+                            // Implement more options
+                            break;
+                        case 'details':
+                            showSessionDetails(session);
+                            break;
+                    }
+                });
+            });
+            
+            return sessionEl;
+        }
+
+        function calculateSessionProgress(session) {
+            if (!session.startTime) return 0;
+            
+            if (session.completed) return 100;
+            
+            const now = new Date();
+            const elapsed = (now - session.startTime) / 1000 / 60; // in minutes
+            return Math.min((elapsed / session.duration) * 100, 100);
+        }
+
+        function formatSessionTime(date) {
+            if (!(date instanceof Date)) {
+                date = new Date(date);
+            }
+            
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+                return 'Aujourd\'hui, ' + date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+            } else if (diffDays === 1) {
+                return 'Hier, ' + date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+            } else {
+                return date.toLocaleDateString('fr-FR') + ', ' + date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+            }
+        }
+
+        function getTypeName(type) {
+            const types = {
+                running: 'Course à pied',
+                cycling: 'Cyclisme',
+                swimming: 'Natation',
+                strength: 'Musculation',
+                yoga: 'Yoga',
+                other: 'Autre activité'
+            };
+            
+            return types[type] || type;
+        }
+
+        function startNewSession() {
+            const type = document.getElementById('session-type').value;
+            const duration = parseInt(document.getElementById('session-duration').value);
+            const intensity = document.getElementById('session-intensity').value;
+            const notes = document.getElementById('session-notes').value;
+            
+            if (!duration || duration <= 0) {
+                alert('Veuillez entrer une durée valide');
+                return;
+            }
+            
+            const newSession = {
+                id: Date.now(),
+                type,
+                typeName: getTypeName(type),
+                duration,
+                intensity,
+                intensityName: getIntensityName(intensity),
+                date: new Date(),
+                notes,
+                startTime: new Date(),
+                completed: false,
+                distance: 0,
+                calories: 0
+            };
+            
+            state.activeSession = newSession;
+            state.isSessionActive = true;
+            state.sessionStartTime = new Date();
+            state.totalPausedTime = 0;
+            
+            // Close modal and render
+            elements.newSessionModal.classList.add('hidden');
+            renderSessions();
+            
+            // Show active session modal
+            showActiveSessionModal();
+            
+            // Start timers and data simulation
+            startSessionTimers();
+        }
+
+        function startExistingSession(session) {
+            session.startTime = new Date();
+            session.completed = false;
+            state.activeSession = session;
+            state.isSessionActive = true;
+            state.sessionStartTime = new Date();
+            state.totalPausedTime = 0;
+            
+            renderSessions();
+            showActiveSessionModal();
+            startSessionTimers();
+        }
+
+        function showActiveSessionModal() {
+            elements.activeSessionTitle.textContent = state.activeSession.typeName;
+            elements.activeSessionModal.classList.remove('hidden');
+            
+            // Update modal with initial data
+            updateActiveSessionDisplay();
+        }
+
+        function startSessionTimers() {
+            // Main timer
+            state.sessionTimerInterval = setInterval(updateActiveSessionDisplay, 1000);
+            
+            // Simulate heart rate data
+            state.heartRateInterval = setInterval(() => {
+                const baseRate = state.activeSession.intensity === 'high' ? 140 : 
+                                state.activeSession.intensity === 'moderate' ? 120 : 100;
+                const variation = Math.floor(Math.random() * 20) - 10;
+                state.activeSession.heartRate = Math.max(60, baseRate + variation);
+                elements.sessionHeartRate.textContent = state.activeSession.heartRate;
+                
+                // Also update the main heart rate display
+                elements.heartRate.textContent = state.activeSession.heartRate;
+            }, 5000);
+            
+            // Simulate calories burned
+            state.caloriesInterval = setInterval(() => {
+                const caloriesPerMinute = state.activeSession.intensity === 'high' ? 10 : 
+                                         state.activeSession.intensity === 'moderate' ? 7 : 4;
+                state.activeSession.calories += caloriesPerMinute;
+                elements.sessionCalories.textContent = state.activeSession.calories;
+                
+                // Update main calories display
+                const totalCalories = parseInt(elements.caloriesBurned.textContent.replace(',', ''));
+                elements.caloriesBurned.textContent = (totalCalories + caloriesPerMinute).toLocaleString();
+            }, 60000);
+            
+            // Simulate distance (for running/cycling)
+            if (state.activeSession.type === 'running' || state.activeSession.type === 'cycling') {
+                state.distanceInterval = setInterval(() => {
+                    const kmPerMinute = state.activeSession.intensity === 'high' ? 0.15 : 
+                                      state.activeSession.intensity === 'moderate' ? 0.1 : 0.05;
+                    state.activeSession.distance += kmPerMinute;
+                    elements.sessionDistance.textContent = state.activeSession.distance.toFixed(1);
+                }, 60000);
+            }
+        }
+
+        function updateActiveSessionDisplay() {
+            if (!state.isSessionActive) return;
+            
+            const now = new Date();
+            let elapsed = now - state.sessionStartTime - state.totalPausedTime;
+            
+            // Convert to hours, minutes, seconds
+            const hours = Math.floor(elapsed / 3600000);
+            elapsed %= 3600000;
+            const minutes = Math.floor(elapsed / 60000);
+            elapsed %= 60000;
+            const seconds = Math.floor(elapsed / 1000);
+            
+            // Update timer display
+            elements.sessionTimer.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update progress in session list
+            const progress = calculateSessionProgress(state.activeSession);
+            const progressBar = document.querySelector(`[data-session-id="${state.activeSession.id}"] .bg-indigo-600`);
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+                
+                const progressText = document.querySelector(`[data-session-id="${state.activeSession.id}"] .text-gray-700`);
+                if (progressText) {
+                    progressText.textContent = `${Math.round(progress)}% complété`;
+                }
+            }
+            
+            // Check if session is completed
+            if (progress >= 100) {
+                stopSession();
+            }
+        }
+
+        function pauseSession() {
+            if (!state.isSessionActive || state.isSessionPaused) return;
+            
+            state.isSessionPaused = true;
+            state.sessionPauseTime = new Date();
+            
+            // Clear intervals
+            clearInterval(state.heartRateInterval);
+            clearInterval(state.caloriesInterval);
+            clearInterval(state.distanceInterval);
+            
+            // Update UI
+            elements.pauseSessionBtn.classList.add('hidden');
+            elements.resumeSessionBtn.classList.remove('hidden');
+            
+            // Update session control button
+            const pauseBtn = document.querySelector(`[data-session-id="${state.activeSession.id}"] [data-action="pause"]`);
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                pauseBtn.dataset.action = 'resume';
+            }
+        }
+
+        function resumeSession() {
+            if (!state.isSessionActive || !state.isSessionPaused) return;
+            
+            state.isSessionPaused = false;
+            state.totalPausedTime += new Date() - state.sessionPauseTime;
+            
+            // Restart intervals
+            startSessionTimers();
+            
+            // Update UI
+            elements.pauseSessionBtn.classList.remove('hidden');
+            elements.resumeSessionBtn.classList.add('hidden');
+            
+            // Update session control button
+            const resumeBtn = document.querySelector(`[data-session-id="${state.activeSession.id}"] [data-action="resume"]`);
+            if (resumeBtn) {
+                resumeBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                resumeBtn.dataset.action = 'pause';
+            }
+        }
+
+        function stopSession() {
+            if (!state.isSessionActive) return;
+            
+            // Clear all intervals
+            clearInterval(state.sessionTimerInterval);
+            clearInterval(state.heartRateInterval);
+            clearInterval(state.caloriesInterval);
+            clearInterval(state.distanceInterval);
+            
+            // Mark session as completed
+            state.activeSession.completed = true;
+            state.activeSession.endTime = new Date();
+            
+            // Calculate actual duration (accounting for pauses)
+            const actualDuration = (state.activeSession.endTime - state.activeSession.startTime - state.totalPausedTime) / 60000;
+            state.activeSession.actualDuration = Math.round(actualDuration);
+            
+            // Add to sessions history
+            state.sessions.unshift(state.activeSession);
+            
+            // Reset active session state
+            state.isSessionActive = false;
+            state.isSessionPaused = false;
+            state.activeSession = null;
+            state.sessionStartTime = null;
+            state.sessionPauseTime = null;
+            state.totalPausedTime = 0;
+            
+            // Close modal and update UI
+            elements.activeSessionModal.classList.add('hidden');
+            updateStats();
+            renderSessions();
+        }
+
+        function showSessionDetails(session) {
+            document.getElementById('session-details-title').textContent = `Détails: ${session.typeName}`;
+            document.getElementById('session-date').textContent = session.date.toLocaleDateString('fr-FR');
+            document.getElementById('session-duration-detail').textContent = `${session.actualDuration || session.duration} min`;
+            document.getElementById('session-type-detail').textContent = session.typeName;
+            document.getElementById('session-intensity-detail').textContent = session.intensityName;
+            
+            if (session.distance) {
+                document.getElementById('session-distance-detail').textContent = `${session.distance} km`;
+            } else {
+                document.getElementById('session-distance-detail').textContent = 'N/A';
+            }
+            
+            document.getElementById('session-calories-detail').textContent = `${session.calories} kcal`;
+            document.getElementById('session-notes-detail').textContent = session.notes || 'Aucune note';
+            
+            elements.sessionDetailsModal.classList.remove('hidden');
+        }
+
+        function renderGoals() {
+            elements.goalsContainer.innerHTML = '';
+            
+            state.goals.forEach(goal => {
+                const goalEl = document.createElement('div');
+                goalEl.className = `p-3 bg-${goal.color}-50 rounded-lg border border-${goal.color}-100`;
+                goalEl.dataset.goalId = goal.id;
+                
+                goalEl.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 pt-1">
+                            <div class="w-6 h-6 rounded-full bg-${goal.color}-600 flex items-center justify-center text-white">
+                                <i class="${getGoalIcon(goal.type)} text-xs"></i>
+                            </div>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="font-medium text-gray-800">${goal.title}</h3>
+                            <p class="text-sm text-gray-600 mt-1">Objectif: ${goal.target}${goal.unit} d'ici ${formatGoalDeadline(goal.deadline)} • Progression: ${goal.current}${goal.unit}</p>
+                            <div class="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-${goal.color}-600 h-1.5 rounded-full" style="width: ${goal.progress}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                elements.goalsContainer.appendChild(goalEl);
+            });
+        }
+
+        function getGoalIcon(type) {
+            const icons = {
+                distance: 'fas fa-route',
+                weight: 'fas fa-weight-scale',
+                strength: 'fas fa-dumbbell',
+                endurance: 'fas fa-heart-pulse',
+                other: 'fas fa-bullseye'
+            };
+            
+            return icons[type] || 'fas fa-bullseye';
+        }
+
+        function formatGoalDeadline(date) {
+            if (!(date instanceof Date)) {
+                date = new Date(date);
+            }
+            
+            const now = new Date();
+            const diffTime = date - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 7) {
+                return `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+            } else if (diffDays <= 30) {
+                const weeks = Math.floor(diffDays / 7);
+                return `${weeks} semaine${weeks > 1 ? 's' : ''}`;
+            } else {
+                const months = Math.floor(diffDays / 30);
+                return `${months} mois`;
+            }
+        }
+
+        function addNewGoal() {
+            const title = document.getElementById('goal-title').value;
+            const type = document.getElementById('goal-type').value;
+            const target = parseFloat(document.getElementById('goal-target').value);
+            const unit = document.getElementById('goal-unit').value;
+            const deadline = document.getElementById('goal-deadline').value;
+            const description = document.getElementById('goal-description').value;
+            
+            if (!title || !target || !deadline) {
+                alert('Veuillez remplir tous les champs obligatoires');
+                return;
+            }
+            
+            const colors = ['indigo', 'purple', 'green', 'blue', 'yellow', 'pink'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            const newGoal = {
+                id: Date.now(),
+                title,
+                type,
+                current: 0,
+                target,
+                unit,
+                deadline: new Date(deadline),
+                description,
+                progress: 0,
+                color: randomColor
+            };
+            
+            state.goals.push(newGoal);
+            
+            // Reset and close form
+            elements.goalForm.reset();
+            elements.newGoalModal.classList.add('hidden');
+            
+           
+</html>

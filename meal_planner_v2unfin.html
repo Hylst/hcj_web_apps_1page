@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealPlanner by Geoffroy Streit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .timer-display {
+            font-family: 'Courier New', monospace;
+        }
+        .diet-filter.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .meal-tag {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 1rem;
+        }
+        .meal-breakfast { background-color: #fef08a; color: #854d0e; }
+        .meal-lunch { background-color: #bbf7d0; color: #166534; }
+        .meal-dinner { background-color: #bfdbfe; color: #1e40af; }
+        .meal-snack { background-color: #fbcfe8; color: #9d174d; }
+        .shopping-item.checked {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-4xl font-bold text-blue-800">MealPlanner</h1>
+                <p class="text-gray-600">by Geoffroy Streit</p>
+            </div>
+            <div class="flex space-x-4">
+                <button id="language-toggle" class="px-4 py-2 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition">
+                    <i class="fas fa-language"></i> <span class="language-text">FR</span>
+                </button>
+                <button id="user-btn" class="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
+                    <i class="fas fa-user"></i> <span class="user-text">Connexion</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - Meal Planning -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Week Navigation -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800 calendar-title">Planificateur de repas</h2>
+                        <div class="flex space-x-2">
+                            <button id="prev-week" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="week-display" class="px-4 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">Semaine 24</span>
+                            <button id="next-week" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button id="current-week" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm">
+                                Aujourd'hui
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Week Calendar -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-gray-500 text-sm">
+                                    <th class="pb-2">Lundi</th>
+                                    <th class="pb-2">Mardi</th>
+                                    <th class="pb-2">Mercredi</th>
+                                    <th class="pb-2">Jeudi</th>
+                                    <th class="pb-2">Vendredi</th>
+                                    <th class="pb-2">Samedi</th>
+                                    <th class="pb-2">Dimanche</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calendar-body">
+                                <!-- Calendar will be generated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recipe Suggestions -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Suggestions de recettes</h2>
+                        <div class="flex space-x-2">
+                            <button class="diet-filter px-3 py-1 rounded-full border border-gray-300 text-xs" data-diet="vegan">
+                                Vegan
+                            </button>
+                            <button class="diet-filter px-3 py-1 rounded-full border border-gray-300 text-xs" data-diet="gluten-free">
+                                Sans gluten
+                            </button>
+                            <button class="diet-filter px-3 py-1 rounded-full border border-gray-300 text-xs" data-diet="low-budget">
+                                Petit budget
+                            </button>
+                            <button id="shuffle-recipes" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                                <i class="fas fa-random"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="recipe-grid">
+                        <!-- Recipe cards will be added here dynamically -->
+                    </div>
+                    <div class="mt-4 text-center">
+                        <button id="load-more" class="px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                            Charger plus de recettes
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Tools -->
+            <div class="space-y-8">
+                <!-- Shopping List -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Liste de courses</h2>
+                        <div class="flex space-x-2">
+                            <button id="print-shopping" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                                <i class="fas fa-print"></i>
+                            </button>
+                            <button id="share-shopping" class="px-3 py-1 bg-green-600 text-white rounded-full text-sm hover:bg-green-700">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button id="clear-shopping" class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm hover:bg-red-200">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-3" id="shopping-list">
+                        <!-- Shopping items will be added here -->
+                    </div>
+                    <div class="mt-4 flex">
+                        <input type="text" id="new-shopping-item" placeholder="Ajouter un ingrédient" 
+                               class="flex-grow px-3 py-2 border border-gray-300 rounded-l-full">
+                        <button id="add-shopping-item" class="px-4 py-2 bg-blue-600 text-white rounded-r-full hover:bg-blue-700">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between">
+                        <p class="font-medium">Budget estimé: <span id="shopping-budget" class="text-green-600">€0.00</span></p>
+                        <button id="optimize-budget" class="text-sm text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-magic mr-1"></i> Optimiser
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cooking Timer -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Minuteur de cuisson</h2>
+                    <div class="flex flex-col items-center">
+                        <div class="timer-display text-5xl font-mono mb-6">30:00</div>
+                        <div class="flex space-x-4">
+                            <button id="start-timer" class="timer-control px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button id="pause-timer" class="timer-control px-6 py-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 hidden">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button id="stop-timer" class="timer-control px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+                        <div class="mt-6 w-full">
+                            <input type="range" id="timer-slider" min="1" max="120" value="30" class="w-full">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span>1 min</span>
+                                <span>30 min</span>
+                                <span>120 min</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 w-full">
+                            <h4 class="font-medium mb-2">Préréglages:</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="timer-preset px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm" data-minutes="5">5 min</button>
+                                <button class="timer-preset px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm" data-minutes="10">10 min</button>
+                                <button class="timer-preset px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm" data-minutes="15">15 min</button>
+                                <button class="timer-preset px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm" data-minutes="30">30 min</button>
+                                <button class="timer-preset px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm" data-minutes="45">45 min</button>
+                                <button class="timer-preset px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-sm" data-minutes="60">60 min</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kitchen Tools -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Ustensiles nécessaires</h2>
+                        <button id="refresh-tools" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-2" id="tools-list">
+                        <!-- Tools will be added here dynamically -->
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <button id="view-all-tools" class="text-sm text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-utensils mr-1"></i> Voir tous les ustensiles
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Budget Tracker -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Suivi du budget</h2>
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Budget mensuel: €300</span>
+                            <span id="budget-percentage" class="text-sm font-medium">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="budget-progress" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-600">Dépensé:</p>
+                            <p id="budget-spent" class="font-medium">€0.00</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Restant:</p>
+                            <p id="budget-remaining" class="font-medium">€300.00</p>
+                        </div>
+                    </div>
+                    <button id="set-budget" class="w-full mt-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-pencil-alt mr-2"></i> Modifier le budget
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipe Modal -->
+        <div id="recipe-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+                    <h3 id="modal-recipe-title" class="text-2xl font-semibold">Détails de la recette</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2">
+                            <img id="modal-recipe-image" src="" alt="Recipe image" class="w-full rounded-lg mb-4">
+                            <div class="flex items-center space-x-4 mb-4">
+                                <span id="modal-recipe-time" class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                                    <i class="fas fa-clock mr-1"></i> 30 min
+                                </span>
+                                <span id="modal-recipe-servings" class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                                    <i class="fas fa-utensils mr-1"></i> 2 personnes
+                                </span>
+                                <span id="modal-recipe-difficulty" class="bg-purple-100 text-purple-800 text-sm px-3 py-1 rounded-full">
+                                    <i class="fas fa-signal mr-1"></i> Facile
+                                </span>
+                            </div>
+                            <h4 class="text-xl font-semibold mb-2">Instructions</h4>
+                            <ol id="modal-recipe-instructions" class="list-decimal pl-5 space-y-2">
+                                <!-- Instructions will be added here -->
+                            </ol>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold mb-2">Ingrédients</h4>
+                            <div class="mb-4">
+                                <div class="flex items-center mb-2">
+                                    <input type="checkbox" id="select-all-ingredients" class="mr-2">
+                                    <label for="select-all-ingredients" class="text-sm">Tout sélectionner</label>
+                                </div>
+                                <ul class="space-y-2" id="modal-ingredients">
+                                    <!-- Ingredients will be added here -->
+                                </ul>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                                <h4 class="font-semibold mb-2">Informations nutritionnelles</h4>
+                                <div class="grid grid-cols-2 gap-2 text-sm" id="modal-nutrition">
+                                    <!-- Nutrition info will be added here -->
+                                </div>
+                            </div>
+                            <button id="add-to-plan-btn" class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-2">
+                                <i class="fas fa-calendar-plus mr-2"></i> Ajouter à mon planning
+                            </button>
+                            <button id="share-recipe-btn" class="w-full py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50">
+                                <i class="fas fa-share-alt mr-2"></i> Partager cette recette
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Meal Modal -->
+        <div id="meal-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Ajouter un repas</h3>
+                    <button id="close-meal-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Type de repas</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button class="meal-type-btn px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100" data-type="breakfast">
+                                <i class="fas fa-egg mr-1"></i> Petit-déj
+                            </button>
+                            <button class="meal-type-btn px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100" data-type="lunch">
+                                <i class="fas fa-utensils mr-1"></i> Déjeuner
+                            </button>
+                            <button class="meal-type-btn px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100" data-type="dinner">
+                                <i class="fas fa-moon mr-1"></i> Dîner
+                            </button>
+                            <button class="meal-type-btn px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100" data-type="snack">
+                                <i class="fas fa-apple-alt mr-1"></i> Collation
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="meal-date" class="block text-sm font-medium mb-1">Date</label>
+                        <input type="date" id="meal-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="meal-recipe" class="block text-sm font-medium mb-1">Recette</label>
+                        <select id="meal-recipe" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <!-- Recipes will be added here -->
+                        </select>
+                    </div>
+                    <div>
+                        <label for="meal-notes" class="block text-sm font-medium mb-1">Notes</label>
+                        <textarea id="meal-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ajoutez des notes ou des modifications..."></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button id="cancel-meal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+                            Annuler
+                        </button>
+                        <button id="save-meal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tools Modal -->
+        <div id="tools-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-semibold">Tous les ustensiles</h3>
+                    <button id="close-tools-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="all-tools-list">
+                    <!-- All tools will be listed here -->
+                </div>
+                <div class="mt-6">
+                    <button id="add-new-tool" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i> Ajouter un ustensile
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Modal -->
+        <div id="budget-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Définir le budget</h3>
+                    <button id="close-budget-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="budget-amount" class="block text-sm font-medium mb-1">Budget mensuel (€)</label>
+                        <input type="number" id="budget-amount" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="300">
+                    </div>
+                    <div>
+                        <label for="budget-period" class="block text-sm font-medium mb-1">Période</label>
+                        <select id="budget-period" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="weekly">Hebdomadaire</option>
+                            <option value="monthly" selected>Mensuel</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button id="cancel-budget" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+                            Annuler
+                        </button>
+                        <button id="save-budget" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Modal -->
+        <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Connexion</h3>
+                    <button id="close-login-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" id="login-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="votre@email.com">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium mb-1">Mot de passe</label>
+                        <input type="password" id="login-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="••••••••">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember-me" class="h-4 w-4 border-gray-300 rounded">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-900">Se souvenir de moi</label>
+                        </div>
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-800">Mot de passe oublié?</a>
+                    </div>
+                    <div class="pt-4">
+                        <button id="login-btn" class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Se connecter
+                        </button>
+                    </div>
+                    <div class="text-center text-sm pt-2">
+                        <p>Pas encore de compte? <a id="show-register" href="#" class="text-blue-600 hover:text-blue-800">S'inscrire</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Modal -->
+        <div id="register-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Créer un compte</h3>
+                    <button id="close-register-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="register-name" class="block text-sm font-medium mb-1">Nom complet</label>
+                        <input type="text" id="register-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Votre nom">
+                    </div>
+                    <div>
+                        <label for="register-email" class="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" id="register-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="votre@email.com">
+                    </div>
+                    <div>
+                        <label for="register-password" class="block text-sm font-medium mb-1">Mot de passe</label>
+                        <input type="password" id="register-password" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label for="register-confirm" class="block text-sm font-medium mb-1">Confirmer le mot de passe</label>
+                        <input type="password" id="register-confirm" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="••••••••">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="accept-terms" class="h-4 w-4 border-gray-300 rounded">
+                        <label for="accept-terms" class="ml-2 block text-sm text-gray-900">J'accepte les <a href="#" class="text-blue-600 hover:text-blue-800">conditions d'utilisation</a></label>
+                    </div>
+                    <div class="pt-4">
+                        <button id="register-btn" class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            S'inscrire
+                        </button>
+                    </div>
+                    <div class="text-center text-sm pt-2">
+                        <p>Déjà un compte? <a id="show-login" href="#" class="text-blue-600 hover:text-blue-800">Se connecter</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification -->
+        <div id="notification" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span id="notification-message">Action réussie!</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // State management
+            const state = {
+                currentWeek: 24,
+                currentYear: new Date().getFullYear(),
+                selectedDate: null,
+                selectedMealType: null,
+                timer: {
+                    running: false,
+                    paused: false,
+                    timeLeft: 1800, // 30 minutes in seconds
+                    interval: null
+                },
+                user: {
+                    loggedIn: false,
+                    name: null,
+                    email: null
+                },
+                budget: {
+                    amount: 300,
+                    period: 'monthly',
+                    spent: 0
+                },
+                language: 'fr',
+                recipes: [],
+                mealPlan: {},
+                shoppingList: [],
+                kitchenTools: []
+            };
+
+            // Initialize the application
+            function initApp() {
+                loadSampleData();
+                renderCalendar();
+                renderRecipes();
+                initShoppingList();
+                initKitchenTools();
+                initTimer();
+                initEventListeners();
+                updateBudgetDisplay();
+            }
+
+            // Load sample data
+            function loadSampleData() {
+                state.recipes = [
+                    {
+                        id: 1,
+                        name: "Salade de quinoa aux légumes",
+                        time: 25,
+                        servings: 2,
+                        difficulty: "Facile",
+                        diet: ["vegan", "gluten-free"],
+                        budget: "€",
+                        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                        ingredients: [
+                            { name: "Quinoa", quantity: "200g", checked: false },
+                            { name: "Tomates cerises", quantity: "150g", checked: false },
+                            { name: "Concombre", quantity: "1", checked: false },
+                            { name: "Poivron rouge", quantity: "1", checked: false },
+                            { name: "Oignon rouge", quantity: "1/2", checked: false },
+                            { name: "Persil frais", quantity: "1 bouquet", checked: false },
+                            { name: "Jus de citron", quantity: "2 c. à soupe", checked: false },
+                            { name: "Huile d'olive", quantity: "3 c. à soupe", checked: false },
+                            { name: "Sel et poivre", quantity: "Au goût", checked: false }
+                        ],
+                        instructions: [
+                            "Rincer le quinoa à l'eau froide et le faire cuire selon les instructions du paquet.",
+                            "Pendant ce temps, laver et couper les légumes en petits dés.",
+                            "Dans un grand saladier, mélanger les légumes coupés avec le quinoa cuit et refroidi.",
+                            "Ajouter le persil haché, le jus de citron et l'huile d'olive.",
+                            "Saler et poivrer à votre goût, bien mélanger.",
+                            "Laisser reposer au réfrigérateur pendant 30 minutes avant de servir."
+                        ],
+                        nutrition: {
+                            calories: 350,
+                            protein: "12g",
+                            carbs: "45g",
+                            fat: "15g",
+                            fiber: "8g"
+                        },
+                        tools: ["Casserole", "Saladier", "Couteau", "Planche à découper"]
+                    },
+                    {
+                        id: 2,
+                        name: "Curry de lentilles coco",
+                        time: 40,
+                        servings: 4,
+                        difficulty: "Moyen",
+                        diet: ["vegan", "low-budget"],
+                        budget: "€",
+                        image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                        ingredients: [
+                            { name: "Lentilles corail", quantity: "250g", checked: false },
+                            { name: "Lait de coco", quantity: "400ml", checked: false },
+                            { name: "Oignon", quantity: "1", checked: false },
+                            { name: "Ail", quantity: "2 gousses", checked: false },
+                            { name: "Gingembre frais", quantity: "2cm", checked: false },
+                            { name: "Curry en poudre", quantity: "2 c. à soupe", checked: false },
+                            { name: "Tomates concassées", quantity: "400g", checked: false },
+                            { name: "Huile végétale", quantity: "2 c. à soupe", checked: false },
+                            { name: "Coriandre fraîche", quantity: "Pour servir", checked: false }
+                        ],
+                        instructions: [
+                            "Rincer les lentilles et les faire cuire dans de l'eau bouillante pendant 15-20 minutes jusqu'à ce qu'elles soient tendres. Égoutter et réserver.",
+                            "Dans une grande poêle, faire chauffer l'huile à feu moyen. Ajouter l'oignon émincé et faire revenir jusqu'à ce qu'il devienne translucide.",
+                            "Ajouter l'ail et le gingembre hachés, faire revenir 1 minute de plus.",
+                            "Incorporer la poudre de curry et bien mélanger pour enrober les oignons.",
+                            "Ajouter les tomates concassées et laisser mijoter 5 minutes.",
+                            "Verser le lait de coco et les lentilles cuites. Bien mélanger et laisser mijoter à feu doux pendant 10 minutes.",
+                            "Rectifier l'assaisonnement si nécessaire. Servir chaud, garni de coriandre fraîche."
+                        ],
+                        nutrition: {
+                            calories: 420,
+                            protein: "18g",
+                            carbs: "55g",
+                            fat: "15g",
+                            fiber: "12g"
+                        },
+                        tools: ["Casserole", "Poêle large", "Couteau", "Planche à découper", "Cuillère en bois"]
+                    },
+                    {
+                        id: 3,
+                        name: "Poulet rôti aux herbes",
+                        time: 60,
+                        servings: 4,
+                        difficulty: "Facile",
+                        diet: ["gluten-free"],
+                        budget: "€€",
+                        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                        ingredients: [
+                            { name: "Poulet entier", quantity: "1.5kg", checked: false },
+                            { name: "Romarin frais", quantity: "2 branches", checked: false },
+                            { name: "Thym frais", quantity: "4 branches", checked: false },
+                            { name: "Ail", quantity: "4 gousses", checked: false },
+                            { name: "Citron", quantity: "1", checked: false },
+                            { name: "Beurre", quantity: "50g", checked: false },
+                            { name: "Sel et poivre", quantity: "Au goût", checked: false },
+                            { name: "Carottes", quantity: "4", checked: false },
+                            { name: "Pommes de terre", quantity: "6", checked: false }
+                        ],
+                        instructions: [
+                            "Préchauffer le four à 200°C (thermostat 6-7).",
+                            "Laver et sécher le poulet. Saler et poivrer l'intérieur et l'extérieur.",
+                            "Dans un bol, mélanger le beurre ramolli avec le romarin et le thym hachés, l'ail pressé et le zeste du citron.",
+                            "Détacher délicatement la peau du poulet et y glisser une partie du beurre aux herbes. Étaler le reste sur toute la surface du poulet.",
+                            "Couper le citron en deux et le placer à l'intérieur du poulet avec quelques branches de thym.",
+                            "Placer le poulet dans un plat allant au four, entouré des carottes et pommes de terre coupées en morceaux.",
+                            "Enfourner pour environ 1 heure (20 minutes par 500g). Arroser régulièrement avec le jus de cuisson.",
+                            "Laisser reposer 10 minutes avant de découper."
+                        ],
+                        nutrition: {
+                            calories: 550,
+                            protein: "45g",
+                            carbs: "30g",
+                            fat: "30g",
+                            fiber: "5g"
+                        },
+                        tools: ["Plat allant au four", "Bol", "Couteau", "Planche à découper", "Pinceau de cuisine"]
+                    },
+                    {
+                        id: 4,
+                        name: "Pâtes carbonara végétales",
+                        time: 30,
+                        servings: 2,
+                        difficulty: "Facile",
+                        diet: ["vegan"],
+                        budget: "€€",
+                        image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                        ingredients: [
+                            { name: "Pâtes", quantity: "250g", checked: false },
+                            { name: "Tofu fumé", quantity: "200g", checked: false },
+                            { name: "Crème végétale", quantity: "20cl", checked: false },
+                            { name: "Levure maltée", quantity: "2 c. à soupe", checked: false },
+                            { name: "Ail", quantity: "1 gousse", checked: false },
+                            { name: "Échalote", quantity: "1", checked: false },
+                            { name: "Huile d'olive", quantity: "2 c. à soupe", checked: false },
+                            { name: "Poivre noir", quantity: "Au goût", checked: false }
+                        ],
+                        instructions: [
+                            "Faire cuire les pâtes dans une grande quantité d'eau bouillante salée selon les instructions du paquet.",
+                            "Pendant ce temps, émincer l'échalote et l'ail. Couper le tofu fumé en petits dés.",
+                            "Dans a poêle, faire chauffer l'huile d'olive à feu moyen. Ajouter l'échalote et l'ail, faire revenir 2 minutes.",
+                            "Ajouter les dés de tofu et faire dorer pendant 5 minutes.",
+                            "Dans un bol, mélanger la crème végétale avec la levure maltée et un peu de poivre.",
+                            "Égoutter les pâtes en conservant un peu d'eau de cuisson. Les remettre dans la casserole avec la préparation à la crème et le tofu.",
+                            "Mélanger délicatement en ajoutant un peu d'eau de cuisson si nécessaire pour obtenir une sauce onctueuse.",
+                            "Servir immédiatement avec un peu de poivre noir supplémentaire."
+                        ],
+                        nutrition: {
+                            calories: 600,
+                            protein: "25g",
+                            carbs: "80g",
+                            fat: "20g",
+                            fiber: "6g"
+                        },
+                        tools: ["Casserole", "Poêle", "Couteau", "Planche à découper", "Écumoire"]
+                    },
+                    {
+                        id: 5,
+                        name: "Soupe de potiron",
+                        time: 35,
+                        servings: 6,
+                        difficulty: "Facile",
+                        diet: ["vegan", "gluten-free", "low-budget"],
+                        budget: "€",
+                        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                        ingredients: [
+                            { name: "Potiron", quantity: "1kg", checked: false },
+                            { name: "Carottes", quantity: "2", checked: false },
+                            { name: "Pommes de terre", quantity: "2", checked: false },
+                            { name: "Oignon", quantity: "1", checked: false },
+                            { name: "Ail", quantity: "2 gousses", checked: false },
+                            { name: "Bouillon de légumes", quantity: "1L", checked: false },
+                            { name: "Crème végétale", quantity: "20cl", checked: false },
+                            { name: "Huile d'olive", quantity: "2 c. à soupe", checked: false },
+                            { name: "Noix de muscade", quantity: "1 pincée", checked: false },
+                            { name: "Sel et poivre", quantity: "Au goût", checked: false }
+                        ],
+                        instructions: [
+                            "Éplucher et couper le potiron en gros cubes. Éplucher et couper les carottes et pommes de terre en morceaux.",
+                            "Dans une grande casserole, faire chauffer l'huile d'olive à feu moyen. Ajouter l'oignon émincé et l'ail haché, faire revenir 2 minutes.",
+                            "Ajouter les légumes coupés et couvrir avec le bouillon de légumes. Porter à ébullition.",
+                            "Baisser le feu et laisser mijoter pendant 20-25 minutes jusqu'à ce que les légumes soient tendres.",
+                            "Mixer la soupe jusqu'à obtenir une texture lisse. Ajouter la crème végétale et la noix de muscade.",
+                            "Rectifier l'assaisonnement avec du sel and poivre. Servir chaud avec un filet d'huile d'olive."
+                        ],
+                        nutrition: {
+                            calories: 180,
+                            protein: "4g",
+                            carbs: "25g",
+                            fat: "7g",
+                            fiber: "5g"
+                        },
+                        tools: ["Casserole large", "Mixeur", "Couteau", "Planche à découper", "Louche"]
+                    },
+                    {
+                        id: 6,
+                        name: "Tartare d'avocat",
+                        time: 15,
+                        servings: 2,
+                        difficulty: "Facile",
+                        diet: ["vegan", "gluten-free"],
+                        budget: "€€",
+                        image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80",
+                        ingredients: [
+                            { name: "Avocats", quantity: "2", checked: false },
+                            { name: "Tomates cerises", quantity: "10", checked: false },
+                            { name: "Oignon rouge", quantity: "1/4", checked: false },
+                            { name: "Coriandre fraîche", quantity: "1 poignée", checked: false },
+                            { name: "Citron vert", quantity: "1", checked: false },
+                            { name: "Huile d'olive", quantity: "2 c. à soupe", checked: false },
+                            { name: "Sel et poivre", quantity: "Au goût", checked: false },
+                            { name: "Pain croustillant", quantity: "Pour servir", checked: false }
+                        ],
+                        instructions: [
+                            "Couper les avocats en deux, retirer le noyau et extraire la chair. Couper en petits dés et mettre dans un bol.",
+                            "Ajouter le jus du citron vert et mélanger délicatement pour éviter que les avocats ne noircissent.",
+                            "Émincer finement l'oignon rouge et couper les tomates cerises en quartiers. Hacher la coriandre.",
+                            "Incorporer l'oignon, les tomates et la coriandre aux avocats. Ajouter l'huile d'olive, saler et poivrer.",
+                            "Mélanger délicatement pour ne pas écraser les avocats. Goûter et rectifier l'assaisonnement si nécessaire.",
+                            "Servir immédiatement avec du pain croustillant ou des chips de maïs."
+                        ],
+                        nutrition: {
+                            calories: 320,
+                            protein: "4g",
+                            carbs: "15g",
+                            fat: "30g",
+                            fiber: "10g"
+                        },
+                        tools: ["Bol", "Couteau", "Planche à découper", "Cuillère"]
+                    }
+                ];
+
+                state.kitchenTools = [
+                    { id: 1, name: "Casserole", icon: "fa-utensil-spoon", needed: true },
+                    { id: 2, name: "Poêle", icon: "fa-utensil-spoon", needed: true },
+                    { id: 3, name: "Saladier", icon: "fa-bowl-food", needed: true },
+                    { id: 4, name: "Couteau", icon: "fa-knife", needed: true },
+                    { id: 5, name: "Planche à découper", icon: "fa-utensils", needed: true },
+                    { id: 6, name: "Mixeur", icon: "fa-blender", needed: false },
+                    { id: 7, name: "Plat allant au four", icon: "fa-dumpster", needed: false },
+                    { id: 8, name: "Cuillère en bois", icon: "fa-utensil-spoon", needed: false },
+                    { id: 9, name: "Écumoire", icon: "fa-utensils", needed: false },
+                    { id: 10, name: "Louche", icon: "fa-utensils", needed: false },
+                    { id: 11, name: "Pinceau de cuisine", icon: "fa-paint-brush", needed: false },
+                    { id: 12, name: "Râpe", icon: "fa-utensils", needed: false }
+                ];
+
+                // Sample meal plan
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                state.mealPlan = {
+                    [formatDate(today)]: [
+                        { type: "breakfast", recipeId: 1, notes: "Ajouter des graines de chia" },
+                        { type: "lunch", recipeId: 2, notes: "" },
+                        { type: "dinner", recipeId: 3, notes: "Servir avec du riz basmati" }
+                    ],
+                    [formatDate(tomorrow)]: [
+                        { type: "breakfast", recipeId: 4, notes: "" },
+                        { type: "lunch", recipeId: 5, notes: "Prévoir du pain complet" },
+                        { type: "snack", recipeId: 6, notes: "Préparer à l'avance" }
+                    ]
+                };
+
+                // Sample shopping list
+                state.shoppingList = [
+                    { id: 1, name: "Tomates", quantity: "500g", checked: false, price: 2.50 },
+                    { id: 2, name: "Concombre", quantity: "1", checked: false, price: 1.20 },
+                    { id: 3, name: "Quinoa", quantity: "250g", checked: true, price: 3.00 },
+                    { id: 4, name: "Lait de coco", quantity: "400ml", checked: false, price: 1.80 },
+                    { id: 5, name: "Lentilles corail", quantity: "500g", checked: false, price: 2.20 }
+                ];
+            }
+
+            // Format date as YYYY-MM-DD
+            function formatDate(date) {
+                const d = new Date(date);
+                let month = '' + (d.getMonth() + 1);
+                let day = '' + d.getDate();
+                const year = d.getFullYear();
+
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+
+                return [year, month, day].join('-');
+            }
+
+            // Render calendar
+            function renderCalendar() {
+                const calendarBody = document.getElementById('calendar-body');
+                calendarBody.innerHTML = '';
+
+                const row = document.createElement('tr');
+                row.className = 'h-40';
+
+                // Get current date to highlight today
+                const today = new Date();
+                const todayFormatted = formatDate(today);
+
+                // Create cells for each day of the week
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date();
+                    date.setDate(today.getDate() - today.getDay() + 1 + i); // Start from Monday
+                    const dateFormatted = formatDate(date);
+                    
+                    const cell = document.createElement('td');
+                    cell.className = 'border border-gray-200 p-1 align-top';
+                    if (dateFormatted === todayFormatted) {
+                        cell.classList.add('bg-blue-50');
+                    }
+
+                    const cellContent = document.createElement('div');
+                    cellContent.className = 'h-full flex flex-col';
+
+                    const dayNumber = document.createElement('div');
+                    dayNumber.className = 'text-center font-medium py-1';
+                    dayNumber.textContent = date.getDate();
+                    cellContent.appendChild(dayNumber);
+
+                    const mealsContainer = document.createElement('div');
+                    mealsContainer.className = 'flex-grow space-y-1 overflow-y-auto max-h-32';
+                    
+                    // Add meals for this day if they exist
+                    if (state.mealPlan[dateFormatted]) {
+                        state.mealPlan[dateFormatted].forEach(meal => {
+                            const mealDiv = document.createElement('div');
+                            mealDiv.className = 'text-xs px-2 py-1 rounded flex items-center';
+                            
+                            let mealClass = '';
+                            let mealIcon = '';
+                            switch(meal.type) {
+                                case 'breakfast':
+                                    mealClass = 'meal-breakfast';
+                                    mealIcon = 'fa-egg';
+                                    break;
+                                case 'lunch':
+                                    mealClass = 'meal-lunch';
+                                    mealIcon = 'fa-utensils';
+                                    break;
+                                case 'dinner':
+                                    mealClass = 'meal-dinner';
+                                    mealIcon = 'fa-moon';
+                                    break;
+                                case 'snack':
+                                    mealClass = 'meal-snack';
+                                    mealIcon = 'fa-apple-alt';
+                                    break;
+                            }
+                            
+                            mealDiv.classList.add(mealClass);
+                            
+                            const icon = document.createElement('i');
+                            icon.className = `fas ${mealIcon} mr-1`;
+                            mealDiv.appendChild(icon);
+                            
+                            const recipe = state.recipes.find(r => r.id === meal.recipeId);
+                            if (recipe) {
+                                const name = document.createElement('span');
+                                name.textContent = recipe.name;
+                                mealDiv.appendChild(name);
+                                
+                                // Add click event to edit meal
+                                mealDiv.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    openEditMealModal(dateFormatted, meal);
+                                });
+                            }
+                            
+                            mealsContainer.appendChild(mealDiv);
+                        });
+                    }
+
+                    cellContent.appendChild(mealsContainer);
+
+                    const addButton = document.createElement('button');
+                    addButton.className = 'add-meal-btn mt-1 text-xs text-blue-600 hover:text-blue-800';
+                    
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-plus mr-1';
+                    addButton.appendChild(icon);
+                    
+                    const text = document.createElement('span');
+                    text.textContent = 'Ajouter';
+                    addButton.appendChild(text);
+                    
+                    // Add click event to add meal
+                    addButton.addEventListener('click', () => {
+                        openAddMealModal(dateFormatted);
+                    });
+
+                    cellContent.appendChild(addButton);
+                    cell.appendChild(cellContent);
+                    row.appendChild(cell);
+                }
+
+                calendarBody.appendChild(row);
+            }
+
+            // Open add meal modal
+            function openAddMealModal(date) {
+                state.selectedDate = date;
+                document.getElementById('meal-date').value = date;
+                
+                // Populate recipe select
+                const recipeSelect = document.getElementById('meal-recipe');
+                recipeSelect.innerHTML = '';
+                state.recipes.forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    option.textContent = recipe.name;
+                    recipeSelect.appendChild(option);
+                });
+                
+                document.getElementById('meal-modal').classList.remove('hidden');
+            }
+
+            // Open edit meal modal
+            function openEditMealModal(date, meal) {
+                state.selectedDate = date;
+                document.getElementById('meal-date').value = date;
+                
+                // Set meal type
+                document.querySelectorAll('.meal-type-btn').forEach(btn => {
+                    if (btn.dataset.type === meal.type) {
+                        btn.classList.add('bg-blue-100', 'border-blue-300');
+                    } else {
+                        btn.classList.remove('bg-blue-100', 'border-blue-300');
+                    }
+                });
+                
+                // Populate recipe select
+                const recipeSelect = document.getElementById('meal-recipe');
+                recipeSelect.innerHTML = '';
+                state.recipes.forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    option.textContent = recipe.name;
+                    option.selected = (recipe.id === meal.recipeId);
+                    recipeSelect.appendChild(option);
+                });
+                
+                // Set notes
+                document.getElementById('meal-notes').value = meal.notes || '';
+                
+                // Change button text
+                document.getElementById('save-meal').textContent = 'Modifier';
+                
+                document.getElementById('meal-modal').classList.remove('hidden');
+            }
+
+            // Save meal to plan
+            function saveMealToPlan() {
+                const date = state.selectedDate;
+                const type = state.selectedMealType;
+                const recipeId = parseInt(document.getElementById('meal-recipe').value);
+                const notes = document.getElementById('meal-notes').value;
+                
+                if (!date || !type || !recipeId) {
+                    showNotification('Veuillez remplir tous les champs', 'error');
+                    return;
+                }
+                
+                if (!state.mealPlan[date]) {
+                    state.mealPlan[date] = [];
+                }
+                
+                // Check if meal of this type already exists for this date
+                const existingMealIndex = state.mealPlan[date].findIndex(m => m.type === type);
+                
+                if (existingMealIndex >= 0) {
+                    // Update existing meal
+                    state.mealPlan[date][existingMealIndex] = { type, recipeId, notes };
+                } else {
+                    // Add new meal
+                    state.mealPlan[date].push({ type, recipeId, notes });
+                }
+                
+                // Update shopping list
+                updateShoppingList();
+                
+                // Update kitchen tools
+                updateKitchenTools();
+                
+                // Re-render calendar
+                renderCalendar();
+                
+                // Close modal
+                document.getElementById('meal-modal').classList.add('hidden');
+                
+                showNotification('Repas enregistré avec succès');
+            }
+
+            // Render recipes
+            function renderRecipes(filteredRecipes = null) {
+                const recipeGrid = document.getElementById('recipe-grid');
+                recipeGrid.innerHTML = '';
+                
+                const recipesToShow = filteredRecipes || state.recipes;
+                
+                recipesToShow.forEach(recipe => {
+                    const card = document.createElement('div');
+                    card.className = 'recipe-card bg-white rounded-lg overflow-hidden shadow-md border border-gray-100 transition duration-300 cursor-pointer';
+                    
+                    // Image
+                    const img = document.createElement('img');
+                    img.src = recipe.image;
+                    img.alt = recipe.name;
+                    img.className = 'w-full h-40 object-cover';
+                    card.appendChild(img);
+                    
+                    // Card content
+                    const cardContent = document.createElement('div');
+                    cardContent.className = 'p-4';
+                    
+                    // Title and time
+                    const titleRow = document.createElement('div');
+                    titleRow.className = 'flex justify-between items-start mb-2';
+                    
+                    const title = document.createElement('h3');
+                    title.className = 'font-semibold text-lg';
+                    title.textContent = recipe.name;
+                    titleRow.appendChild(title);
+                    
+                    const time = document.createElement('span');
+                    time.className = 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full';
+                    time.innerHTML = `<i class="fas fa-clock mr-1"></i>${recipe.time} min`;
+                    titleRow.appendChild(time);
+                    
+                    cardContent.appendChild(titleRow);
+                    
+                    // Diet tags
+                    const dietTags = document.createElement('div');
+                    dietTags.className = 'flex flex-wrap gap-1 mb-3';
+                    
+                    recipe.diet.forEach(diet => {
+                        let bgClass, textClass, displayText;
+                        
+                        switch(diet) {
+                            case 'vegan':
+                                bgClass = 'bg-blue-100';
+                                textClass = 'text-blue-800';
+                                displayText = 'Vegan';
+                                break;
+                            case 'gluten-free':
+                                bgClass = 'bg-purple-100';
+                                textClass = 'text-purple-800';
+                                displayText = 'Sans gluten';
+                                break;
+                            case 'low-budget':
+                                bgClass = 'bg-green-100';
+                                textClass = 'text-green-800';
+                                displayText = 'Petit budget';
+                                break;
+                        }
+                        
+                        const tag = document.createElement('span');
+                        tag.className = `${bgClass} ${textClass} text-xs px-2 py-1 rounded-full`;
+                        tag.textContent = displayText;
+                        dietTags.appendChild(tag);
+                    });
+                    
+                    cardContent.appendChild(dietTags);
+                    
+                    // Budget and add button
+                    const footer = document.createElement('div');
+                    footer.className = 'flex justify-between items-center';
+                    
+                    const budget = document.createElement('span');
+                    budget.className = 'text-sm text-gray-600';
+                    budget.textContent = recipe.budget;
+                    footer.appendChild(budget);
+                    
+                    const addButton = document.createElement('button');
+                    addButton.className = 'add-to-plan-btn px-3 py-1 bg-blue-600 text-white text-sm rounded-full hover:bg-blue-700';
+                    addButton.innerHTML = '<i class="fas fa-calendar-plus mr-1"></i>Ajouter';
+                    
+                    // Add click event to add to plan
+                    addButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openAddMealModal(formatDate(new Date()), recipe.id);
+                    });
+                    
+                    footer.appendChild(addButton);
+                    cardContent.appendChild(footer);
+                    
+                    card.appendChild(cardContent);
+                    
+                    // Add click event to show recipe details
+                    card.addEventListener('click', () => {
+                        showRecipeModal(recipe);
+                    });
+                    
+                    recipeGrid.appendChild(card);
+                });
+            }
+
+            // Show recipe modal
+            function showRecipeModal(recipe) {
+                // Set basic info
+                document.getElementById('modal-recipe-title').textContent = recipe.name;
+                document.getElementById('modal-recipe-image').src = recipe.image;
+                document.getElementById('modal-recipe-image').alt = recipe.name;
+                document.getElementById('modal-recipe-time').innerHTML = `<i class="fas fa-clock mr-1"></i> ${recipe.time} min`;
+                document.getElementById('modal-recipe-servings').innerHTML = `<i class="fas fa-utensils mr-1"></i> ${recipe.servings} personnes`;
+                document.getElementById('modal-recipe-difficulty').innerHTML = `<i class="fas fa-signal mr-1"></i> ${recipe.difficulty}`;
+                
+                // Set ingredients
+                const ingredientsList = document.getElementById('modal-ingredients');
+                ingredientsList.innerHTML = '';
+                
+                recipe.ingredients.forEach(ing => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mr-2';
+                    checkbox.checked = ing.checked;
+                    checkbox.addEventListener('change', () => {
+                        ing.checked = checkbox.checked;
+                    });
+                    
+                    const span = document.createElement('span');
+                    span.textContent = `${ing.name} - ${ing.quantity}`;
+                    
+                    li.appendChild(checkbox);
+                    li.appendChild(span);
+                    ingredientsList.appendChild(li);
+                });
+                
+                // Set instructions
+                const instructionsList = document.getElementById('modal-recipe-instructions');
+                instructionsList.innerHTML = '';
+                
+                recipe.instructions.forEach((inst, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = inst;
+                    instructionsList.appendChild(li);
+                });
+                
+                // Set nutrition info
+                const nutritionGrid = document.getElementById('modal-nutrition');
+                nutritionGrid.innerHTML = '';
+                
+                for (const [key, value] of Object.entries(recipe.nutrition)) {
+                    const div = document.createElement('div');
+                    div.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`;
+                    nutritionGrid.appendChild(div);
+                }
+                
+                // Set add to plan button
+                document.getElementById('add-to-plan-btn').onclick = () => {
+                    openAddMealModal(formatDate(new Date()), recipe.id);
+                };
+                
+                // Set share button
+                document.getElementById('share-recipe-btn').onclick = () => {
+                    shareRecipe(recipe);
+                };
+                
+                // Set select all ingredients
+                document.getElementById('select-all-ingredients').onclick = (e) => {
+                    const checkboxes = ingredientsList.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(cb => {
+                        cb.checked = e.target.checked;
+                        const ing = recipe.ingredients.find(i => 
+                            `${i.name} - ${i.quantity}` === cb.nextElementSibling.textContent
+                        );
+                        if (ing) ing.checked = e.target.checked;
+                    });
+                };
+                
+                // Show modal
+                document.getElementById('recipe-modal').classList.remove('hidden');
+            }
+
+            // Share recipe
+            function shareRecipe(recipe) {
+                if (navigator.share) {
+                    navigator.share({
+                        title: recipe.name,
+                        text: `Découvrez cette délicieuse recette: ${recipe.name}`,
+                        url: window.location.href
+                    }).catch(err => {
+                        showNotification('Le partage a été annulé', 'error');
+                    });
+                } else {
+                    // Fallback for browsers that don't support Web Share API
+                    const shareUrl = `mailto:?subject=${encodeURIComponent(recipe.name)}&body=${encodeURIComponent(`Découvrez cette recette: ${recipe.name}\n\nIngrédients:\n${recipe.ingredients.map(i => `- ${i.name} (${i.quantity})`).join('\n')}\n\nInstructions:\n${recipe.instructions.map((inst, i) => `${i+1}. ${inst}`).join('\n')}`)}`;
+                    window.open(shareUrl);
+                    showNotification('Option de partage ouverte');
+                }
+            }
+
+            // Initialize shopping list
+            function initShoppingList() {
+                updateShoppingList();
+            }
+
+            // Update shopping list
+            function updateShoppingList() {
+                const shoppingList = document.getElementById('shopping-list');
+                shoppingList.innerHTML = '';
+                
+                let total = 0;
+                
+                state.shoppingList.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center';
+                    if (item.checked) {
+                        div.classList.add('shopping-item', 'checked');
+                    } else {
+                        div.classList.add('shopping-item');
+                        total += item.price || 0;
+                    }
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mr-3 h-5 w-5';
+                    checkbox.checked = item.checked;
+                    checkbox.addEventListener('change', () => {
+                        item.checked = checkbox.checked;
+                        updateShoppingList();
+                    });
+                    
+                    const span = document.createElement('span');
+                    span.className = 'flex-grow';
+                    span.textContent = `${item.name} (${item.quantity})`;
+                    
+                    const priceSpan = document.createElement('span');
+                    priceSpan.className = 'mx-2 text-sm text-gray-600';
+                    priceSpan.textContent = item.price ? `€${item.price.toFixed(2)}` : '';
+                    
+                    const button = document.createElement('button');
+                    button.className = 'text-red-500 hover:text-red-700';
+                    
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-trash';
+                    
+                    button.appendChild(icon);
+                    button.addEventListener('click', () => {
+                        state.shoppingList = state.shoppingList.filter(i => i.id !== item.id);
+                        updateShoppingList();
+                    });
+                    
+                    div.appendChild(checkbox);
+                    div.appendChild(span);
+                    div.appendChild(priceSpan);
+                    div.appendChild(button);
+                    
+                    shoppingList.appendChild(div);
+                });
+                
+                // Update budget display
+                document.getElementById('shopping-budget').textContent = `€${total.toFixed(2)}`;
+            }
+
+            // Add item to shopping list
+            function addShoppingItem() {
+                const input = document.getElementById('new-shopping-item');
+                const itemName = input.value.trim();
+                
+                if (itemName) {
+                    const newItem = {
+                        id: Date.now(),
+                        name: itemName,
+                        quantity: '',
+                        checked: false,
+                        price: 0
+                    };
+                    
+                    state.shoppingList.push(newItem);
+                    updateShoppingList();
+                    input.value = '';
+                    showNotification('Article ajouté à la liste');
+                }
+            }
+
+            // Optimize shopping budget
+            function optimizeShoppingBudget() {
+                // Sort by price (cheapest first)
+                state.shoppingList.sort((a, b) => (a.price || 0) - (b.price || 0));
+                updateShoppingList();
+                showNotification('Liste optimisée par prix');
+            }
+
+            // Initialize kitchen tools
+            function initKitchenTools() {
+                updateKitchenTools();
+            }
+
+            // Update kitchen tools
+            function updateKitchenTools() {
+                const toolsList = document.getElementById('tools-list');
+                toolsList.innerHTML = '';
+                
+                // Get all tools needed for planned recipes
+                const neededTools = new Set();
+                Object.values(state.mealPlan).forEach(meals => {
+                    meals.forEach(meal => {
+                        const recipe = state.recipes.find(r => r.id === meal.recipeId);
+                        if (recipe) {
+                            recipe.tools.forEach(tool => neededTools.add(tool));
+                        }
+                    });
+                });
+                
+                // Display needed tools
+                state.kitchenTools.forEach(tool => {
+                    if (neededTools.has(tool.name)) {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center';
+                        
+                        const icon = document.createElement('i');
+                        icon.className = `fas ${tool.icon} text-gray-700 mr-3`;
+                        
+                        const span = document.createElement('span');
+                        span.textContent = tool.name;
+                        
+                        div.appendChild(icon);
+                        div.appendChild(span);
+                        
+                        toolsList.appendChild(div);
+                    }
+                });
+            }
+
+            // Show all tools modal
+            function showAllToolsModal() {
+                const allToolsList = document.getElementById('all-tools-list');
+                allToolsList.innerHTML = '';
+                
+                state.kitchenTools.forEach(tool => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center p-3 border border-gray-200 rounded-lg';
+                    
+                    const icon = document.createElement('i');
+                    icon.className = `fas ${tool.icon} text-gray-700 mr-3 text-xl`;
+                    
+                    const span = document.createElement('span');
+                    span.className = 'flex-grow';
+                    span.textContent = tool.name;
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'h-5 w-5';
+                    checkbox.checked = tool.needed;
+                    checkbox.addEventListener('change', () => {
+                        tool.needed = checkbox.checked;
+                    });
+                    
+                    div.appendChild(icon);
+                    div.appendChild(span);
+                    div.appendChild(checkbox);
+                    
+                    allToolsList.appendChild(div);
+                });
+                
+
+</html>

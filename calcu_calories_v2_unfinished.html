@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CalcuCalories | Calculateur nutritionnel intelligent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+        }
+        .food-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .barcode-scanner {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        #barcode-scanner-container {
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            position: relative;
+        }
+        #barcode-scanner-container video {
+            width: 100%;
+        }
+        #barcode-scanner-container canvas {
+            display: none;
+        }
+        .dark-mode {
+            background-color: #1a202c;
+            color: #f7fafc;
+        }
+        .dark-mode .dark-bg {
+            background-color: #2d3748;
+        }
+        .dark-mode .dark-border {
+            border-color: #4a5568;
+        }
+        .dark-mode .dark-text {
+            color: #f7fafc;
+        }
+        .dark-mode .dark-secondary-text {
+            color: #cbd5e0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans transition-colors duration-200">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-utensils text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">CalcuCalories</h1>
+                        <p class="text-sm opacity-80">Calculateur nutritionnel intelligent</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="sync-btn" class="bg-white text-blue-600 px-4 py-2 rounded-full font-medium hover:bg-gray-100 transition">
+                        <i class="fas fa-sync-alt mr-2"></i>Synchroniser
+                    </button>
+                    <button id="dark-mode-toggle" class="p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="relative">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" class="w-10 h-10 rounded-full cursor-pointer border-2 border-white">
+                        <div class="absolute bottom-0 right-0 bg-green-500 rounded-full w-3 h-3 border-2 border-white"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Dashboard Overview -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Calories Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center dark-border">
+                    <div class="mr-4 bg-red-100 p-3 rounded-full">
+                        <i class="fas fa-fire text-red-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Calories</p>
+                        <div class="flex items-baseline">
+                            <h3 class="text-2xl font-bold dark-text">1,850</h3>
+                            <span class="text-gray-500 dark:text-gray-400 ml-1">/ 2,300</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                            <div class="bg-red-500 h-2 rounded-full" style="width: 80%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proteins Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center dark-border">
+                    <div class="mr-4 bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-dumbbell text-blue-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Protéines</p>
+                        <div class="flex items-baseline">
+                            <h3 class="text-2xl font-bold dark-text">125g</h3>
+                            <span class="text-gray-500 dark:text-gray-400 ml-1">/ 150g</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 83%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carbs Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center dark-border">
+                    <div class="mr-4 bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-bread-slice text-yellow-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Glucides</p>
+                        <div class="flex items-baseline">
+                            <h3 class="text-2xl font-bold dark-text">210g</h3>
+                            <span class="text-gray-500 dark:text-gray-400 ml-1">/ 250g</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 84%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fats Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center dark-border">
+                    <div class="mr-4 bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-seedling text-purple-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Lipides</p>
+                        <div class="flex items-baseline">
+                            <h3 class="text-2xl font-bold dark-text">65g</h3>
+                            <span class="text-gray-500 dark:text-gray-400 ml-1">/ 80g</span>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                            <div class="bg-purple-500 h-2 rounded-full" style="width: 81%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Food Search and Barcode Scanner -->
+        <section class="mb-12">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 dark-border">
+                <h2 class="text-xl font-bold mb-4 dark-text">Ajouter un aliment</h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <input type="text" id="food-search" placeholder="Rechercher parmi 10,000+ aliments..." 
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                        <i class="fas fa-search absolute right-3 top-3.5 text-gray-400"></i>
+                    </div>
+                    <button id="barcode-btn" class="barcode-scanner bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center">
+                        <i class="fas fa-barcode mr-2 text-xl"></i>Scanner code-barres
+                    </button>
+                </div>
+                
+                <!-- Search Results -->
+                <div id="search-results" class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden">
+                    <!-- Food items will be dynamically added here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Today's Meals -->
+        <section class="mb-12">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 dark-border">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold dark-text">Aujourd'hui</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Journalier</button>
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Hebdomadaire</button>
+                        <button class="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition">Mensuel</button>
+                    </div>
+                </div>
+
+                <!-- Meal Tabs -->
+                <div class="border-b border-gray-200 dark:border-gray-600 mb-6">
+                    <ul class="flex flex-wrap -mb-px" id="meal-tabs">
+                        <li class="mr-2">
+                            <a href="#" class="meal-tab inline-block p-4 border-b-2 border-blue-600 rounded-t-lg text-blue-600 dark:text-blue-400">Petit-déjeuner</a>
+                        </li>
+                        <li class="mr-2">
+                            <a href="#" class="meal-tab inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-gray-500">Déjeuner</a>
+                        </li>
+                        <li class="mr-2">
+                            <a href="#" class="meal-tab inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-gray-500">Dîner</a>
+                        </li>
+                        <li class="mr-2">
+                            <a href="#" class="meal-tab inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-gray-500">Collations</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Meal Items Container -->
+                <div id="meal-items-container">
+                    <!-- Breakfast Items -->
+                    <div class="meal-items space-y-4" data-meal="breakfast">
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/7c9/7c9962acf83654a8b98aa6910e2e03fa.jpg" alt="Oatmeal" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Flocons d'avoine</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">50g • 194 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 6g, G: 33g, L: 3g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/5d6/5d6d5a3766c4b3234a7b29fd5a7a2520.jpg" alt="Banana" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Banane</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">1 moyen (118g) • 105 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 1g, G: 27g, L: 0g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/490/4907109316e4b9c576c5a7a43272914d.jpg" alt="Greek Yogurt" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Yaourt grec</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">150g • 130 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 11g, G: 6g, L: 5g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lunch Items (hidden by default) -->
+                    <div class="meal-items space-y-4 hidden" data-meal="lunch">
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/e3f/e3f697887aec0e8ec646869428b2973b.jpg" alt="Salad" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Salade César</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">300g • 450 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 25g, G: 30g, L: 22g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dinner Items (hidden by default) -->
+                    <div class="meal-items space-y-4 hidden" data-meal="dinner">
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/13b/13b4f99a6a9e8781e75b17a8a39a9e72.jpg" alt="Chicken" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Poulet grillé</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">150g • 250 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 47g, G: 0g, L: 5g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/c45/c453c255234a6f7f798d3f2aaa74bbcd.jpg" alt="Rice" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Riz brun</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">100g • 111 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 3g, G: 23g, L: 1g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Snacks Items (hidden by default) -->
+                    <div class="meal-items space-y-4 hidden" data-meal="snacks">
+                        <div class="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <div class="flex items-center">
+                                <img src="https://www.edamam.com/food-img/42c/42c006401027d35add93113548eeaae6.jpg" alt="Apple" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="ml-4">
+                                    <h4 class="font-medium dark-text">Pomme</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">1 moyen • 95 kcal</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium mr-4 dark-text">P: 0g, G: 25g, L: 0g</span>
+                                <button class="text-red-500 hover:text-red-700 dark:hover:text-red-400">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Meal Button -->
+                <button id="add-meal-btn" class="mt-6 w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i>Ajouter un repas
+                </button>
+            </div>
+        </section>
+
+        <!-- Nutrition Charts -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Macronutrients Distribution -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 dark-border">
+                    <h2 class="text-xl font-bold mb-4 dark-text">Répartition des macronutriments</h2>
+                    <div class="h-64">
+                        <canvas id="macrosChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Weekly Progress -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 dark-border">
+                    <h2 class="text-xl font-bold mb-4 dark-text">Progression hebdomadaire</h2>
+                    <div class="h-64">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Goals and Settings -->
+        <section>
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 dark-border">
+                <h2 class="text-xl font-bold mb-6 dark-text">Objectifs et paramètres</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Daily Goals -->
+                    <div>
+                        <h3 class="font-medium text-lg mb-4 dark-text">Objectifs quotidiens</h3>
+                        <div class="space-y-6">
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-gray-600 dark:text-gray-400">Calories</span>
+                                    <span class="font-medium dark-text"><span id="calories-value">2,300</span> kcal</span>
+                                </div>
+                                <input type="range" id="calories-slider" min="1500" max="3500" value="2300" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-gray-600 dark:text-gray-400">Protéines</span>
+                                    <span class="font-medium dark-text"><span id="protein-value">150</span>g (<span id="protein-percent">26</span>%)</span>
+                                </div>
+                                <input type="range" id="protein-slider" min="50" max="300" value="150" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-gray-600 dark:text-gray-400">Glucides</span>
+                                    <span class="font-medium dark-text"><span id="carbs-value">250</span>g (<span id="carbs-percent">44</span>%)</span>
+                                </div>
+                                <input type="range" id="carbs-slider" min="50" max="400" value="250" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-gray-600 dark:text-gray-400">Lipides</span>
+                                    <span class="font-medium dark-text"><span id="fat-value">80</span>g (<span id="fat-percent">30</span>%)</span>
+                                </div>
+                                <input type="range" id="fat-slider" min="30" max="150" value="80" class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- App Settings -->
+                    <div>
+                        <h3 class="font-medium text-lg mb-4 dark-text">Paramètres de l'application</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium dark-text">Synchronisation Fitbit</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Connectez votre compte Fitbit</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="fitbit-toggle" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium dark-text">Apple Health</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Connectez votre compte Apple Health</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="apple-health-toggle" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium dark-text">Notifications</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Activer les rappels de repas</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="notifications-toggle" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium dark-text">Mode sombre</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Basculer entre les thèmes clair/sombre</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="dark-mode-toggle-2" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 dark:bg-gray-800 py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <i class="fas fa-utensils text-blue-600 text-xl"></i>
+                    <span class="font-bold text-lg dark-text">CalcuCalories</span>
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <p>© 2023 CalcuCalories. Tous droits réservés.</p>
+                    <p class="mt-1">Créé par Geoffroy Streit</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Barcode Scanner Modal -->
+    <div id="barcode-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md dark-border">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold dark-text">Scanner un code-barres</h3>
+                <button id="close-barcode" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="barcode-scanner-container" class="border-2 border-dashed border-blue-400 rounded-lg p-4 flex flex-col items-center justify-center mb-4">
+                <video id="barcode-scanner-video" autoplay playsinline></video>
+                <canvas id="barcode-scanner-canvas"></canvas>
+            </div>
+            <div id="barcode-result" class="hidden mb-4 p-3 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg">
+                <p>Code-barres détecté: <span id="barcode-number"></span></p>
+            </div>
+            <button id="start-scan" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                <i class="fas fa-camera mr-2"></i>Démarrer le scan
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Meal Modal -->
+    <div id="add-meal-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md dark-border">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold dark-text">Ajouter un repas</h3>
+                <button id="close-add-meal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">Nom du repas</label>
+                <input type="text" id="meal-name" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">Type de repas</label>
+                <select id="meal-type" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                    <option value="breakfast">Petit-déjeuner</option>
+                    <option value="lunch">Déjeuner</option>
+                    <option value="dinner">Dîner</option>
+                    <option value="snacks">Collation</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">Calories</label>
+                <input type="number" id="meal-calories" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Protéines (g)</label>
+                    <input type="number" id="meal-protein" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Glucides (g)</label>
+                    <input type="number" id="meal-carbs" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Lipides (g)</label>
+                    <input type="number" id="meal-fat" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                </div>
+            </div>
+            <button id="save-meal" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                <i class="fas fa-save mr-2"></i>Enregistrer
+            </button>
+        </div>
+    </div>
+
+    <!-- Food Details Modal -->
+    <div id="food-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md dark-border">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold dark-text" id="food-details-name">Détails de l'aliment</h3>
+                <button id="close-food-details" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex justify-center mb-4">
+                <img id="food-details-image" src="" alt="Food" class="w-32 h-32 rounded-lg object-cover">
+            </div>
+            <div class="grid grid-cols-4 gap-2 mb-6 text-center">
+                <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">Calories</p>
+                    <p class="font-bold dark-text" id="food-details-calories">0</p>
+                </div>
+                <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">Protéines</p>
+                    <p class="font-bold dark-text" id="food-details-protein">0g</p>
+                </div>
+                <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">Glucides</p>
+                    <p class="font-bold dark-text" id="food-details-carbs">0g</p>
+                </div>
+                <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">Lipides</p>
+                    <p class="font-bold dark-text" id="food-details-fat">0g</p>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">Quantité (g)</label>
+                <input type="number" id="food-quantity" value="100" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">Repas</label>
+                <select id="food-meal-type" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                    <option value="breakfast">Petit-déjeuner</option>
+                    <option value="lunch">Déjeuner</option>
+                    <option value="dinner">Dîner</option>
+                    <option value="snacks">Collation</option>
+                </select>
+            </div>
+            <button id="add-food-to-meal" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                <i class="fas fa-plus mr-2"></i>Ajouter au repas
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Sample food database (10,000+ foods in a real app)
+        const foodDatabase = [
+            { 
+                id: 1,
+                name: "Flocons d'avoine", 
+                calories: 389, 
+                protein: 13, 
+                carbs: 66, 
+                fat: 7, 
+                image: "https://www.edamam.com/food-img/7c9/7c9962acf83654a8b98aa6910e2e03fa.jpg",
+                barcode: "123456789012"
+            },
+            { 
+                id: 2,
+                name: "Banane", 
+                calories: 89, 
+                protein: 1, 
+                carbs: 23, 
+                fat: 0, 
+                image: "https://www.edamam.com/food-img/5d6/5d6d5a3766c4b3234a7b29fd5a7a2520.jpg",
+                barcode: "234567890123"
+            },
+            { 
+                id: 3,
+                name: "Yaourt grec", 
+                calories: 87, 
+                protein: 9, 
+                carbs: 4, 
+                fat: 5, 
+                image: "https://www.edamam.com/food-img/490/4907109316e4b9c576c5a7a43272914d.jpg",
+                barcode: "345678901234"
+            },
+            { 
+                id: 4,
+                name: "Poulet grillé", 
+                calories: 165, 
+                protein: 31, 
+                carbs: 0, 
+                fat: 4, 
+                image: "https://www.edamam.com/food-img/13b/13b4f99a6a9e8781e75b17a8a39a9e72.jpg",
+                barcode: "456789012345"
+            },
+            { 
+                id: 5,
+                name: "Riz brun", 
+                calories: 111, 
+                protein: 3, 
+                carbs: 23, 
+                fat: 1, 
+                image: "https://www.edamam.com/food-img/c45/c453c255234a6f7f798d3f2aaa74bbcd.jpg",
+                barcode: "567890123456"
+            },
+            { 
+                id: 6,
+                name: "Pomme", 
+                calories: 52, 
+                protein: 0, 
+                carbs: 14, 
+                fat: 0, 
+                image: "https://www.edamam.com/food-img/42c/42c006401027d35add93113548eeaae6.jpg",
+                barcode: "678901234567"
+            },
+            { 
+                id: 7,
+                name: "Saumon", 
+                calories: 206, 
+                protein: 22, 
+                carbs: 0, 
+                fat: 12, 
+                image: "https://www.edamam.com/food-img/0b6/0b62925d05c8a8a8c8a1a3c0a9f1e9e9.jpg",
+                barcode: "789012345678"
+            },
+            { 
+                id: 8,
+                name: "Brocoli", 
+                calories: 34, 
+                protein: 3, 
+                carbs: 7, 
+                fat: 0, 
+                image: "https://www.edamam.com/food-img/2f9/2f9e29a9e9faa6fe034f1bd8d6a1b9b0.jpg",
+                barcode: "890123456789"
+            },
+            { 
+                id: 9,
+                name: "Œuf", 
+                calories: 143, 
+                protein: 13, 
+                carbs: 1, 
+                fat: 10, 
+                image: "https://www.edamam.com/food-img/a7e/a7ec7c337cb47c6550b3b118e357f077.jpg",
+                barcode: "901234567890"
+            },
+            { 
+                id: 10,
+                name: "Pain complet", 
+                calories: 247, 
+                protein: 13, 
+                carbs: 41, 
+                fat: 3, 
+                image: "https://www.edamam.com/food-img/11e/11e7b184966033b1a0360a5a8a0a1a2e.jpg",
+                barcode: "012345678901"
+            }
+        ];
+
+        // User data
+        let userData = {
+            dailyGoals: {
+                calories: 2300,
+                protein: 150,
+                carbs: 250,
+                fat: 80
+            },
+            currentIntake: {
+                calories: 1850,
+                protein: 125,
+                carbs: 210,
+                fat: 65
+            },
+            meals: {
+                breakfast: [
+                    { foodId: 1, quantity: 50, name: "Flocons d'avoine", calories: 194, protein: 6, carbs: 33, fat: 3, image: "https://www.edamam.com/food-img/7c9/7c9962acf83654a8b98aa6910e2e03fa.jpg" },
+                    { foodId: 2, quantity: 118, name: "Banane", calories: 105, protein: 1, carbs: 27, fat: 0, image: "https://www.edamam.com/food-img/5d6/5d6d5a3766c4b3234a7b29fd5a7a2520.jpg" },
+                    { foodId: 3, quantity: 150, name: "Yaourt grec", calories: 130, protein: 11, carbs: 6, fat: 5, image: "https://www.edamam.com/food-img/490/4907109316e4b9c576c5a7a43272914d.jpg" }
+                ],
+                lunch: [
+                    { foodId: 4, quantity: 150, name: "Poulet grillé", calories: 250, protein: 47, carbs: 0, fat: 5, image: "https://www.edamam.com/food-img/13b/13b4f99a6a9e8781e75b17a8a39a9e72.jpg" }
+                ],
+                dinner: [
+                    { foodId: 4, quantity: 150, name: "Poulet grillé", calories: 250, protein: 47, carbs: 0, fat: 5, image: "https://www.edamam.com/food-img/13b/13b4f99a6a9e8781e75b17a8a39a9e72.jpg" },
+                    { foodId: 5, quantity: 100, name: "Riz brun", calories: 111, protein: 3, carbs: 23, fat: 1, image: "https://www.edamam.com/food-img/c45/c453c255234a6f7f798d3f2aaa74bbcd.jpg" }
+                ],
+                snacks: [
+                    { foodId: 6, quantity: 182, name: "Pomme", calories: 95, protein: 0, carbs: 25, fat: 0, image: "https://www.edamam.com/food-img/42c/42c006401027d35add93113548eeaae6.jpg" }
+                ]
+            },
+            settings: {
+                fitbitSync: true,
+                appleHealthSync: false,
+                notifications: true,
+                darkMode: false
+            }
+        };
+
+        // DOM Elements
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const darkModeToggle2 = document.getElementById('dark-mode-toggle-2');
+        const barcodeBtn = document.getElementById('barcode-btn');
+        const barcodeModal = document.getElementById('barcode-modal');
+        const closeBarcode = document.getElementById('close-barcode');
+        const startScanBtn = document.getElementById('start-scan');
+        const barcodeScannerContainer = document.getElementById('barcode-scanner-container');
+        const barcodeScannerVideo = document.getElementById('barcode-scanner-video');
+        const barcodeScannerCanvas = document.getElementById('barcode-scanner-canvas');
+        const barcodeResult = document.getElementById('barcode-result');
+        const barcodeNumber = document.getElementById('barcode-number');
+        const foodSearchInput = document.getElementById('food-search');
+        const searchResults = document.getElementById('search-results');
+        const mealTabs = document.querySelectorAll('.meal-tab');
+        const mealItemsContainers = document.querySelectorAll('.meal-items');
+        const addMealBtn = document.getElementById('add-meal-btn');
+        const addMealModal = document.getElementById('add-meal-modal');
+        const closeAddMeal = document.getElementById('close-add-meal');
+        const saveMealBtn = document.getElementById('save-meal');
+        const foodDetailsModal = document.getElementById('food-details-modal');
+        const closeFoodDetails = document.getElementById('close-food-details');
+        const addFoodToMealBtn = document.getElementById('add-food-to-meal');
+        const syncBtn = document.getElementById('sync-btn');
+        const fitbitToggle = document.getElementById('fitbit-toggle');
+        const appleHealthToggle = document.getElementById('apple-health-toggle');
+        const notificationsToggle = document.getElementById('notifications-toggle');
+        const caloriesSlider = document.getElementById('calories-slider');
+        const proteinSlider = document.getElementById('protein-slider');
+        const carbsSlider = document.getElementById('carbs-slider');
+        const fatSlider = document.getElementById('fat-slider');
+        const caloriesValue = document.getElementById('calories-value');
+        const proteinValue = document.getElementById('protein-value');
+        const proteinPercent = document.getElementById('protein-percent');
+        const carbsValue = document.getElementById('carbs-value');
+        const carbsPercent = document.getElementById('carbs-percent');
+        const fatValue = document.getElementById('fat-value');
+        const fatPercent = document.getElementById('fat-percent');
+
+        // Initialize charts
+        let macrosChart, weeklyChart;
+
+        // Current selected food for details modal
+        let selectedFood = null;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            loadUserData();
+            setupEventListeners();
+            updateUI();
+        });
+
+        function initCharts() {
+            // Macronutrients Chart
+            const macrosCtx = document.getElementById('macrosChart').getContext('2d');
+            macrosChart = new Chart(macrosCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Protéines', 'Glucides', 'Lipides'],
+                    datasets: [{
+                        data: [
+                            userData.currentIntake.protein, 
+                            userData.currentIntake.carbs, 
+                            userData.currentIntake.fat
+                        ],
+                        backgroundColor: [
+                            '#3B82F6',
+                            '#F59E0B',
+                            '#8B5CF6'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20,
+                                color: userData.settings.darkMode ? '#f7fafc' : '#1a202c'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Weekly Progress Chart
+            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+            weeklyChart = new Chart(weeklyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                    datasets: [
+                        {
+                            label: 'Calories',
+                            data: [2100, 2300, 1950, 2200, 2400, 2700, 1900],
+                            borderColor: '#EF4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Objectif',
+                            data: [2300, 2300, 2300, 2300, 2300, 2300, 2300],
+                            borderColor: '#10B981',
+                            borderDash: [5, 5],
+                            backgroundColor: 'transparent',
+                            tension: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            suggestedMin: 1500,
+                            suggestedMax: 3000,
+                            grid: {
+                                color: userData.settings.darkMode ? '#4a5568' : '#e2e8f0'
+                            },
+                            ticks: {
+                                color: userData.settings.darkMode ? '#cbd5e0' : '#4a5568'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: userData.settings.darkMode ? '#4a5568' : '#e2e8f0'
+                            },
+                            ticks: {
+                                color: userData.settings.darkMode ? '#cbd5e0' : '#4a5568'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20,
+                                color: userData.settings.darkMode ? '#f7fafc' : '#1a202c'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadUserData() {
+            // In a real app, this would load from localStorage or an API
+            const savedData = localStorage.getItem('calcuCaloriesData');
+            if (savedData) {
+                userData = JSON.parse(savedData);
+            }
+        }
+
+        function saveUserData() {
+            localStorage.setItem('calcuCaloriesData', JSON.stringify(userData));
+        }
+
+        function setupEventListeners() {
+            // Dark mode toggle
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+            darkModeToggle2.addEventListener('click', toggleDarkMode);
+
+            // Barcode scanner
+            barcodeBtn.addEventListener('click', openBarcodeScanner);
+            closeBarcode.addEventListener('click', closeBarcodeScanner);
+            startScanBtn.addEventListener('click', startBarcodeScan);
+
+            // Food search
+            foodSearchInput.addEventListener('input', handleFoodSearch);
+
+            // Meal tabs
+            mealTabs.forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchMealTab(this);
+                });
+            });
+
+            // Add meal
+            addMealBtn.addEventListener('click', openAddMealModal);
+            closeAddMeal.addEventListener('click', closeAddMealModal);
+            saveMealBtn.addEventListener('click', saveNewMeal);
+
+            // Food details
+            closeFoodDetails.addEventListener('click', closeFoodDetailsModal);
+            addFoodToMealBtn.addEventListener('click', addFoodToMeal);
+
+            // Sync button
+            syncBtn.addEventListener('click', syncData);
+
+            // Settings toggles
+            fitbitToggle.addEventListener('change', updateSettings);
+            appleHealthToggle.addEventListener('change', updateSettings);
+            notificationsToggle.addEventListener('change', updateSettings);
+
+            // Goal sliders
+            caloriesSlider.addEventListener('input', updateDailyGoals);
+            proteinSlider.addEventListener('input', updateDailyGoals);
+            carbsSlider.addEventListener('input', updateDailyGoals);
+            fatSlider.addEventListener('input', updateDailyGoals);
+        }
+
+        function updateUI() {
+            // Update dashboard numbers
+            document.querySelectorAll('[data-meal="breakfast"]').forEach(item => {
+                item.style.display = 'flex';
+            });
+
+            // Update settings toggles
+            fitbitToggle.checked = userData.settings.fitbitSync;
+            appleHealthToggle.checked = userData.settings.appleHealthSync;
+            notificationsToggle.checked = userData.settings.notifications;
+            darkModeToggle2.checked = userData.settings.darkMode;
+
+            // Update goal sliders
+            caloriesSlider.value = userData.dailyGoals.calories;
+            proteinSlider.value = userData.dailyGoals.protein;
+            carbsSlider.value = userData.dailyGoals.carbs;
+            fatSlider.value = userData.dailyGoals.fat;
+
+            // Update goal display values
+            updateGoalDisplayValues();
+
+            // Apply dark mode if enabled
+            if (userData.settings.darkMode) {
+                document.body.classList.add('dark-mode');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.body.classList.remove('dark-mode');
+                darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+
+            // Update charts
+            updateCharts();
+        }
+
+        function updateGoalDisplayValues() {
+            caloriesValue.textContent = numberWithCommas(userData.dailyGoals.calories);
+            proteinValue.textContent = userData.dailyGoals.protein;
+            carbsValue.textContent = userData.dailyGoals.carbs;
+            fatValue.textContent = userData.dailyGoals.fat;
+
+            // Calculate percentages (simplified)
+            const totalMacros = userData.dailyGoals.protein + userData.dailyGoals.carbs + (userData.dailyGoals.fat * 9/4); // Rough estimate
+            proteinPercent.textContent = Math.round((userData.dailyGoals.protein / totalMacros) * 100);
+            carbsPercent.textContent = Math.round((userData.dailyGoals.carbs / totalMacros) * 100);
+            fatPercent.textContent = Math.round(((userData.dailyGoals.fat * 9/4) / totalMacros) * 100);
+        }
+
+        function numberWithCommas(x) {
+            return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function updateCharts() {
+            // Update macros chart
+            macrosChart.data.datasets[0].data = [
+                userData.currentIntake.protein, 
+                userData.currentIntake.carbs, 
+                userData.currentIntake.fat
+            ];
+            macrosChart.update();
+
+            // Update weekly chart (in a real app, this would use real data)
+            weeklyChart.options.scales.y.grid.color = userData.settings.darkMode ? '#4a5568' : '#e2e8f0';
+            weeklyChart.options.scales.y.ticks.color = userData.settings.darkMode ? '#cbd5e0' : '#4a5568';
+            weeklyChart.options.scales.x.grid.color = userData.settings.darkMode ? '#4a5568' : '#e2e8f0';
+            weeklyChart.options.scales.x.ticks.color = userData.settings.darkMode ? '#cbd5e0' : '#4a5568';
+            weeklyChart.options.plugins.legend.labels.color = userData.settings.darkMode ? '#f7fafc' : '#1a202c';
+            weeklyChart.update();
+        }
+
+        function toggleDarkMode() {
+            userData.settings.darkMode = !userData.settings.darkMode;
+            darkModeToggle2.checked = userData.settings.darkMode;
+            
+            if (userData.settings.darkMode) {
+                document.body.classList.add('dark-mode');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.body.classList.remove('dark-mode');
+                darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+            
+            saveUserData();
+            updateCharts();
+        }
+
+        function openBarcodeScanner() {
+            barcodeModal.classList.remove('hidden');
+            barcodeResult.classList.add('hidden');
+        }
+
+        function closeBarcodeScanner() {
+            barcodeModal.classList.add('hidden');
+            stopBarcodeScan();
+        }
+
+        function startBarcodeScan() {
+            startScanBtn.disabled = true;
+            startScanBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scan en cours...';
+            
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: barcodeScannerVideo,
+                    constraints: {
+                        width: 480,
+                        height: 320,
+                        facingMode: "environment"
+                    },
+                },
+                decoder: {
+                    readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader"]
+                },
+            }, function(err) {
+                if (err) {
+                    console.error(err);
+                    startScanBtn.disabled = false;
+                    startScanBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Démarrer le scan';
+                    return;
+                }
+                
+                Quagga.start();
+                
+                Quagga.onDetected(function(result) {
+                    const code = result.codeResult.code;
+                    barcodeNumber.textContent = code;
+                    barcodeResult.classList.remove('hidden');
+                    startScanBtn.disabled = false;
+                    startScanBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Scanner à nouveau';
+                    
+                    // Look up the barcode in our database
+                    const foodItem = foodDatabase.find(item => item.barcode === code);
+                    if (foodItem) {
+                        setTimeout(() => {
+                            closeBarcodeScanner();
+                            showFoodDetails(foodItem);
+                        }, 1500);
+                    } else {
+                        // In a real app, you would query an API with the barcode
+                        setTimeout(() => {
+                            alert("Aliment non trouvé. Veuillez l'ajouter manuellement.");
+                            closeBarcodeScanner();
+                        }, 1500);
+                    }
+                    
+                    Quagga.stop();
+                });
+            });
+        }
+
+        function stopBarcodeScan() {
+            if (Quagga) {
+                Quagga.stop();
+            }
+            startScanBtn.disabled = false;
+            startScanBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Démarrer le scan';
+        }
+
+        function handleFoodSearch() {
+            const query = foodSearchInput.value.toLowerCase();
+            
+            if (query.length < 2) {
+                searchResults.classList.add('hidden');
+                return;
+            }
+            
+            // Filter food database (in a real app, this would be an API call)
+            const results = foodDatabase.filter(food => 
+                food.name.toLowerCase().includes(query)
+            );
+            
+            displaySearchResults(results);
+        }
+
+        function displaySearchResults(results) {
+            searchResults.innerHTML = '';
+            
+            if (results.length === 0) {
+                searchResults.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-4">Aucun résultat trouvé</p>';
+                searchResults.classList.remove('hidden');
+                return;
+            }
+            
+            results.forEach(food => {
+                const foodCard = document.createElement('div');
+                foodCard.className = 'food-card bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 transition cursor-pointer hover:shadow-md dark:hover:bg-gray-600';
+                foodCard.innerHTML = `
+                    <div class="flex items-center">
+                        <img src="${food.image}" alt="${food.name}" class="w-12 h-12 rounded-lg object-cover">
+                        <div class="ml-4">
+                            <h4 class="font-medium dark-text">${food.name}</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${food.calories} kcal pour 100g</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex justify-between text-sm">
+                        <span class="text-blue-500">P: ${food.protein}g</span>
+                        <span class="text-yellow-500">G: ${food.carbs}g</span>
+                        <span class="text-purple-500">L: ${food.fat}g</span>
+                    </div>
+                `;
+                
+                foodCard.addEventListener('click', () => showFoodDetails(food));
+                searchResults.appendChild(foodCard);
+            });
+            
+            searchResults.classList.remove('hidden');
+        }
+
+        function showFoodDetails(food) {
+            selectedFood = food;
+            
+            document.getElementById('food-details-name').textContent = food.name;
+            document.getElementById('food-details-image').src = food.image;
+            document.getElementById('food-details-calories').textContent = food.calories;
+            document.getElementById('food-details-protein').textContent = food.protein + 'g';
+            document.getElementById('food-details-carbs').textContent = food.carbs + 'g';
+            document.getElementById('food-details-fat').textContent = food.fat + 'g';
+            document.getElementById('food-quantity').value = 100;
+            
+            foodDetailsModal.classList.remove('hidden');
+        }
+
+        function closeFoodDetailsModal() {
+            foodDetailsModal.classList.add('hidden');
+        }
+
+        function addFoodToMeal() {
+            const quantity = parseInt(document.getElementById('food-quantity').value);
+            const mealType = document.getElementById('food-meal-type').value;
+            
+            if (isNaN(quantity) || quantity <= 0) {
+                alert("Veuillez entrer une quantité valide");
+                return;
+            }
+            
+            const ratio = quantity / 100;
+            const foodItem = {
+                foodId: selectedFood.id,
+                name: selectedFood.name,
+                quantity: quantity,
+                calories: Math.round(selectedFood.calories * ratio),
+                protein: Math.round(selectedFood.protein * ratio),
+                carbs: Math.round(selectedFood.carbs * ratio),
+                fat: Math.round(selectedFood.fat * ratio),
+                image: selectedFood.image
+            };
+            
+            // Add to the selected meal
+            userData.meals[mealType].push(foodItem);
+            
+            // Update current intake
+            userData.currentIntake.calories += foodItem.calories;
+            userData.currentIntake.protein += foodItem.protein;
+            userData.currentIntake.carbs += foodItem.carbs;
+            userData.currentIntake.fat += foodItem.fat;
+            
+            // Save and update UI
+            saveUserData();
+            updateUI();
+            closeFoodDetailsModal();
+            
+            // Show the meal tab where the food was added
+            switchMealTab(document.querySelector(`.meal-tab[data-meal="${mealType}"]`));
+            
+            // Show success message
+            alert(`${foodItem.name} ajouté à votre ${getMealName(mealType)}!`);
+        }
+
+        function getMealName(mealType) {
+            switch(mealType) {
+                case 'breakfast': return 'petit-déjeuner';
+                case 'lunch': return 'déjeuner';
+                case 'dinner': return 'dîner';
+                case 'snacks': return 'collation';
+                default: return 'repas';
+            }
+        }
+
+        function switchMealTab(clickedTab) {
+            // Update active tab
+            mealTabs.forEach(tab => {
+                tab.classList.remove('border-blue-600', 'text-blue-600', 'dark:text-blue-400');
+                tab.classList.add('border-transparent');
+            });
+            
+            clickedTab.classList.add('border-blue-600', 'text-blue-600', 'dark:text-blue-400');
+            clickedTab.classList.remove('border-transparent');
+            
+            // Show corresponding meal items
+            const mealType = clickedTab.textContent.toLowerCase();
+            mealItemsContainers.forEach(container => {
+                container.classList.add('hidden');
+            });
+            
+            document.querySelector(`.meal-items[data-meal="${getMealType(clickedTab.textContent)}"]`).classList.remove('hidden');
+        }
+
+        function getMealType(mealName) {
+            switch(mealName) {
+                case 'Petit-déjeuner': return 'breakfast';
+                case 'Déjeuner': return 'lunch';
+                case 'Dîner': return 'dinner';
+                case 'Collations': return 'snacks';
+                default: return 'breakfast';
+            }
+        }
+
+        function openAddMealModal() {
+            addMealModal.classList.remove('hidden');
+        }
+
+        function closeAddMealModal() {
+            addMealModal.classList.add('hidden');
+        }
+
+        function saveNewMeal() {
+            const mealName = document.getElementById('meal-name').value;
+            const mealType = document.getElementById('meal-type').value;
+            const calories = parseInt(document.getElementById('meal-calories').value);
+            const protein = parseInt(document.getElementById('meal-protein').value);
+            const carbs = parseInt(document.getElementById('meal-carbs').value);
+            const fat = parseInt(document.getElementById('meal-fat').value);
+            
+            if (!mealName || isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fat)) {
+                alert("Veuillez remplir tous les champs avec des valeurs valides");
+                return;
+            }
+            
+            // Create a new food item (in a real app, this would be added to the database)
+            const newFoodId = foodDatabase.length + 1;
+            const newFood = {
+                id: newFoodId,
+                name: mealName,
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                fat: fat,
+                image: "https://www.edamam.com/food-img/46a/46a132d3744ff5d9ab80bac1d7fea9e2.jpg" // Default meal image
+            };
+            
+            foodDatabase.push(newFood);
+            
+            // Add to the selected meal
+            const foodItem = {
+                foodId: newFoodId,
+                name: newFood.name,
+                quantity: 100,
+                calories: newFood.calories,
+                protein: newFood.protein,
+                carbs: newFood.carbs,
+                fat: newFood.fat,
+                image: newFood.image
+            };
+            
+            userData.meals[mealType].push(foodItem);
+            
+            // Update current intake
+            userData.currentIntake.calories += foodItem.calories;
+            userData.currentIntake.protein += foodItem.protein;
+            userData.currentIntake.carbs += foodItem.carbs;
+            userData.currentIntake.fat += foodItem.fat;
+            
+            // Save and update UI
+            saveUserData();
+            updateUI();
+            closeAddMealModal();
+            
+            // Reset form
+            document.getElementById('meal-name').value = '';
+            document.getElementById('meal-calories').value = '';
+            document.getElementById('meal-protein').value = '';
+            document.getElementById('meal-carbs').value = '';
+            document.getElementById('meal-fat').value = '';
+            
+            // Show the meal tab where the food was added
+            switchMealTab(document.querySelector(`.meal-tab[data-meal="${mealType}"]`));
+            
+            // Show success message
+            alert(`${mealName} ajouté à votre ${getMealName(mealType)}!`);
+        }
+
+        function syncData() {
+            syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Synchronisation...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                // In a real app, this would sync with Fitbit/Apple Health
+                if (userData.settings.fitbitSync) {
+                    // Simulate getting data from Fitbit
+                    userData.currentIntake.calories = 1850;
+                    userData.currentIntake.protein = 125;
+                    userData.currentIntake.carbs = 210;
+                    userData.currentIntake.fat = 65;
+                }
+                
+                saveUserData();
+                updateUI();
+                
+                syncBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Synchronisé';
+                
+                setTimeout(() => {
+                    syncBtn.innerHTML = '<i class="fas fa
+</html>

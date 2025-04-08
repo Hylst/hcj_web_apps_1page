@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopDépenses | Suivi de dépenses pour commerces</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        .sidebar {
+            transition: all 0.3s;
+        }
+        .sidebar-collapsed {
+            width: 70px;
+        }
+        .sidebar-collapsed .sidebar-text {
+            display: none;
+        }
+        .sidebar-collapsed .logo-text {
+            display: none;
+        }
+        .sidebar-collapsed .nav-item {
+            justify-content: center;
+        }
+        .content-area {
+            transition: all 0.3s;
+        }
+        .content-expanded {
+            margin-left: 70px;
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+        .floating-btn {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .category-chip {
+            transition: all 0.2s;
+        }
+        .category-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal-hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+        .tab-active {
+            border-bottom: 2px solid #4f46e5;
+            color: #4f46e5;
+        }
+        .alert-ping {
+            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        @keyframes ping {
+            75%, 100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Sidebar -->
+    <div class="sidebar fixed inset-y-0 left-0 bg-indigo-800 text-white w-64 flex flex-col z-50">
+        <div class="p-4 flex items-center space-x-3 border-b border-indigo-700">
+            <div class="bg-white p-2 rounded-lg">
+                <i class="fas fa-cash-register text-indigo-800 text-xl"></i>
+            </div>
+            <span class="logo-text text-xl font-bold">ShopDépenses</span>
+        </div>
+        
+        <div class="p-4 flex items-center justify-between border-b border-indigo-700">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="sidebar-text">
+                    <div class="font-medium">Geoffroy Streit</div>
+                    <div class="text-xs text-indigo-300">Administrateur</div>
+                </div>
+            </div>
+            <button id="toggle-sidebar" class="text-indigo-300 hover:text-white">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4">
+            <div class="space-y-1 px-3">
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 bg-indigo-900 rounded-lg text-white" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="sidebar-text">Tableau de bord</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="expenses">
+                    <i class="fas fa-receipt"></i>
+                    <span class="sidebar-text">Dépenses</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="categories">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="sidebar-text">Catégories</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="suppliers">
+                    <i class="fas fa-truck"></i>
+                    <span class="sidebar-text">Fournisseurs</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="alerts">
+                    <i class="fas fa-bell"></i>
+                    <span class="sidebar-text">Alertes</span>
+                    <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="import-export">
+                    <i class="fas fa-file-csv"></i>
+                    <span class="sidebar-text">Import/Export</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="roi">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="sidebar-text">ROI</span>
+                </a>
+            </div>
+            
+            <div class="px-3 mt-8">
+                <div class="text-xs uppercase text-indigo-400 mb-2 sidebar-text">Paramètres</div>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span class="sidebar-text">Configuration</span>
+                </a>
+                <a href="#" class="nav-item flex items-center space-x-3 px-3 py-2 hover:bg-indigo-700 rounded-lg text-indigo-200 hover:text-white" data-section="accounts">
+                    <i class="fas fa-user-shield"></i>
+                    <span class="sidebar-text">Comptes</span>
+                </a>
+            </div>
+        </nav>
+        
+        <div class="p-4 border-t border-indigo-700">
+            <button class="flex items-center space-x-3 text-indigo-200 hover:text-white w-full" id="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span class="sidebar-text">Déconnexion</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="content-area ml-64 min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm py-4 px-6 flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-800" id="section-title">Tableau de bord</h1>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-gray-100" id="alerts-btn">
+                        <i class="fas fa-bell text-gray-500"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full alert-ping"></span>
+                    </button>
+                </div>
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-gray-100" id="help-btn">
+                        <i class="fas fa-question-circle text-gray-500"></i>
+                    </button>
+                </div>
+                <div class="w-px h-8 bg-gray-200"></div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-gray-700" id="current-month">Novembre 2023</span>
+                    <button class="p-1 rounded hover:bg-gray-100" id="month-selector">
+                        <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Dashboard Content -->
+        <main class="p-6" id="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Dépenses ce mois</p>
+                                <p class="text-2xl font-bold text-gray-800 mt-1">€8,245.00</p>
+                                <p class="text-sm text-green-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-up mr-1"></i> 12% vs mois dernier
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-blue-50 text-blue-600">
+                                <i class="fas fa-euro-sign text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Budget restant</p>
+                                <p class="text-2xl font-bold text-gray-800 mt-1">€2,755.00</p>
+                                <p class="text-sm text-red-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-down mr-1"></i> 8% sous budget
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-green-50 text-green-600">
+                                <i class="fas fa-wallet text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Catégories actives</p>
+                                <p class="text-2xl font-bold text-gray-800 mt-1">14</p>
+                                <p class="text-sm text-gray-500 mt-1">5 alertes actives</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-purple-50 text-purple-600">
+                                <i class="fas fa-tags text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">ROI mensuel</p>
+                                <p class="text-2xl font-bold text-gray-800 mt-1">3.2x</p>
+                                <p class="text-sm text-green-500 mt-1 flex items-center">
+                                    <i class="fas fa-arrow-up mr-1"></i> 0.4x vs mois dernier
+                                </p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-yellow-50 text-yellow-600">
+                                <i class="fas fa-chart-line text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Monthly Expenses Chart -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Dépenses par catégorie</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg period-btn active" data-period="month">Mois</button>
+                                <button class="px-3 py-1 text-sm bg-white text-gray-500 rounded-lg hover:bg-gray-50 period-btn" data-period="year">Année</button>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="monthlyExpensesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget vs Actual -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Budget vs Dépenses</h2>
+                            <button class="text-sm text-indigo-600 hover:text-indigo-800" id="view-budget-details">Voir détails</button>
+                        </div>
+                        <div class="space-y-4" id="budget-progress-bars">
+                            <!-- Dynamically filled by JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Expenses and ROI Analysis -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Recent Expenses -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-gray-800">Dépenses récentes</h2>
+                                <button class="text-sm text-indigo-600 hover:text-indigo-800" id="view-all-expenses">Voir tout</button>
+                            </div>
+                        </div>
+                        <div class="divide-y divide-gray-100" id="recent-expenses-list">
+                            <!-- Dynamically filled by JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- ROI Analysis -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-gray-800">Analyse ROI</h2>
+                                <button class="text-sm text-indigo-600 hover:text-indigo-800" id="export-roi">Exporter</button>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="h-64">
+                                <canvas id="roiChart"></canvas>
+                            </div>
+                            <div class="mt-4 grid grid-cols-3 gap-4 text-center" id="roi-summary">
+                                <!-- Dynamically filled by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section (Hidden by default) -->
+            <section id="expenses-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">Gestion des dépenses</h2>
+                        <div class="flex space-x-3">
+                            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center space-x-2" id="export-expenses-btn">
+                                <i class="fas fa-file-export"></i>
+                                <span>Exporter</span>
+                            </button>
+                            <button class="px-4 py-2 bg-white border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 flex items-center space-x-2" id="import-expenses-btn">
+                                <i class="fas fa-file-import"></i>
+                                <span>Importer</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="relative w-64">
+                                <input type="text" placeholder="Rechercher une dépense..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                    <option>Toutes catégories</option>
+                                    <option>Stock</option>
+                                    <option>Loyer</option>
+                                    <option>Marketing</option>
+                                    <option>Salaire</option>
+                                </select>
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                    <option>Tous les mois</option>
+                                    <option>Novembre 2023</option>
+                                    <option>Octobre 2023</option>
+                                    <option>Septembre 2023</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fournisseur</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="expenses-table-body">
+                                    <!-- Dynamically filled by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="text-sm text-gray-500">
+                                Affichage de <span id="expenses-start">1</span> à <span id="expenses-end">10</span> sur <span id="expenses-total">24</span> dépenses
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <button class="px-3 py-1 bg-indigo-600 text-white rounded-lg">1</button>
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">2</button>
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">3</button>
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Categories Section (Hidden by default) -->
+            <section id="categories-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">Gestion des catégories</h2>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center space-x-2" id="add-category-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>Ajouter une catégorie</span>
+                        </button>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="categories-grid">
+                            <!-- Dynamically filled by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Suppliers Section (Hidden by default) -->
+            <section id="suppliers-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">Gestion des fournisseurs</h2>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center space-x-2" id="add-supplier-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>Ajouter un fournisseur</span>
+                        </button>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="relative w-64 mb-6">
+                            <input type="text" placeholder="Rechercher un fournisseur..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dépenses totales</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière commande</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="suppliers-table-body">
+                                    <!-- Dynamically filled by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alerts Section (Hidden by default) -->
+            <section id="alerts-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">Gestion des alertes</h2>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center space-x-2" id="add-alert-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>Créer une alerte</span>
+                        </button>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="space-y-4" id="alerts-container">
+                            <!-- Dynamically filled by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Import/Export Section (Hidden by default) -->
+            <section id="import-export-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold text-gray-800">Import/Export de données</h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Export Card -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-medium text-gray-800">Exporter les données</h3>
+                                    <div class="p-3 rounded-lg bg-indigo-100 text-indigo-600">
+                                        <i class="fas fa-file-export text-xl"></i>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-4">Exportez vos données de dépenses dans un fichier CSV pour sauvegarde ou analyse externe.</p>
+                                
+                                <div class="space-y-3 mb-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="export-expenses" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        <label for="export-expenses" class="ml-2 block text-sm text-gray-700">Dépenses</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="export-categories" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        <label for="export-categories" class="ml-2 block text-sm text-gray-700">Catégories</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="export-suppliers" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        <label for="export-suppliers" class="ml-2 block text-sm text-gray-700">Fournisseurs</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="export-settings" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                        <label for="export-settings" class="ml-2 block text-sm text-gray-700">Paramètres</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex space-x-3">
+                                    <select class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                        <option>CSV (Excel)</option>
+                                        <option>JSON</option>
+                                        <option>XML</option>
+                                    </select>
+                                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" id="export-data-btn">
+                                        Exporter
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Import Card -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-medium text-gray-800">Importer des données</h3>
+                                    <div class="p-3 rounded-lg bg-green-100 text-green-600">
+                                        <i class="fas fa-file-import text-xl"></i>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-4">Importez des données à partir d'un fichier CSV pour mettre à jour votre base de données.</p>
+                                
+                                <div class="space-y-3 mb-4">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="import-expenses" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        <label for="import-expenses" class="ml-2 block text-sm text-gray-700">Dépenses</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="import-categories" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                        <label for="import-categories" class="ml-2 block text-sm text-gray-700">Catégories</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="import-suppliers" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                        <label for="import-suppliers" class="ml-2 block text-sm text-gray-700">Fournisseurs</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
+                                    <i class="fas fa-file-csv text-4xl text-gray-400 mb-2"></i>
+                                    <p class="text-gray-500 mb-2">Glissez-déposez un fichier ici ou</p>
+                                    <button class="px-4 py-2 bg-white border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50">
+                                        Sélectionner un fichier
+                                    </button>
+                                    <p class="text-xs text-gray-400 mt-2">Formats supportés: .csv, .json</p>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" id="import-data-btn">
+                                        Importer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ROI Section (Hidden by default) -->
+            <section id="roi-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold text-gray-800">Analyse du Retour sur Investissement</h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="flex space-x-2 border-b border-gray-200 w-full">
+                                <button class="px-4 py-2 font-medium tab-active" data-tab="roi-overview">Aperçu</button>
+                                <button class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700" data-tab="roi-by-category">Par catégorie</button>
+                                <button class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700" data-tab="roi-by-supplier">Par fournisseur</button>
+                                <button class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700" data-tab="roi-settings">Paramètres</button>
+                            </div>
+                        </div>
+                        
+                        <div id="roi-overview-content">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                                <div class="bg-indigo-50 rounded-lg p-6">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-sm font-medium text-indigo-600">ROI moyen</p>
+                                            <p class="text-3xl font-bold text-indigo-800 mt-1">3.2x</p>
+                                            <p class="text-sm text-green-500 mt-1 flex items-center">
+                                                <i class="fas fa-arrow-up mr-1"></i> 12% vs mois dernier
+                                            </p>
+                                        </div>
+                                        <div class="p-3 rounded-lg bg-white text-indigo-600">
+                                            <i class="fas fa-chart-line text-xl"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-green-50 rounded-lg p-6">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-sm font-medium text-green-600">Meilleure catégorie</p>
+                                            <p class="text-3xl font-bold text-green-800 mt-1">Marketing</p>
+                                            <p class="text-sm text-green-500 mt-1">4.2x ROI</p>
+                                        </div>
+                                        <div class="p-3 rounded-lg bg-white text-green-600">
+                                            <i class="fas fa-ad text-xl"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-purple-50 rounded-lg p-6">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="text-sm font-medium text-purple-600">Meilleur fournisseur</p>
+                                            <p class="text-3xl font-bold text-purple-800 mt-1">Fournisseur B</p>
+                                            <p class="text-sm text-green-500 mt-1">3.8x ROI</p>
+                                        </div>
+                                        <div class="p-3 rounded-lg bg-white text-purple-600">
+                                            <i class="fas fa-truck text-xl"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-800">Performance ROI sur 12 mois</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">€</button>
+                                        <button class="px-3 py-1 text-sm bg-white text-gray-500 rounded-lg hover:bg-gray-50">%</button>
+                                    </div>
+                                </div>
+                                <div class="h-80">
+                                    <canvas id="roiTrendChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="bg-white rounded-xl shadow-sm p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-800">ROI par catégorie</h3>
+                                        <button class="text-sm text-indigo-600 hover:text-indigo-800">Voir tout</button>
+                                    </div>
+                                    <div class="h-64">
+                                        <canvas id="roiByCategoryChart"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white rounded-xl shadow-sm p-6">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-800">ROI par fournisseur</h3>
+                                        <button class="text-sm text-indigo-600 hover:text-indigo-800">Voir tout</button>
+                                    </div>
+                                    <div class="h-64">
+                                        <canvas id="roiBySupplierChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="roi-by-category-content" class="hidden">
+                            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                                <div class="p-6 border-b border-gray-100">
+                                    <h3 class="text-lg font-semibold text-gray-800">Détails ROI par catégorie</h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dépenses</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenus générés</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tendance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200" id="roi-category-table">
+                                            <!-- Dynamically filled by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="roi-by-supplier-content" class="hidden">
+                            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                                <div class="p-6 border-b border-gray-100">
+                                    <h3 class="text-lg font-semibold text-gray-800">Détails ROI par fournisseur</h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fournisseur</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dépenses</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenus générés</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tendance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200" id="roi-supplier-table">
+                                            <!-- Dynamically filled by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="roi-settings-content" class="hidden">
+                            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                                <div class="p-6 border-b border-gray-100">
+                                    <h3 class="text-lg font-semibold text-gray-800">Paramètres ROI</h3>
+                                </div>
+                                <div class="p-6">
+                                    <form>
+                                        <div class="mb-6">
+                                            <label class="block text-gray-700 text-sm font-medium mb-2" for="roi-calculation-method">Méthode de calcul ROI</label>
+                                            <select id="roi-calculation-method" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                                <option value="simple">Simple (Revenus / Dépenses)</option>
+                                                <option value="net">Net (Revenus - Dépenses) / Dépenses</option>
+                                                <option value="custom">Personnalisée</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label class="block text-gray-700 text-sm font-medium mb-2">Période de calcul</label>
+                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                <div class="flex items-center">
+                                                    <input type="radio" id="roi-period-monthly" name="roi-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" checked>
+                                                    <label for="roi-period-monthly" class="ml-2 block text-sm text-gray-700">Mensuel</label>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <input type="radio" id="roi-period-quarterly" name="roi-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                                    <label for="roi-period-quarterly" class="ml-2 block text-sm text-gray-700">Trimestriel</label>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <input type="radio" id="roi-period-yearly" name="roi-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                                    <label for="roi-period-yearly" class="ml-2 block text-sm text-gray-700">Annuel</label>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <input type="radio" id="roi-period-custom" name="roi-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                                    <label for="roi-period-custom" class="ml-2 block text-sm text-gray-700">Personnalisé</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label class="block text-gray-700 text-sm font-medium mb-2" for="roi-custom-formula">Formule personnalisée</label>
+                                            <input type="text" id="roi-custom-formula" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Ex: (revenus - dépenses) / dépenses * 100" disabled>
+                                        </div>
+                                        
+                                        <div class="flex justify-end">
+                                            <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 mr-3">Annuler</button>
+                                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Enregistrer</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section (Hidden by default) -->
+            <section id="settings-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-lg font-semibold text-gray-800">Paramètres de l'application</h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="flex mb-6 border-b border-gray-200">
+                            <button class="px-4 py-2 font-medium tab-active" data-settings-tab="general">Général</button>
+                            <button class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700" data-settings-tab="notifications">Notifications</button>
+                            <button class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700" data-settings-tab="budgets">Budgets</button>
+                            <button class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700" data-settings-tab="backup">Sauvegarde</button>
+                        </div>
+                        
+                        <div id="general-settings-content">
+                            <form>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="business-name">Nom du commerce</label>
+                                        <input type="text" id="business-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200" value="Ma Boutique">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="business-currency">Devise</label>
+                                        <select id="business-currency" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                            <option value="EUR" selected>Euro (€)</option>
+                                            <option value="USD">Dollar US ($)</option>
+                                            <option value="GBP">Livre Sterling (£)</option>
+                                            <option value="CHF">Franc Suisse (CHF)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="fiscal-year-start">Début d'année fiscale</label>
+                                        <select id="fiscal-year-start" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                            <option value="0" selected>Janvier</option>
+                                            <option value="1">Février</option>
+                                            <option value="2">Mars</option>
+                                            <option value="3">Avril</option>
+                                            <option value="4">Mai</option>
+                                            <option value="5">Juin</option>
+                                            <option value="6">Juillet</option>
+                                            <option value="7">Août</option>
+                                            <option value="8">Septembre</option>
+                                            <option value="9">Octobre</option>
+                                            <option value="10">Novembre</option>
+                                            <option value="11">Décembre</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="date-format">Format de date</label>
+                                        <select id="date-format" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                            <option value="dd/MM/yyyy" selected>JJ/MM/AAAA</option>
+                                            <option value="MM/dd/yyyy">MM/JJ/AAAA</option>
+                                            <option value="yyyy-MM-dd">AAAA-MM-JJ</option>
+                                            <option value="dd MMM yyyy">JJ MMM AAAA</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 text-sm font-medium mb-2">Options d'affichage</label>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="show-currency-symbol" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                            <label for="show-currency-symbol" class="ml-2 block text-sm text-gray-700">Afficher le symbole de devise</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="show-thousand-separator" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                            <label for="show-thousand-separator" class="ml-2 block text-sm text-gray-700">Afficher les séparateurs de milliers</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="dark-mode" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                            <label for="dark-mode" class="ml-2 block text-sm text-gray-700">Mode sombre</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 mr-3">Annuler</button>
+                                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div id="notifications-settings-content" class="hidden">
+                            <form>
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 text-sm font-medium mb-2">Notifications par email</label>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label for="email-budget-alerts" class="block text-sm text-gray-700">Alertes de budget</label>
+                                                <p class="text-xs text-gray-500">Recevoir des alertes lorsque vos dépenses approchent du budget défini</p>
+                                            </div>
+                                            <input type="checkbox" id="email-budget-alerts" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label for="email-monthly-reports" class="block text-sm text-gray-700">Rapports mensuels</label>
+                                                <p class="text-xs text-gray-500">Recevoir un résumé de vos dépenses à la fin de chaque mois</p>
+                                            </div>
+                                            <input type="checkbox" id="email-monthly-reports" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label for="email-roi-updates" class="block text-sm text-gray-700">Mises à jour ROI</label>
+                                                <p class="text-xs text-gray-500">Recevoir des analyses périodiques sur votre retour sur investissement</p>
+                                            </div>
+                                            <input type="checkbox" id="email-roi-updates" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 text-sm font-medium mb-2">Notifications dans l'application</label>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label for="app-budget-alerts" class="block text-sm text-gray-700">Alertes de budget</label>
+                                                <p class="text-xs text-gray-500">Afficher des notifications lorsque vos dépenses approchent du budget défini</p>
+                                            </div>
+                                            <input type="checkbox" id="app-budget-alerts" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label for="app-supplier-updates" class="block text-sm text-gray-700">Mises à jour fournisseurs</label>
+                                                <p class="text-xs text-gray-500">Afficher des notifications sur les nouveaux produits ou promotions</p>
+                                            </div>
+                                            <input type="checkbox" id="app-supplier-updates" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 mr-3">Annuler</button>
+                                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div id="budgets-settings-content" class="hidden">
+                            <form>
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 text-sm font-medium mb-2">Période de budget</label>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div class="flex items-center">
+                                            <input type="radio" id="budget-period-monthly" name="budget-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" checked>
+                                            <label for="budget-period-monthly" class="ml-2 block text-sm text-gray-700">Mensuel</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="radio" id="budget-period-quarterly" name="budget-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                            <label for="budget-period-quarterly" class="ml-2 block text-sm text-gray-700">Trimestriel</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="radio" id="budget-period-yearly" name="budget-period" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                            <label for="budget-period-yearly" class="ml-2 block text-sm text-gray-700">Annuel</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 text-sm font-medium mb-2">Seuils d'alerte</label>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label for="alert-threshold-warning" class="block text-sm text-gray-700 mb-1">Avertissement</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="range" id="alert-threshold-warning" min="50" max="95" value="80" class="w-full">
+                                                <span id="warning-threshold-value" class="text-sm font-medium">80%</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label for="alert-threshold-critical" class="block text-sm text-gray-700 mb-1">Critique</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="range" id="alert-threshold-critical" min="80" max="100" value="95" class="w-full">
+                                                <span id="critical-threshold-value" class="text-sm font-medium">95%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 mr-3">Annuler</button>
+                                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div id="backup-settings-content" class="hidden">
+                            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-800">Sauvegarde automatique</h3>
+                                        <p class="text-sm text-gray-500">Configurez les sauvegardes automatiques de vos données</p>
+                                    </div>
+                                    <div class="p-3 rounded-lg bg-indigo-100 text-indigo-600">
+                                        <i class="fas fa-cloud-upload-alt text-xl"></i>
+                                    </div>
+                                </div>
+                                
+                                <form>
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="backup-frequency">Fréquence de sauvegarde</label>
+                                        <select id="backup-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                            <option value="daily">Quotidienne</option>
+                                            <option value="weekly" selected>Hebdomadaire</option>
+                                            <option value="monthly">Mensuelle</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="backup-time">Heure de sauvegarde</label>
+                                        <select id="backup-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                            <option value="0">Minuit</option>
+                                            <option value="1">1h du matin</option>
+                                            <option value="2">2h du matin</option>
+                                            <option value="3" selected>3h du matin</option>
+                                            <option value="4">4h du matin</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-medium mb-2" for="backup-location">Emplacement de sauvegarde</label>
+                                        <select id="backup-location" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                            <option value="local">Local (sur cet appareil)</option>
+                                            <option value="cloud" selected>Cloud (Google Drive)</option>
+                                            <option value="both">Les deux</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="flex justify-end">
+                                        <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 mr-3">Annuler</button>
+                                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Enregistrer</button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                                <div class="p-6 border-b border-gray-100">
+                                    <h3 class="text-lg font-semibold text-gray-800">Sauvegardes disponibles</h3>
+                                </div>
+                                <div class="divide-y divide-gray-200">
+                                    <div class="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="p-3 rounded-lg bg-blue-50 text-blue-600">
+                                                <i class="fas fa-file-archive text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-800">Sauvegarde complète - 15 Nov 2023</p>
+                                                <p class="text-sm text-gray-500">Toutes les données (12.5 MB)</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button class="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="p-3 rounded-lg bg-green-50 text-green-600">
+                                                <i class="fas fa-file-archive text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-800">Sauvegarde complète - 1 Nov 2023</p>
+                                                <p class="text-sm text-gray-500">Toutes les données (11.8 MB)</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button class="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="p-3 rounded-lg bg-purple-50 text-purple-600">
+                                                <i class="fas fa-file-archive text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-gray-800">Sauvegarde partielle - 25 Oct 2023</p>
+                                                <p class="text-sm text-gray-500">Dépenses et catégories (7.2 MB)</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button class="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Accounts Section (Hidden by default) -->
+            <section id="accounts-section" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">Gestion des comptes</h2>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center space-x-2" id="add-account-btn">
+                            <i class="fas fa-plus"></i>
+                            <span>Ajouter un compte</span>
+                        </button>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="relative w-64 mb-6">
+                            <input type="text" placeholder="Rechercher un utilisateur..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière connexion</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="accounts-table-body">
+                                    <!-- Dynamically filled by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Floating Action Button -->
+    <button class="fixed bottom-6 right-6 bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center floating-btn hover:bg-indigo-700 z-40" id="add-expense-btn">
+        <i class="fas fa-plus text-xl"></i>
+    </button>
+    
+    <!-- Add Expense Modal (Hidden by default) -->
+    <div class="modal modal-hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="expense-modal">
+        <div class="bg-white rounded-xl w-full max-w-md">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">Ajouter une dépense</h3>
+                <button class="text-gray-500 hover:text-gray-700" id="close-expense-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <form id="expense-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="amount">Montant (€)</label>
+                        <input type="number" id="amount" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="0.00" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="category">Catégorie</label>
+                        <select id="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200" required>
+                            <option value="">Sélectionner une catégorie</option>
+                            <!-- Dynamically filled by JS -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="supplier">Fournisseur</label>
+                        <select id="supplier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <option value="">Sélectionner un fournisseur</option>
+                            <!-- Dynamically filled by JS -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="date">Date</label>
+                        <input type="date" id="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="description">Description</label>
+                        <textarea id="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Détails de la dépense..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50" id="cancel-expense">Annuler</button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal (Hidden by default) -->
+    <div class="modal modal-hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="category-modal">
+        <div class="bg-white rounded-xl w-full max-w-md">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">Ajouter une catégorie</h3>
+                <button class="text-gray-500 hover:text-gray-700" id="close-category-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <form id="category-form">
+                    <div class
+</html>

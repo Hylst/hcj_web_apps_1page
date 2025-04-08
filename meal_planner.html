@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealPlanner by Geoffroy Streit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .timer-display {
+            font-family: 'Courier New', monospace;
+        }
+        .diet-filter.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-4xl font-bold text-blue-800">MealPlanner</h1>
+                <p class="text-gray-600">by Geoffroy Streit</p>
+            </div>
+            <div class="flex space-x-4">
+                <button id="language-toggle" class="px-4 py-2 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition">
+                    <i class="fas fa-language"></i> FR/EN
+                </button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
+                    <i class="fas fa-user"></i> Connexion
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - Meal Planning -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Week Navigation -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Planificateur de repas</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="px-4 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">Semaine 24</span>
+                            <button class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Week Calendar -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-gray-500 text-sm">
+                                    <th class="pb-2">Lundi</th>
+                                    <th class="pb-2">Mardi</th>
+                                    <th class="pb-2">Mercredi</th>
+                                    <th class="pb-2">Jeudi</th>
+                                    <th class="pb-2">Vendredi</th>
+                                    <th class="pb-2">Samedi</th>
+                                    <th class="pb-2">Dimanche</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="h-40">
+                                    <!-- Each day cell -->
+                                    <template id="day-cell-template">
+                                        <td class="border border-gray-200 p-1 align-top">
+                                            <div class="h-full flex flex-col">
+                                                <div class="text-center font-medium py-1">12</div>
+                                                <div class="flex-grow space-y-1 overflow-y-auto max-h-32">
+                                                    <!-- Meals will be added here dynamically -->
+                                                </div>
+                                                <button class="add-meal-btn mt-1 text-xs text-blue-600 hover:text-blue-800">
+                                                    <i class="fas fa-plus"></i> Ajouter
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </template>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recipe Suggestions -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Suggestions de recettes</h2>
+                        <div class="flex space-x-2">
+                            <button class="diet-filter px-3 py-1 rounded-full border border-gray-300 text-xs" data-diet="vegan">
+                                Vegan
+                            </button>
+                            <button class="diet-filter px-3 py-1 rounded-full border border-gray-300 text-xs" data-diet="gluten-free">
+                                Sans gluten
+                            </button>
+                            <button class="diet-filter px-3 py-1 rounded-full border border-gray-300 text-xs" data-diet="low-budget">
+                                Petit budget
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="recipe-grid">
+                        <!-- Recipe cards will be added here dynamically -->
+                        <template id="recipe-card-template">
+                            <div class="recipe-card bg-white rounded-lg overflow-hidden shadow-md border border-gray-100 transition duration-300">
+                                <img src="https://via.placeholder.com/300x200" alt="Recipe image" class="w-full h-40 object-cover">
+                                <div class="p-4">
+                                    <div class="flex justify-between items-start">
+                                        <h3 class="font-semibold text-lg mb-2">Nom de la recette</h3>
+                                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">30 min</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">Vegan</span>
+                                        <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Sans gluten</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">€€</span>
+                                        <button class="add-to-plan-btn px-3 py-1 bg-blue-600 text-white text-sm rounded-full hover:bg-blue-700">
+                                            Ajouter au planning
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Tools -->
+            <div class="space-y-8">
+                <!-- Shopping List -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold text-gray-800">Liste de courses</h2>
+                        <button class="px-3 py-1 bg-green-600 text-white rounded-full text-sm hover:bg-green-700">
+                            <i class="fas fa-share-alt"></i> Partager
+                        </button>
+                    </div>
+                    <div class="space-y-3" id="shopping-list">
+                        <div class="flex items-center">
+                            <input type="checkbox" class="mr-3 h-5 w-5">
+                            <span class="flex-grow">Tomates (500g)</span>
+                            <button class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <!-- Items will be added here dynamically -->
+                    </div>
+                    <div class="mt-4 flex">
+                        <input type="text" placeholder="Ajouter un ingrédient" class="flex-grow px-3 py-2 border border-gray-300 rounded-l-full">
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-r-full hover:bg-blue-700">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <p class="font-medium">Budget estimé: <span class="text-green-600">€45.20</span></p>
+                    </div>
+                </div>
+
+                <!-- Cooking Timer -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Minuteur de cuisson</h2>
+                    <div class="flex flex-col items-center">
+                        <div class="timer-display text-5xl font-mono mb-6">00:00</div>
+                        <div class="flex space-x-4">
+                            <button class="timer-control px-6 py-3 bg-green-600 text-white rounded-full hover:bg-green-700">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="timer-control px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+                        <div class="mt-6 w-full">
+                            <input type="range" min="1" max="120" value="30" class="w-full">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span>1 min</span>
+                                <span>30 min</span>
+                                <span>120 min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kitchen Tools -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Ustensiles nécessaires</h2>
+                    <div class="space-y-2" id="tools-list">
+                        <div class="flex items-center">
+                            <i class="fas fa-blender text-gray-700 mr-3"></i>
+                            <span>Mixeur</span>
+                        </div>
+                        <!-- Tools will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipe Modal (hidden by default) -->
+        <div id="recipe-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+                    <h3 class="text-2xl font-semibold">Détails de la recette</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2">
+                            <img src="https://via.placeholder.com/800x500" alt="Recipe image" class="w-full rounded-lg mb-4">
+                            <h4 class="text-xl font-semibold mb-2">Instructions</h4>
+                            <ol class="list-decimal pl-5 space-y-2">
+                                <li>Préchauffer le four à 180°C.</li>
+                                <li>Préparer les légumes en les coupant en dés.</li>
+                                <li>Mélanger tous les ingrédients dans un saladier.</li>
+                                <li>Cuire au four pendant 30 minutes.</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold mb-2">Ingrédients</h4>
+                            <ul class="space-y-2 mb-6" id="modal-ingredients">
+                                <li class="flex items-center">
+                                    <input type="checkbox" class="mr-2">
+                                    <span>2 tomates</span>
+                                </li>
+                            </ul>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold mb-2">Informations nutritionnelles</h4>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <div>Calories: 350</div>
+                                    <div>Protéines: 15g</div>
+                                    <div>Glucides: 45g</div>
+                                    <div>Lipides: 10g</div>
+                                </div>
+                            </div>
+                            <button class="w-full mt-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                Ajouter à mon planning
+                            </button>
+                            <button class="w-full mt-2 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50">
+                                <i class="fas fa-share-alt mr-2"></i>Partager cette recette
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample data
+            const sampleRecipes = [
+                {
+                    id: 1,
+                    name: "Salade de quinoa aux légumes",
+                    time: 25,
+                    diet: ["vegan", "gluten-free"],
+                    budget: "€",
+                    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
+                },
+                {
+                    id: 2,
+                    name: "Curry de lentilles coco",
+                    time: 40,
+                    diet: ["vegan", "low-budget"],
+                    budget: "€",
+                    image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
+                },
+                {
+                    id: 3,
+                    name: "Poulet rôti aux herbes",
+                    time: 60,
+                    diet: ["gluten-free"],
+                    budget: "€€",
+                    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
+                },
+                {
+                    id: 4,
+                    name: "Pâtes carbonara végétales",
+                    time: 30,
+                    diet: ["vegan"],
+                    budget: "€€",
+                    image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
+                },
+                {
+                    id: 5,
+                    name: "Soupe de potiron",
+                    time: 35,
+                    diet: ["vegan", "gluten-free", "low-budget"],
+                    budget: "€",
+                    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
+                },
+                {
+                    id: 6,
+                    name: "Tartare d'avocat",
+                    time: 15,
+                    diet: ["vegan", "gluten-free"],
+                    budget: "€€",
+                    image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
+                }
+            ];
+
+            const sampleIngredients = [
+                "Quinoa (200g)", "Tomates (2)", "Concombre (1)", "Poivron rouge (1)", 
+                "Oignon rouge (1)", "Persil frais", "Jus de citron", "Huile d'olive"
+            ];
+
+            const sampleTools = [
+                { name: "Casserole", icon: "fa-utensil-spoon" },
+                { name: "Saladier", icon: "fa-bowl-food" },
+                { name: "Couteau", icon: "fa-knife" },
+                { name: "Planche à découper", icon: "fa-utensils" }
+            ];
+
+            // Initialize calendar
+            function initCalendar() {
+                const calendarBody = document.querySelector('tbody');
+                calendarBody.innerHTML = '';
+                
+                const row = document.createElement('tr');
+                row.className = 'h-40';
+                
+                for (let i = 0; i < 7; i++) {
+                    const dayCellTemplate = document.getElementById('day-cell-template');
+                    const dayCell = dayCellTemplate.content.cloneNode(true);
+                    
+                    const date = new Date();
+                    date.setDate(date.getDate() + i);
+                    const dayNumber = date.getDate();
+                    
+                    const dayDiv = dayCell.querySelector('.text-center');
+                    dayDiv.textContent = dayNumber;
+                    
+                    row.appendChild(dayCell);
+                }
+                
+                calendarBody.appendChild(row);
+                
+                // Add event listeners to "Add meal" buttons
+                document.querySelectorAll('.add-meal-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        // In a real app, this would open a meal selection modal
+                        alert('Fonctionnalité pour ajouter un repas');
+                    });
+                });
+            }
+
+            // Display recipe cards
+            function displayRecipes(recipes) {
+                const recipeGrid = document.getElementById('recipe-grid');
+                recipeGrid.innerHTML = '';
+                
+                const recipeCardTemplate = document.getElementById('recipe-card-template');
+                
+                recipes.forEach(recipe => {
+                    const card = recipeCardTemplate.content.cloneNode(true);
+                    
+                    // Fill in recipe data
+                    card.querySelector('img').src = recipe.image;
+                    card.querySelector('img').alt = recipe.name;
+                    card.querySelector('h3').textContent = recipe.name;
+                    card.querySelector('span.bg-green-100').textContent = `${recipe.time} min`;
+                    
+                    // Clear diet tags
+                    const dietTagsContainer = card.querySelector('.flex.flex-wrap.gap-1.mb-3');
+                    dietTagsContainer.innerHTML = '';
+                    
+                    // Add diet tags
+                    recipe.diet.forEach(diet => {
+                        let bgClass, textClass, displayText;
+                        
+                        switch(diet) {
+                            case 'vegan':
+                                bgClass = 'bg-blue-100';
+                                textClass = 'text-blue-800';
+                                displayText = 'Vegan';
+                                break;
+                            case 'gluten-free':
+                                bgClass = 'bg-purple-100';
+                                textClass = 'text-purple-800';
+                                displayText = 'Sans gluten';
+                                break;
+                            case 'low-budget':
+                                bgClass = 'bg-green-100';
+                                textClass = 'text-green-800';
+                                displayText = 'Petit budget';
+                                break;
+                        }
+                        
+                        const tag = document.createElement('span');
+                        tag.className = `${bgClass} ${textClass} text-xs px-2 py-1 rounded-full`;
+                        tag.textContent = displayText;
+                        dietTagsContainer.appendChild(tag);
+                    });
+                    
+                    // Budget
+                    card.querySelector('.text-sm.text-gray-600').textContent = recipe.budget;
+                    
+                    // Add event listener to "Add to plan" button
+                    card.querySelector('.add-to-plan-btn').addEventListener('click', function() {
+                        // In a real app, this would add the recipe to the meal plan
+                        alert(`Recette "${recipe.name}" ajoutée au planning`);
+                    });
+                    
+                    // Add click event to show recipe details
+                    card.querySelector('.recipe-card').addEventListener('click', function() {
+                        showRecipeModal(recipe);
+                    });
+                    
+                    recipeGrid.appendChild(card);
+                });
+            }
+
+            // Show recipe modal
+            function showRecipeModal(recipe) {
+                const modal = document.getElementById('recipe-modal');
+                const modalTitle = modal.querySelector('h3');
+                const modalImage = modal.querySelector('img');
+                const ingredientsList = modal.querySelector('#modal-ingredients');
+                
+                // Set recipe data
+                modalTitle.textContent = recipe.name;
+                modalImage.src = recipe.image;
+                modalImage.alt = recipe.name;
+                
+                // Add ingredients
+                ingredientsList.innerHTML = '';
+                sampleIngredients.forEach(ingredient => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mr-2';
+                    
+                    const span = document.createElement('span');
+                    span.textContent = ingredient;
+                    
+                    li.appendChild(checkbox);
+                    li.appendChild(span);
+                    ingredientsList.appendChild(li);
+                });
+                
+                // Show modal
+                modal.classList.remove('hidden');
+            }
+
+            // Initialize shopping list
+            function initShoppingList() {
+                const shoppingList = document.getElementById('shopping-list');
+                
+                // Add sample items
+                sampleIngredients.forEach(ingredient => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mr-3 h-5 w-5';
+                    
+                    const span = document.createElement('span');
+                    span.className = 'flex-grow';
+                    span.textContent = ingredient;
+                    
+                    const button = document.createElement('button');
+                    button.className = 'text-red-500 hover:text-red-700';
+                    
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-trash';
+                    
+                    button.appendChild(icon);
+                    
+                    div.appendChild(checkbox);
+                    div.appendChild(span);
+                    div.appendChild(button);
+                    
+                    shoppingList.appendChild(div);
+                });
+            }
+
+            // Initialize kitchen tools
+            function initKitchenTools() {
+                const toolsList = document.getElementById('tools-list');
+                
+                sampleTools.forEach(tool => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center';
+                    
+                    const icon = document.createElement('i');
+                    icon.className = `fas ${tool.icon} text-gray-700 mr-3`;
+                    
+                    const span = document.createElement('span');
+                    span.textContent = tool.name;
+                    
+                    div.appendChild(icon);
+                    div.appendChild(span);
+                    
+                    toolsList.appendChild(div);
+                });
+            }
+
+            // Timer functionality
+            function initTimer() {
+                const timerDisplay = document.querySelector('.timer-display');
+                const timerControlButtons = document.querySelectorAll('.timer-control');
+                const timerSlider = document.querySelector('input[type="range"]');
+                
+                let timerInterval;
+                let timeLeft = 1800; // 30 minutes in seconds
+                
+                // Format time as MM:SS
+                function formatTime(seconds) {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                
+                // Update timer display
+                function updateTimerDisplay() {
+                    timerDisplay.textContent = formatTime(timeLeft);
+                }
+                
+                // Start timer
+                function startTimer() {
+                    if (timerInterval) clearInterval(timerInterval);
+                    
+                    timerInterval = setInterval(() => {
+                        if (timeLeft <= 0) {
+                            clearInterval(timerInterval);
+                            alert('Temps écoulé !');
+                            return;
+                        }
+                        
+                        timeLeft--;
+                        updateTimerDisplay();
+                    }, 1000);
+                }
+                
+                // Stop timer
+                function stopTimer() {
+                    clearInterval(timerInterval);
+                }
+                
+                // Reset timer
+                function resetTimer() {
+                    clearInterval(timerInterval);
+                    timeLeft = parseInt(timerSlider.value) * 60;
+                    updateTimerDisplay();
+                }
+                
+                // Event listeners
+                timerControlButtons[0].addEventListener('click', startTimer); // Play button
+                timerControlButtons[1].addEventListener('click', stopTimer); // Stop button
+                
+                timerSlider.addEventListener('input', function() {
+                    timeLeft = parseInt(this.value) * 60;
+                    updateTimerDisplay();
+                });
+                
+                // Initialize display
+                updateTimerDisplay();
+            }
+
+            // Diet filter functionality
+            function initDietFilters() {
+                const dietFilters = document.querySelectorAll('.diet-filter');
+                
+                dietFilters.forEach(filter => {
+                    filter.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        
+                        const selectedDiets = Array.from(document.querySelectorAll('.diet-filter.active'))
+                            .map(btn => btn.dataset.diet);
+                        
+                        if (selectedDiets.length === 0) {
+                            displayRecipes(sampleRecipes);
+                        } else {
+                            const filteredRecipes = sampleRecipes.filter(recipe => 
+                                selectedDiets.some(diet => recipe.diet.includes(diet))
+                            );
+                            displayRecipes(filteredRecipes);
+                        }
+                    });
+                });
+            }
+
+            // Close modal
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('recipe-modal').classList.add('hidden');
+            });
+
+            // Language toggle
+            document.getElementById('language-toggle').addEventListener('click', function() {
+                // In a real app, this would toggle between French and English
+                alert('Fonctionnalité de changement de langue');
+            });
+
+            // Initialize all components
+            initCalendar();
+            displayRecipes(sampleRecipes);
+            initShoppingList();
+            initKitchenTools();
+            initTimer();
+            initDietFilters();
+        });
+    </script>
+</body>
+</html>
