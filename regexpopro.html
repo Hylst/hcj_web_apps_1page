@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Regex - Générateur d'expressions régulières</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+        }
+        .pattern-bg {
+            background-color: #f8fafc;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a777e3' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .regex-card {
+            transition: all 0.3s ease;
+        }
+        .regex-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+        .copy-btn:hover {
+            background-color: #4f46e5;
+        }
+        .test-area {
+            min-height: 150px;
+        }
+        .match-highlight {
+            background-color: rgba(167, 119, 227, 0.3);
+            border-bottom: 2px solid #6e8efb;
+        }
+        .cheatsheet-item {
+            transition: all 0.2s ease;
+        }
+        .cheatsheet-item:hover {
+            background-color: #f3f4f6;
+            transform: translateX(5px);
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="pattern-bg min-h-screen">
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <h1 class="text-3xl md:text-4xl font-bold mb-2">Easy Regex</h1>
+                    <p class="text-lg opacity-90">Générateur d'expressions régulières pour vos besoins courants</p>
+                    <p class="text-sm opacity-80 mt-1">Créé par Geoffroy Streit</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                        <i class="fas fa-code text-2xl"></i>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-2 rounded-full">
+                        <i class="fas fa-terminal text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Section Génération de Regex -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Générateur de Regex</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Carte Email -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-purple-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-envelope text-purple-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Email</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les adresses email standard</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-purple-600 font-mono break-all" id="email-regex">/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-purple-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('email-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Nombre -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-hashtag text-blue-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Nombre</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les nombres entiers et décimaux</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-blue-600 font-mono break-all" id="number-regex">/^-?\d+(\.\d+)?$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('number-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Variable JS -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-green-100 p-3 rounded-full mr-4">
+                                <i class="fab fa-js text-green-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Variable JS</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les noms de variables JavaScript</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-green-600 font-mono break-all" id="jsvar-regex">/^[a-zA-Z_$][a-zA-Z0-9_$]*$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-green-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('jsvar-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Variable Python -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-yellow-100 p-3 rounded-full mr-4">
+                                <i class="fab fa-python text-yellow-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Variable Python</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les noms de variables Python</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-yellow-600 font-mono break-all" id="pyvar-regex">/^[a-zA-Z_][a-zA-Z0-9_]*$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-yellow-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('pyvar-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte URL -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-red-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-link text-red-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">URL</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les URLs web standard</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-red-600 font-mono break-all" id="url-regex">/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-red-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('url-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Mot de passe -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-lock text-indigo-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Mot de passe</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">8+ caractères avec majuscule, minuscule et chiffre</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-indigo-600 font-mono break-all" id="password-regex">/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-indigo-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('password-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Noms de fichiers vidéo/musicaux -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-pink-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-file-video text-pink-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Fichiers média</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Extrait les noms de fichiers vidéo/musicaux</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-pink-600 font-mono break-all" id="media-regex">/([^\/\\]+?)\.(mp4|mov|avi|mkv|mp3|flac|wav|aac)$/i</code>
+                        </div>
+                        <button class="copy-btn w-full bg-pink-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('media-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Nom Prénom -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-teal-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-user text-teal-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Nom Prénom</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les noms et prénoms avec accents</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-teal-600 font-mono break-all" id="name-regex">/^[A-Za-zÀ-ÖØ-öø-ÿ]+([ \-'][A-Za-zÀ-ÖØ-öø-ÿ]+)*$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-teal-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('name-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Numéro de téléphone -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-amber-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-phone text-amber-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Téléphone FR</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les numéros de téléphone français</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-amber-600 font-mono break-all" id="phone-regex">/(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-amber-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('phone-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Code postal -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-cyan-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-map-marker-alt text-cyan-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Code postal FR</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les codes postaux français</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-cyan-600 font-mono break-all" id="zip-regex">/^(?:0[1-9]|[1-8]\d|9[0-8])\d{3}$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-cyan-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('zip-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Date -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-emerald-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-calendar-alt text-emerald-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Date (JJ/MM/AAAA)</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les dates au format français</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-emerald-600 font-mono break-all" id="date-regex">/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/(19|20)\d{2}$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-emerald-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('date-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carte Heure -->
+                <div class="regex-card bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-violet-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-clock text-violet-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800">Heure (HH:MM)</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Valide les heures au format 24h</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <code class="text-violet-600 font-mono break-all" id="time-regex">/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/</code>
+                        </div>
+                        <button class="copy-btn w-full bg-violet-600 text-white py-2 px-4 rounded-lg flex items-center justify-center" onclick="copyToClipboard('time-regex')">
+                            <i class="fas fa-copy mr-2"></i> Copier
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Tutoriel Regex -->
+        <section class="mb-12 bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Comprendre les Regex</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Qu'est-ce qu'une Regex ?</h3>
+                        <p class="text-gray-600 mb-4">
+                            Une expression régulière (Regex) est une séquence de caractères qui définit un modèle de recherche. 
+                            Elle est principalement utilisée pour la recherche de motifs et la manipulation de chaînes de caractères.
+                        </p>
+                        <p class="text-gray-600 mb-4">
+                            Les Regex sont extrêmement puissantes et sont supportées par la plupart des langages de programmation 
+                            comme JavaScript, Python, Java, C# et bien d'autres.
+                        </p>
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <h4 class="font-semibold text-blue-800 mb-2">Cas d'utilisation typiques :</h4>
+                            <ul class="text-blue-700 list-disc pl-5 space-y-1">
+                                <li>Validation de formulaires</li>
+                                <li>Recherche/remplacement dans du texte</li>
+                                <li>Extraction d'informations</li>
+                                <li>Nettoyage de données</li>
+                                <li>Analyse de logs</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Métacaractères courants</h3>
+                        <div class="space-y-2">
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">.</span> - <span class="font-medium">N'importe quel caractère</span> (sauf retour à la ligne)
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">\d</span> - <span class="font-medium">Un chiffre</span> (équivalent à [0-9])
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">\w</span> - <span class="font-medium">Caractère alphanumérique</span> (lettre, chiffre ou _)
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">\s</span> - <span class="font-medium">Espace blanc</span> (espace, tab, retour à la ligne)
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">^</span> - <span class="font-medium">Début</span> de la chaîne ou de la ligne
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">$</span> - <span class="font-medium">Fin</span> de la chaîne ou de la ligne
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">[abc]</span> - <span class="font-medium">Un des caractères</span> a, b ou c
+                            </div>
+                            <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                                <span class="font-mono bg-gray-200 px-2 py-1 rounded">[^abc]</span> - <span class="font-medium">N'importe quel caractère sauf</span> a, b ou c
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Quantificateurs</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">*</span> - <span class="font-medium">0 ou plusieurs</span> occurrences
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">+</span> - <span class="font-medium">1 ou plusieurs</span> occurrences
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">?</span> - <span class="font-medium">0 ou 1</span> occurrence
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">{n}</span> - <span class="font-medium">Exactement n</span> occurrences
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">{n,}</span> - <span class="font-medium">n ou plus</span> occurrences
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">{n,m}</span> - <span class="font-medium">Entre n et m</span> occurrences
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">*?</span> - <span class="font-medium">Version non gourmande</span> de *
+                        </div>
+                        <div class="cheatsheet-item bg-gray-50 p-3 rounded-lg">
+                            <span class="font-mono bg-gray-200 px-2 py-1 rounded">+?</span> - <span class="font-medium">Version non gourmande</span> de +
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Exemples pratiques</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <code class="text-gray-800 font-mono block mb-2">// Trouver tous les mots commençant par 'a'</code>
+                            <code class="text-gray-800 font-mono block">/\ba\w*\b/g</code>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <code class="text-gray-800 font-mono block mb-2">// Trouver des dates au format JJ-MM-AAAA</code>
+                            <code class="text-gray-800 font-mono block">/\b\d{2}-\d{2}-\d{4}\b/g</code>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <code class="text-gray-800 font-mono block mb-2">// Extraire les balises HTML</code>
+                            <code class="text-gray-800 font-mono block">/&lt;([a-z]+)([^&lt;]+)*(?:&gt;(.*?)&lt;\/\1&gt;|\s+\/&gt;)/gi</code>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <code class="text-gray-800 font-mono block mb-2">// Trouver les adresses IPv4</code>
+                            <code class="text-gray-800 font-mono block">/\b(?:\d{1,3}\.){3}\d{1,3}\b/g</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Testeur de Regex -->
+        <section class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Testeur de Regex</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="regex-input" class="block text-sm font-medium text-gray-700 mb-2">Votre expression régulière</label>
+                        <div class="flex">
+                            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                /
+                            </span>
+                            <input type="text" id="regex-input" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none border border-gray-300 focus:ring-purple-500 focus:border-purple-500" placeholder="Entrez votre regex">
+                            <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                /<span id="flags-display">g</span>
+                            </span>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="global-flag" checked class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                <label for="global-flag" class="ml-2 block text-sm text-gray-700 tooltip">
+                                    Global (g)
+                                    <span class="tooltiptext">Recherche toutes les correspondances</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="case-insensitive" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                <label for="case-insensitive" class="ml-2 block text-sm text-gray-700 tooltip">
+                                    Insensible casse (i)
+                                    <span class="tooltiptext">Ignore la casse (maj/min)</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="multiline-flag" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                <label for="multiline-flag" class="ml-2 block text-sm text-gray-700 tooltip">
+                                    Multiligne (m)
+                                    <span class="tooltiptext">^ et $ correspondent aux début/fin de ligne</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="dotall-flag" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+                                <label for="dotall-flag" class="ml-2 block text-sm text-gray-700 tooltip">
+                                    Dotall (s)
+                                    <span class="tooltiptext">Le point correspond aussi aux retours à la ligne</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="test-string" class="block text-sm font-medium text-gray-700 mb-2">Texte à tester</label>
+                        <textarea id="test-string" rows="4" class="test-area shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border border-gray-300 rounded-md p-3" placeholder="Entrez le texte à tester ici..."></textarea>
+                        <div class="mt-2 text-sm text-gray-500">
+                            <span id="char-count">0</span> caractères
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center mb-6">
+                    <button onclick="testRegex()" class="gradient-bg text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition duration-300 flex items-center">
+                        <i class="fas fa-play mr-2"></i> Tester la Regex
+                    </button>
+                </div>
+                
+                <div id="results" class="hidden">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Résultats</h3>
+                    <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                        <div id="regex-info" class="text-gray-800 font-mono mb-2"></div>
+                        <div id="matches-count" class="text-gray-800 font-medium mb-2"></div>
+                        <div id="matches-list" class="text-gray-800 bg-white p-3 rounded mt-2 max-h-40 overflow-y-auto"></div>
+                    </div>
+                    <div class="bg-gray-100 p-4 rounded-lg">
+                        <div class="text-gray-800 font-medium mb-2">Texte avec correspondances surlignées:</div>
+                        <div id="highlighted-text" class="text-gray-800 whitespace-pre-wrap bg-white p-3 rounded"></div>
+                    </div>
+                    <div class="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-100 hidden" id="replace-section">
+                        <h4 class="font-semibold text-blue-800 mb-2">Remplacement</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="replace-pattern" class="block text-sm font-medium text-gray-700 mb-1">Modèle de remplacement</label>
+                                <input type="text" id="replace-pattern" class="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border border-gray-300 rounded-md p-2" placeholder="Entrez le texte de remplacement">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="testReplace()" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition">
+                                    Tester remplacement
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3 bg-white p-3 rounded hidden" id="replace-result">
+                            <div class="text-gray-800 font-medium mb-1">Résultat:</div>
+                            <div id="replaced-text" class="text-gray-800 whitespace-pre-wrap"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="gradient-bg text-white py-6 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h2 class="text-xl font-bold">Easy Regex</h2>
+                    <p class="text-sm opacity-90">Générateur et testeur d'expressions régulières</p>
+                    <p class="text-xs opacity-80 mt-1">Créé par Geoffroy Streit</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-white hover:text-gray-200">
+                        <i class="fab fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="text-white hover:text-gray-200">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-white hover:text-gray-200">
+                        <i class="fas fa-envelope text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-6 text-center text-sm opacity-80">
+                &copy; 2023 Easy Regex. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Fonction pour copier le regex dans le presse-papier
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Changement temporaire du texte du bouton
+                const button = event.target.closest('button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check mr-2"></i> Copié!';
+                button.classList.remove('bg-' + button.classList[2].split('-')[1] + '-600');
+                button.classList.add('bg-green-600');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('bg-green-600');
+                    button.classList.add('bg-' + button.classList[2].split('-')[1] + '-600');
+                }, 2000);
+            }).catch(err => {
+                console.error('Erreur lors de la copie: ', err);
+            });
+        }
+        
+        // Mise à jour du compteur de caractères
+        document.getElementById('test-string').addEventListener('input', function() {
+            document.getElementById('char-count').textContent = this.value.length;
+        });
+        
+        // Mise à jour des flags affichés
+        function updateFlagsDisplay() {
+            let flags = '';
+            if (document.getElementById('global-flag').checked) flags += 'g';
+            if (document.getElementById('case-insensitive').checked) flags += 'i';
+            if (document.getElementById('multiline-flag').checked) flags += 'm';
+            if (document.getElementById('dotall-flag').checked) flags += 's';
+            
+            document.getElementById('flags-display').textContent = flags || '(aucun)';
+        }
+        
+        // Écouteurs pour les checkbox de flags
+        document.getElementById('global-flag').addEventListener('change', updateFlagsDisplay);
+        document.getElementById('case-insensitive').addEventListener('change', updateFlagsDisplay);
+        document.getElementById('multiline-flag').addEventListener('change', updateFlagsDisplay);
+        document.getElementById('dotall-flag').addEventListener('change', updateFlagsDisplay);
+        
+        // Fonction pour tester la regex
+        function testRegex() {
+            const regexInput = document.getElementById('regex-input').value;
+            const testString = document.getElementById('test-string').value;
+            
+            if (!regexInput) {
+                alert('Veuillez entrer une expression régulière');
+                return;
+            }
+            
+            if (!testString) {
+                alert('Veuillez entrer un texte à tester');
+                return;
+            }
+            
+            try {
+                // Récupérer les flags sélectionnés
+                let flags = '';
+                if (document.getElementById('global-flag').checked) flags += 'g';
+                if (document.getElementById('case-insensitive').checked) flags += 'i';
+                if (document.getElementById('multiline-flag').checked) flags += 'm';
+                if (document.getElementById('dotall-flag').checked) flags += 's';
+                
+                const regex = new RegExp(regexInput, flags);
+                
+                // Afficher les infos sur la regex
+                document.getElementById('regex-info').textContent = `Regex testée: /${regexInput}/${flags}`;
+                
+                // Trouver toutes les correspondances
+                const matches = testString.match(regex);
+                const matchesCount = matches ? matches.length : 0;
+                
+                // Afficher les résultats
+                const resultsDiv = document.getElementById('results');
+                const matchesCountDiv = document.getElementById('matches-count');
+                const matchesListDiv = document.getElementById('matches-list');
+                const highlightedTextDiv = document.getElementById('highlighted-text');
+                const replaceSection = document.getElementById('replace-section');
+                
+                matchesCountDiv.textContent = `Nombre de correspondances trouvées: ${matchesCount}`;
+                
+                if (matchesCount > 0) {
+                    matchesListDiv.innerHTML = '';
+                    matches.forEach((match, index) => {
+                        const matchDiv = document.createElement('div');
+                        matchDiv.className = 'mb-1 p-2 bg-gray-50 rounded';
+                        matchDiv.innerHTML = `<span class="font-semibold">#${index + 1}:</span> ${escapeHtml(match)}`;
+                        matchesListDiv.appendChild(matchDiv);
+                    });
+                    
+                    // Surligner les correspondances dans le texte
+                    let highlightedText = escapeHtml(testString);
+                    const regexGlobal = new RegExp(regexInput, flags + 'g');
+                    highlightedText = highlightedText.replace(regexGlobal, match => 
+                        `<span class="match-highlight">${escapeHtml(match)}</span>`
+                    );
+                    
+                    highlightedTextDiv.innerHTML = highlightedText;
+                    
+                    // Afficher la section de remplacement
+                    replaceSection.classList.remove('hidden');
+                    document.getElementById('replace-result').classList.add('hidden');
+                } else {
+                    matchesListDiv.textContent = 'Aucune correspondance trouvée.';
+                    highlightedTextDiv.textContent = escapeHtml(testString);
+                    replaceSection.classList.add('hidden');
+                }
+                
+                resultsDiv.classList.remove('hidden');
+            } catch (e) {
+                alert('Expression régulière invalide: ' + e.message);
+            }
+        }
+        
+        // Fonction pour tester le remplacement
+        function testReplace() {
+            const regexInput = document.getElementById('regex-input').value;
+            const testString = document.getElementById('test-string').value;
+            const replacePattern = document.getElementById('replace-pattern').value;
+            
+            if (!regexInput || !testString || !replacePattern) {
+                alert('Veuillez remplir tous les champs nécessaires');
+                return;
+            }
+            
+            try {
+                // Récupérer les flags sélectionnés
+                let flags = '';
+                if (document.getElementById('global-flag').checked) flags += 'g';
+                if (document.getElementById('case-insensitive').checked) flags += 'i';
+                if (document.getElementById('multiline-flag').checked) flags += 'm';
+                if (document.getElementById('dotall-flag').checked) flags += 's';
+                
+                const regex = new RegExp(regexInput, flags);
+                const replacedText = testString.replace(regex, replacePattern);
+                
+                // Afficher le résultat
+                const replaceResult = document.getElementById('replace-result');
+                document.getElementById('replaced-text').textContent = replacedText;
+                replaceResult.classList.remove('hidden');
+            } catch (e) {
+                alert('Erreur lors du remplacement: ' + e.message);
+            }
+        }
+        
+        // Fonction pour échapper les caractères HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
